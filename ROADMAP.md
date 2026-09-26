@@ -146,3 +146,30 @@ Cross-references, not new items: the AGP 8 to 9 migration in `Roadmap_Blocked.md
   Touches: `app/build.gradle.kts:443`, `app/gradle.lockfile`, `gradle/verification-metadata.xml`.
   Acceptance: both unit suites pass, the play and fdroid release builds shrink cleanly under R8, and a manual ring of a local tone, an internet radio stream and a Spotify alarm all behave as before.
   Complexity: S
+
+## Issue Intake (2026-09-26)
+
+Open GitHub issues checked against this list on 2026-09-26. #53 (Spotify playlist alarm rings silently, no backup sound, 1.15.32 on Android 11) is already covered by the three P1 items above that cite it. The items below come from https://github.com/SysAdminDoc/.github/issues/2, which was filed in the profile repository by mistake but is about this app.
+
+### P2
+
+- [ ] P2: Show the upcoming-alarm notification only for a chosen lead time (profile issue #2, part 1)
+  Reported: Sasukeuchiha43818, 2026-09-03, enhancement, filed at https://github.com/SysAdminDoc/.github/issues/2
+  Why: the upcoming-alarm notification stays on the shade and the lock screen from the moment an alarm is set until it fires, so anyone who picks up the phone sees the schedule, and the only way to clear it is to turn the alarm off.
+  Next: a per-alarm or global "show the notification N minutes before" setting (the reporter asks for 10 minutes), with the dismiss-before-it-rings action kept on that early notification.
+  Acceptance: with a 10 minute lead time, no notification exists 11 minutes before the alarm and one exists at 10 minutes; the lock screen shows nothing before the lead time.
+
+- [ ] P2: Repeat the selected challenges for a chosen number of cycles (profile issue #2, part 3)
+  Reported: Sasukeuchiha43818, 2026-09-03
+  Why: with several challenges selected, each runs once and the alarm dismisses. The reporter wants the whole set to cycle a chosen number of times (5 or 10) before the alarm can be dismissed.
+  Next: a "repeat the challenge set N times" setting on the alarm's challenge section, with the cycle count visible during the dismissal flow.
+
+- [ ] P2: Multiple-choice math challenge can be brute-forced (profile issue #2, comment of 2026-09-20)
+  Why: the math challenge offers four answers and keeps the same problem after a wrong pick, so tapping each option in turn dismisses the alarm without doing any arithmetic.
+  Next: a wrong answer regenerates the problem (or the answer set), or the challenge takes typed input instead of options.
+
+### P3
+
+- [ ] P3: Alarm setting descriptions are cut off on phone screens (profile issue #2, part 2)
+  Why: the explanation under settings such as "Show on lock screen" renders at a desktop-like width on the reporter's phone, so only half the text is visible and the setting's meaning is unclear (three screenshots attached to the issue).
+  Next: make the description text wrap to the screen width; check every settings description at 720 px wide and at font scale 1.3.
