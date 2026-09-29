@@ -291,26 +291,26 @@ async def persist_alarm_record(
     audit_entity_id: str | None = None,
     audit_detail: dict | None = None,
 ) -> dict:
-    # Save the alarm and its audit event before the single GitHub push. This
-    # prevents audit.json from making the working tree look dirty after an
-    # already-pushed alarm mutation, which could otherwise make refresh_sync
-    # push an obsolete Render copy over newer GitHub data.
-    stored = await usersync.save_scope(user_id, "alarms", record)
-    if audit_action:
-        await audit(
-            user_id,
-            audit_action,
-            audit_entity_id,
-            audit_detail,
-            push=False,
-        )
-
+    # Serialize the complete alarm mutation with GitHub pull/push activity.
+    # Without this lock, a background pull could replace DATA_DIR between the
+    # local write and the push, losing a just-created/edited/deleted alarm.
+    # The alarm row and its audit event therefore become one atomic durable
+    # operation from the server's point of view.
     async with _sync_lock:
-        pushed = await asyncio.to_thread(github_sync.push_data)
-    if not pushed:
-        raise HTTPException(503, "github_sync_failed_retry")
-    return stored
+        stored = await usersync.save_scope(user_id, "alarms", record)
+        if audit_action:
+            await audit(
+                user_id,
+                audit_action,
+                audit_entity_id,
+                audit_detail,
+                push=False,
+            )
 
+        pushed = await asyncio.to_thread(github_sync.push_data)
+        if not pushed:
+            raise HTTPException(503, "github_sync_failed_retry")
+        return stored
 
 async def mutate_alarm(
     user_id: str,
