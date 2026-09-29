@@ -94,23 +94,17 @@ class CloudSyncManager @Inject constructor(
 
                     val localId = mapping[item.id]
                     val local = localId?.let { repository.getById(it) }
-                        ?: findEquivalentLocal(item, mapping.values.toSet())
 
                     if (item.deletedAt != null) {
-                        if (local == null) {
-                            mapping.remove(item.id)
-                            snapshots.remove(item.id)
-                            versions.remove(item.id)
-                            continue
-                        }
-
-                        val localChanged = canonical(local) != snapshots[item.id]
-                        if (!localChanged) {
+                        // A remote tombstone wins over a stale local edit.
+                        // Never keep the local copy alive long enough to
+                        // resurrect a cloud-deleted alarm on a later push.
+                        if (local != null) {
                             repository.deleteById(local.id)
-                            mapping.remove(item.id)
-                            snapshots.remove(item.id)
-                            versions.remove(item.id)
                         }
+                        mapping.remove(item.id)
+                        snapshots.remove(item.id)
+                        versions.remove(item.id)
                         continue
                     }
 
@@ -128,8 +122,16 @@ class CloudSyncManager @Inject constructor(
                     mapping[item.id] = local.id
                     val localChanged = canonical(local) != snapshots[item.id]
                     if (localChanged) {
-                        // Local user edit wins this conflict. The subsequent
-                        // push uses the current remote version as its guard.
+                        // Another client changed the same alarm after our last
+                        // snapshot. The cloud version is authoritative for
+                        // background sync, so replace the stale local edit.
+                        val conflictWinner = remoteAlarm.copy(
+                            id = local.id,
+                            nextTriggerTime = 0L
+                        )
+                        repository.update(conflictWinner)
+                        applySchedule(conflictWinner)
+                        snapshots[item.id] = canonical(conflictWinner)
                         versions[item.id] = item.version
                         continue
                     }
@@ -193,24 +195,50 @@ class CloudSyncManager @Inject constructor(
         val local = repository.getAll()
         val localIds = local.map { it.id }.toSet()
 
-        // Room deletions become cloud tombstones.
+        // Room deletions become cloud tombstones. A stale delete never
+        // overwrites a newer cloud edit: the latest remote version wins and
+        // is restored locally rather than silently discarding that edit.
         for ((remoteId, localId) in mapping.toMap()) {
             if (localId !in localIds) {
                 val expected = versions[remoteId] ?: 0L
                 try {
                     val response = api.deleteAlarm(auth(), remoteId, expected)
                     onUpdatedAt(response.updatedAt)
+                    mapping.remove(remoteId)
+                    snapshots.remove(remoteId)
+                    versions.remove(remoteId)
                 } catch (e: HttpException) {
-                    if (e.code() != 404 && e.code() != 409) throw e
-                    val latest = fetchRemoteItem(remoteId)
-                    if (latest != null && latest.deletedAt == null) {
-                        val response = api.deleteAlarm(auth(), remoteId, latest.version)
-                        onUpdatedAt(response.updatedAt)
+                    when (e.code()) {
+                        404 -> {
+                            mapping.remove(remoteId)
+                            snapshots.remove(remoteId)
+                            versions.remove(remoteId)
+                        }
+                        409 -> {
+                            val latest = fetchRemoteItem(remoteId)
+                                ?: throw IllegalStateException("remote_alarm_missing")
+                            if (latest.deletedAt != null) {
+                                // The remote delete is newer. Keep it deleted.
+                                mapping.remove(remoteId)
+                                snapshots.remove(remoteId)
+                                versions.remove(remoteId)
+                            } else {
+                                val remoteAlarm = decodeAlarm(latest)
+                                    ?: throw IllegalStateException("remote_alarm_invalid")
+                                val restoredId = repository.save(
+                                    remoteAlarm.copy(id = 0L, nextTriggerTime = 0L)
+                                )
+                                val restored = repository.getById(restoredId)
+                                    ?: remoteAlarm.copy(id = restoredId, nextTriggerTime = 0L)
+                                applySchedule(restored)
+                                mapping[remoteId] = restoredId
+                                snapshots[remoteId] = canonical(restored)
+                                versions[remoteId] = latest.version
+                            }
+                        }
+                        else -> throw e
                     }
                 }
-                mapping.remove(remoteId)
-                snapshots.remove(remoteId)
-                versions.remove(remoteId)
             }
         }
 
@@ -223,8 +251,9 @@ class CloudSyncManager @Inject constructor(
 
             if (snapshot == null || localPayload != snapshot) {
                 val expected = versions[remoteId] ?: 0L
-                val response = try {
-                    api.putAlarm(
+                var response: CloudAlarmWriteResponse? = null
+                try {
+                    response = api.putAlarm(
                         auth(),
                         remoteId,
                         CloudAlarmWriteRequest(
@@ -234,33 +263,41 @@ class CloudSyncManager @Inject constructor(
                     )
                 } catch (e: HttpException) {
                     if (e.code() != 409) throw e
+
+                    // Another client won the race. Never retry the stale local
+                    // payload against the newer version: that would turn a
+                    // conflict into an implicit overwrite.
                     val latest = fetchRemoteItem(remoteId)
                         ?: throw IllegalStateException("remote_alarm_missing")
+
                     if (latest.deletedAt != null) {
-                        api.putAlarm(
-                            auth(),
-                            remoteId,
-                            CloudAlarmWriteRequest(
-                                payload = alarmPayload(alarm),
-                                expectedVersion = latest.version
-                            )
-                        )
+                        // Remote deletion wins. Stale Android edits cannot
+                        // resurrect an alarm deleted on the web.
+                        repository.deleteById(alarm.id)
+                        mapping.remove(remoteId)
+                        snapshots.remove(remoteId)
+                        versions.remove(remoteId)
                     } else {
-                        api.putAlarm(
-                            auth(),
-                            remoteId,
-                            CloudAlarmWriteRequest(
-                                payload = alarmPayload(alarm),
-                                expectedVersion = latest.version
-                            )
+                        val remoteAlarm = decodeAlarm(latest)
+                            ?: throw IllegalStateException("remote_alarm_invalid")
+                        val conflictWinner = remoteAlarm.copy(
+                            id = alarm.id,
+                            nextTriggerTime = 0L
                         )
+                        repository.update(conflictWinner)
+                        applySchedule(conflictWinner)
+                        mapping[remoteId] = alarm.id
+                        snapshots[remoteId] = canonical(conflictWinner)
+                        versions[remoteId] = latest.version
                     }
+                    continue
                 }
 
+                val committed = response ?: throw IllegalStateException("alarm_write_missing_response")
                 mapping[remoteId] = alarm.id
                 snapshots[remoteId] = localPayload
-                versions[remoteId] = response.version
-                onUpdatedAt(response.updatedAt)
+                versions[remoteId] = committed.version
+                onUpdatedAt(committed.updatedAt)
             } else {
                 mapping[remoteId] = alarm.id
             }
@@ -270,15 +307,6 @@ class CloudSyncManager @Inject constructor(
     private suspend fun fetchRemoteItem(remoteId: String): CloudAlarmDto? {
         val remote = api.getAlarms(auth(), EPOCH)
         return remote.alarms.firstOrNull { it.id == remoteId }
-    }
-
-    private suspend fun findEquivalentLocal(
-        item: CloudAlarmDto,
-        mappedIds: Set<Long>
-    ): Alarm? {
-        val remote = decodeAlarm(item) ?: return null
-        return repository.getAll()
-            .firstOrNull { it.id !in mappedIds && canonical(it) == canonical(remote) }
     }
 
     private fun decodeAlarm(item: CloudAlarmDto): Alarm? {

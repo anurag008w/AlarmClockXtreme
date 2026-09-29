@@ -19,6 +19,8 @@ jobs:
           python-version: "3.12"
       - run: python -m pip install -r requirements.txt
       - run: python -m py_compile github_sync.py usersync.py server.py
+      - run: python -m unittest discover -s tests -v
+      - run: node --check public/app.js
 
   android:
     runs-on: ubuntu-latest

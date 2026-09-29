@@ -21,7 +21,7 @@ async function api(path, options = {}) {
     localStorage.removeItem("acx_token");
     showAuth();
   }
-  if (!response.ok) throw new Error(body.error || `request_failed_${response.status}`);
+  if (!response.ok) throw new Error(body.error || body.detail || `request_failed_${response.status}`);
   return body;
 }
 
@@ -46,9 +46,11 @@ async function authSubmit(event) {
     });
     state.token = data.token;
     state.user = data.user;
+    state.alarms = [];
     localStorage.setItem("acx_token", state.token);
+    localStorage.removeItem(cursorStorageKey());
     showApp();
-    await syncNow();
+    await syncNow({ forceFull: true });
     renderWorld();
     refreshActivity();
   } catch (error) {
@@ -65,11 +67,20 @@ function switchAuth(mode) {
   setAuthError("");
 }
 
-async function syncNow() {
-  $("syncState").textContent = "syncing…";
+function cursorStorageKey() {
+  return state.user?.id ? `acx_cursor_${state.user.id}` : "acx_cursor_anon";
+}
+
+async function syncNow({ forceFull = false, silent = false } = {}) {
+  if (!silent) $("syncState").textContent = "syncing…";
   try {
-    let cursor = localStorage.getItem("acx_cursor") || new Date(0).toISOString();
+    if (forceFull) state.alarms = [];
+    const cursorKey = cursorStorageKey();
+    const cursor = forceFull
+      ? new Date(0).toISOString()
+      : (localStorage.getItem(cursorKey) || new Date(0).toISOString());
     const data = await api(`/api/alarms?since=${encodeURIComponent(cursor)}`);
+
     for (const remote of data.alarms) {
       const existing = state.alarms.findIndex(a => a.id === remote.id);
       if (remote.deletedAt) {
@@ -80,15 +91,24 @@ async function syncNow() {
         state.alarms.push(remote);
       }
     }
-    localStorage.setItem("acx_cursor", data.cursor);
+
+    localStorage.setItem(cursorKey, data.cursor);
     state.alarms.sort((a,b) => String(a.payload?.hour ?? "").localeCompare(String(b.payload?.hour ?? "")));
-    $("syncState").textContent = "synced";
+    if (!silent) $("syncState").textContent = "synced";
     renderAlarms();
   } catch (error) {
-    $("syncState").textContent = "sync error";
-    if (error.message === "missing_token") showAuth();
+    if (!silent) $("syncState").textContent = "sync error";
+    if (error.message === "missing_token" || error.message === "invalid_token") showAuth();
+    throw error;
   }
 }
+
+async function refreshAfterConflict() {
+  state.editing = null;
+  try {
+    await syncNow({ forceFull: true, silent: true });
+    $("syncState").textContent = "conflict refreshed";
+  } catch {}
 
 function openAlarm(remote = null) {
   state.editing = remote;
@@ -142,6 +162,12 @@ async function saveAlarm(event) {
     $("syncState").textContent = "synced";
     refreshActivity();
   } catch (error) {
+    if (error.message === "version_conflict" || error.message === "alarm_deleted_conflict") {
+      await refreshAfterConflict();
+      if ($("alarmDialog").open) $("alarmDialog").close();
+      alert("This alarm changed on another device. The latest version was loaded and your stale edit was not applied.");
+      return;
+    }
     alert(error.message.replaceAll("_", " "));
   }
 }
@@ -151,12 +177,21 @@ async function deleteAlarm() {
   if (!id) return;
   if (!confirm("delete this alarm?")) return;
   try {
-    await api(`/api/alarms/${id}`, { method: "DELETE" });
+    await api(`/api/alarms/${id}`, {
+      method: "DELETE",
+      body: JSON.stringify({ expectedVersion: state.editing?.version || 0 })
+    });
     state.alarms = state.alarms.filter(a => a.id !== id);
     $("alarmDialog").close();
     renderAlarms();
     refreshActivity();
   } catch (error) {
+    if (error.message === "version_conflict" || error.message === "alarm_deleted_conflict") {
+      await refreshAfterConflict();
+      if ($("alarmDialog").open) $("alarmDialog").close();
+      alert("This alarm changed or was deleted on another device. The latest version was loaded and your stale delete was not applied.");
+      return;
+    }
     alert(error.message.replaceAll("_", " "));
   }
 }
@@ -189,14 +224,23 @@ function renderAlarms() {
     btn.addEventListener("click", async () => {
       const remote = state.alarms.find(x => x.id === btn.dataset.toggle);
       if (!remote) return;
-      await api(`/api/alarms/${remote.id}`, {
-        method: "PUT",
-        body: JSON.stringify({
-          payload: { ...remote.payload, isEnabled: !remote.payload.isEnabled },
-          expectedVersion: remote.version
-        })
-      });
-      await syncNow();
+      try {
+        await api(`/api/alarms/${remote.id}`, {
+          method: "PUT",
+          body: JSON.stringify({
+            payload: { ...remote.payload, isEnabled: !remote.payload.isEnabled },
+            expectedVersion: remote.version
+          })
+        });
+        await syncNow();
+      } catch (error) {
+        if (error.message === "version_conflict" || error.message === "alarm_deleted_conflict") {
+          await refreshAfterConflict();
+          alert("This alarm changed on another device. The latest version was loaded and your stale toggle was not applied.");
+          return;
+        }
+        alert(error.message.replaceAll("_", " "));
+      }
     })
   );
 }
@@ -285,7 +329,14 @@ async function refreshActivity() {
 $("authForm").addEventListener("submit", authSubmit);
 $("loginTab").onclick = () => switchAuth("login");
 $("registerTab").onclick = () => switchAuth("register");
-$("logoutBtn").onclick = () => { state.token = ""; localStorage.removeItem("acx_token"); showAuth(); };
+$("logoutBtn").onclick = () => {
+  state.token = "";
+  state.user = null;
+  state.alarms = [];
+  state.editing = null;
+  localStorage.removeItem("acx_token");
+  showAuth();
+};
 $("syncBtn").onclick = syncNow;
 $("newAlarmBtn").onclick = () => openAlarm();
 $("alarmForm").addEventListener("submit", saveAlarm);
@@ -330,6 +381,12 @@ function clockTick() {
 }
 setInterval(clockTick, 250);
 clockTick();
+
+setInterval(() => {
+  if (state.token && document.visibilityState === "visible") {
+    syncNow({ silent: true }).catch(() => {});
+  }
+}, 15000);
 
 (async function boot() {
   if (!state.token) return showAuth();

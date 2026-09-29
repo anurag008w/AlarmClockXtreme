@@ -43,6 +43,7 @@ app.add_middleware(
 
 _sync_task: asyncio.Task | None = None
 _sync_lock = asyncio.Lock()
+_alarm_lock = asyncio.Lock()
 
 
 class Credentials(BaseModel):
@@ -207,32 +208,43 @@ async def mutate_alarm(
     delete: bool = False,
     expected: int = 0,
 ) -> dict:
-    record = await alarms_record(user_id)
-    current = record["items"].get(alarm_id)
+    async with _alarm_lock:
+        record = await alarms_record(user_id)
+        current = record["items"].get(alarm_id)
 
-    if current and expected and int(current.get("version", 1)) != expected:
-        raise HTTPException(409, "version_conflict")
+        if current:
+            current_version = int(current.get("version", 1))
+            if expected <= 0:
+                raise HTTPException(409, "version_required")
+            if current_version != expected:
+                raise HTTPException(409, "version_conflict")
+            if current.get("deleted_at") and not delete:
+                # A tombstone is final for this alarm id. A stale client must
+                # create a new id rather than resurrecting this alarm.
+                raise HTTPException(409, "alarm_deleted_conflict")
+        elif delete:
+            raise HTTPException(404, "alarm_not_found")
 
-    version = int(current.get("version", 0)) + 1 if current else 1
-    updated_at = usersync.now_utc()
+        version = int(current.get("version", 0)) + 1 if current else 1
+        updated_at = usersync.now_utc()
 
-    item = {
-        "id": alarm_id,
-        "version": version,
-        "updated_at": updated_at,
-        "deleted_at": updated_at if delete else None,
-        "payload": None if delete else sanitize_alarm(payload or {}),
-    }
+        item = {
+            "id": alarm_id,
+            "version": version,
+            "updated_at": updated_at,
+            "deleted_at": updated_at if delete else None,
+            "payload": None if delete else sanitize_alarm(payload or {}),
+        }
 
-    record["items"][alarm_id] = item
-    await persist_alarm_record(user_id, record)
-    await audit(
-        user_id,
-        "delete" if delete else ("update" if current else "create"),
-        alarm_id,
-        {"version": version},
-    )
-    return item_response(item)
+        record["items"][alarm_id] = item
+        await persist_alarm_record(user_id, record)
+        await audit(
+            user_id,
+            "delete" if delete else ("update" if current else "create"),
+            alarm_id,
+            {"version": version},
+        )
+        return item_response(item)
 
 
 @app.on_event("startup")

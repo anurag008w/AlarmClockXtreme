@@ -1,0 +1,134 @@
+import asyncio
+import copy
+import os
+import unittest
+from unittest.mock import AsyncMock, patch
+
+os.environ.setdefault("JWT_SECRET", "test-secret")
+os.environ.setdefault("GH_TOKEN", "test-token")
+os.environ.setdefault("GITHUB_SYNC_ENABLED", "false")
+
+import server
+
+
+class AlarmConflictTests(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
+        self.records = {}
+
+        async def fake_alarms_record(user_id):
+            return self.records.setdefault(user_id, {"items": {}})
+
+        async def fake_persist(user_id, record):
+            self.records[user_id] = copy.deepcopy(record)
+            return record
+
+        self.patches = patch.multiple(
+            server,
+            alarms_record=AsyncMock(side_effect=fake_alarms_record),
+            persist_alarm_record=AsyncMock(side_effect=fake_persist),
+            audit=AsyncMock(),
+        )
+        self.patches.start()
+
+    async def asyncTearDown(self):
+        self.patches.stop()
+
+    async def test_stale_update_is_rejected(self):
+        created = await server.mutate_alarm(
+            "user-1", "alarm-1", {"hour": 7, "minute": 0, "label": "Morning"}
+        )
+        self.assertEqual(created["version"], 1)
+
+        updated = await server.mutate_alarm(
+            "user-1",
+            "alarm-1",
+            {"hour": 8, "minute": 0, "label": "Study"},
+            expected=1,
+        )
+        self.assertEqual(updated["version"], 2)
+
+        with self.assertRaises(server.HTTPException) as ctx:
+            await server.mutate_alarm(
+                "user-1",
+                "alarm-1",
+                {"hour": 9, "minute": 0, "label": "Stale"},
+                expected=1,
+            )
+        self.assertEqual(ctx.exception.status_code, 409)
+        self.assertEqual(ctx.exception.detail, "version_conflict")
+        self.assertEqual(self.records["user-1"]["items"]["alarm-1"]["version"], 2)
+        self.assertEqual(
+            self.records["user-1"]["items"]["alarm-1"]["payload"]["label"],
+            "Study",
+        )
+
+    async def test_delete_tombstone_cannot_be_resurrected(self):
+        await server.mutate_alarm(
+            "user-1", "alarm-1", {"hour": 7, "minute": 0, "label": "Morning"}
+        )
+        deleted = await server.mutate_alarm(
+            "user-1", "alarm-1", None, delete=True, expected=1
+        )
+        self.assertEqual(deleted["version"], 2)
+        self.assertIsNotNone(deleted["deletedAt"])
+
+        with self.assertRaises(server.HTTPException) as ctx:
+            await server.mutate_alarm(
+                "user-1",
+                "alarm-1",
+                {"hour": 8, "minute": 0, "label": "Resurrect"},
+                expected=2,
+            )
+        self.assertEqual(ctx.exception.status_code, 409)
+        self.assertEqual(ctx.exception.detail, "alarm_deleted_conflict")
+        self.assertIsNotNone(
+            self.records["user-1"]["items"]["alarm-1"]["deleted_at"]
+        )
+
+    async def test_missing_expected_version_cannot_overwrite_existing_alarm(self):
+        await server.mutate_alarm(
+            "user-1", "alarm-1", {"hour": 7, "minute": 0, "label": "Morning"}
+        )
+        with self.assertRaises(server.HTTPException) as ctx:
+            await server.mutate_alarm(
+                "user-1",
+                "alarm-1",
+                {"hour": 8, "minute": 0, "label": "Unsafe overwrite"},
+                expected=0,
+            )
+        self.assertEqual(ctx.exception.status_code, 409)
+        self.assertEqual(ctx.exception.detail, "version_required")
+
+    async def test_simultaneous_same_version_writes_serialize(self):
+        await server.mutate_alarm(
+            "user-1", "alarm-1", {"hour": 7, "minute": 0, "label": "Morning"}
+        )
+
+        results = await asyncio.gather(
+            server.mutate_alarm(
+                "user-1",
+                "alarm-1",
+                {"hour": 8, "minute": 0, "label": "Android"},
+                expected=1,
+            ),
+            server.mutate_alarm(
+                "user-1",
+                "alarm-1",
+                {"hour": 9, "minute": 0, "label": "Web"},
+                expected=1,
+            ),
+            return_exceptions=True,
+        )
+
+        successes = [result for result in results if not isinstance(result, Exception)]
+        conflicts = [result for result in results if isinstance(result, server.HTTPException)]
+
+        self.assertEqual(len(successes), 1)
+        self.assertEqual(len(conflicts), 1)
+        self.assertEqual(conflicts[0].status_code, 409)
+        self.assertEqual(conflicts[0].detail, "version_conflict")
+        self.assertEqual(self.records["user-1"]["items"]["alarm-1"]["version"], 2)
+
+
+if __name__ == "__main__":
+    unittest.main()
