@@ -126,6 +126,10 @@ class AlarmClockApp : Application(), Configuration.Provider {
             PeriodicWorkRequestBuilder<CloudSyncWorker>(15, TimeUnit.MINUTES).build()
         )
 
+        // Pull the persisted GitHub-backed alarm dataset immediately after
+        // app process start/unlock. The periodic worker remains the fallback.
+        CloudSyncWorker.enqueueImmediate(this)
+
         // Cloud sync watches Room while the process is alive, while WorkManager
         // provides a background fallback after the process is killed.
         appScope.launch {
