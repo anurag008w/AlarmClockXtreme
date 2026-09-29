@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import os
 import shutil
@@ -8,6 +9,7 @@ import subprocess
 import tempfile
 import time
 from pathlib import Path
+from typing import Any
 
 log = logging.getLogger("alarmclockxtreme.github_sync")
 
@@ -23,6 +25,8 @@ try:
 except ValueError:
     SYNC_INTERVAL = 30
 
+PUSH_RETRIES = 3
+
 _last_push_fingerprint = ""
 _last_pull_ok = False
 
@@ -32,14 +36,17 @@ def _redact(value: str) -> str:
 
 
 def _auth_url() -> str:
-    return "https://" + GH_TOKEN + "@github.com/" + DATA_REPO + ".git"
+    return "https://" + GH_TOKEN + "@" + "github.com/" + DATA_REPO + ".git"
 
 
 def _run(args: list[str], *, cwd: Path | None = None, timeout: int = 90):
     try:
         return subprocess.run(
-            args, cwd=str(cwd) if cwd else None, capture_output=True,
-            text=True, timeout=timeout
+            args,
+            cwd=str(cwd) if cwd else None,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
         )
     except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
         return type("Result", (), {
@@ -49,10 +56,140 @@ def _run(args: list[str], *, cwd: Path | None = None, timeout: int = 90):
         })()
 
 
+def _read_json(path: Path, default: Any) -> Any:
+    if not path.exists():
+        return default
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return default
+
+
+def _write_json(path: Path, value: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(
+        json.dumps(value, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    tmp.replace(path)
+
+
+def _timestamp(value: Any) -> str:
+    return str(value or "")
+
+
+def _merge_alarm_scope(local: Any, remote: Any) -> dict:
+    """
+    Merge the alarm dataset at item level instead of replacing the whole file.
+
+    Each alarm row carries its own updated_at and tombstones are first-class
+    rows. Newer rows win, so a stale Render copy cannot resurrect a newer
+    Android/web edit or delete. This is the critical protection needed when
+    more than one Render process/device races through the GitHub-backed store.
+    """
+    local_record = local if isinstance(local, dict) else {}
+    remote_record = remote if isinstance(remote, dict) else {}
+
+    local_items = local_record.get("items", {})
+    remote_items = remote_record.get("items", {})
+    if not isinstance(local_items, dict):
+        local_items = {}
+    if not isinstance(remote_items, dict):
+        remote_items = {}
+
+    merged_items = dict(remote_items)
+
+    for alarm_id, local_item in local_items.items():
+        if not isinstance(local_item, dict):
+            continue
+
+        remote_item = merged_items.get(alarm_id)
+        if not isinstance(remote_item, dict):
+            merged_items[alarm_id] = local_item
+            continue
+
+        local_ts = _timestamp(local_item.get("updated_at"))
+        remote_ts = _timestamp(remote_item.get("updated_at"))
+
+        if local_ts > remote_ts:
+            merged_items[alarm_id] = local_item
+        elif local_ts == remote_ts:
+            # Deterministic safety rule for the vanishingly unlikely timestamp
+            # tie: a tombstone beats a live row, never the other way around.
+            if local_item.get("deleted_at") and not remote_item.get("deleted_at"):
+                merged_items[alarm_id] = local_item
+
+    local_updated = _timestamp(local_record.get("updated_at"))
+    remote_updated = _timestamp(remote_record.get("updated_at"))
+
+    return {
+        "schema": max(
+            int(local_record.get("schema", 1) or 1),
+            int(remote_record.get("schema", 1) or 1),
+        ),
+        "updated_at": max(local_updated, remote_updated),
+        "items": merged_items,
+    }
+
+
+def _is_alarm_scope(relative: Path) -> bool:
+    parts = relative.parts
+    return len(parts) >= 3 and parts[-1] == "alarms.json" and parts[-3] == "sync"
+
+
+def _overlay_local_data(local_root: Path, remote_root: Path) -> None:
+    """
+    Start from the fresh GitHub checkout and overlay local changes.
+
+    Alarm scope files are merged per-row. Other local files are copied as
+    before, preserving the existing app's persistent data layout while making
+    alarm replication race-safe.
+    """
+    if not local_root.exists():
+        return
+
+    for item in local_root.rglob("*"):
+        if not item.is_file() or item.name.startswith(".") or item.name.endswith(".tmp"):
+            continue
+
+        relative = item.relative_to(local_root)
+        destination = remote_root / relative
+
+        if _is_alarm_scope(relative):
+            local_alarm = _read_json(item, {"schema": 1, "items": {}})
+            remote_alarm = _read_json(destination, {"schema": 1, "items": {}})
+            _write_json(destination, _merge_alarm_scope(local_alarm, remote_alarm))
+            continue
+
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(item, destination)
+
+
+def _replace_local_data_from(remote_root: Path) -> None:
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+    for item in list(DATA_DIR.iterdir()):
+        if item.name.startswith("."):
+            continue
+        if item.is_dir():
+            shutil.rmtree(item)
+        else:
+            item.unlink()
+
+    for item in remote_root.iterdir():
+        destination = DATA_DIR / item.name
+        if item.is_dir():
+            shutil.copytree(item, destination)
+        else:
+            shutil.copy2(item, destination)
+
+
 def compute_fingerprint() -> str:
     digest = hashlib.sha256()
     if not DATA_DIR.exists():
         return ""
+
     for item in sorted(DATA_DIR.rglob("*")):
         if not item.is_file() or item.name.endswith(".tmp"):
             continue
@@ -61,6 +198,7 @@ def compute_fingerprint() -> str:
             digest.update(item.read_bytes())
         except OSError:
             continue
+
     return digest.hexdigest()
 
 
@@ -89,10 +227,16 @@ def pull_data() -> bool:
     try:
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp) / "repo"
-            clone = _run(["git", "clone", "--depth", "1", _auth_url(), str(repo)], timeout=120)
+            clone = _run(
+                ["git", "clone", "--depth", "1", _auth_url(), str(repo)],
+                timeout=120,
+            )
             if clone.returncode != 0:
                 _last_pull_ok = False
-                log.warning("github pull failed: %s", _redact(clone.stderr[-500:]))
+                log.warning(
+                    "github pull failed: %s",
+                    _redact(clone.stderr[-500:]),
+                )
                 return False
 
             remote = repo / DATA_SUBDIR
@@ -102,20 +246,7 @@ def pull_data() -> bool:
                 mark_pushed()
                 return True
 
-            for item in DATA_DIR.iterdir():
-                if item.name.startswith("."):
-                    continue
-                if item.is_dir():
-                    shutil.rmtree(item)
-                else:
-                    item.unlink()
-
-            for item in remote.iterdir():
-                target = DATA_DIR / item.name
-                if item.is_dir():
-                    shutil.copytree(item, target)
-                else:
-                    shutil.copy2(item, target)
+            _replace_local_data_from(remote)
 
         _last_pull_ok = True
         mark_pushed()
@@ -135,53 +266,91 @@ def push_data(force: bool = False) -> bool:
     if not DATA_DIR.exists():
         return False
 
-    try:
-        with tempfile.TemporaryDirectory() as tmp:
-            repo = Path(tmp) / "repo"
-            clone = _run(["git", "clone", "--depth", "1", _auth_url(), str(repo)], timeout=120)
-            if clone.returncode != 0:
-                log.warning("github push clone failed: %s", _redact(clone.stderr[-500:]))
-                return False
+    for attempt in range(1, PUSH_RETRIES + 1):
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                repo = Path(tmp) / "repo"
 
-            target = repo / DATA_SUBDIR
-            if target.exists():
-                shutil.rmtree(target)
-            target.mkdir(parents=True, exist_ok=True)
-
-            for item in DATA_DIR.iterdir():
-                if item.name.startswith("."):
+                # Always clone the newest GitHub state for every attempt.
+                # This makes retries converge instead of retrying against an
+                # obsolete base after another device/process has pushed.
+                clone = _run(
+                    ["git", "clone", "--depth", "1", _auth_url(), str(repo)],
+                    timeout=120,
+                )
+                if clone.returncode != 0:
+                    log.warning(
+                        "github push clone failed (attempt %d/%d): %s",
+                        attempt,
+                        PUSH_RETRIES,
+                        _redact(clone.stderr[-500:]),
+                    )
                     continue
-                dst = target / item.name
-                if item.is_dir():
-                    shutil.copytree(item, dst)
-                else:
-                    shutil.copy2(item, dst)
 
-            _run(["git", "config", "user.name", "AlarmClockXtreme Sync"], cwd=repo)
-            _run(["git", "config", "user.email", "alarmclockxtreme-sync@users.noreply.github.com"], cwd=repo)
-            _run(["git", "add", "-A"], cwd=repo)
+                target = repo / DATA_SUBDIR
+                target.mkdir(parents=True, exist_ok=True)
 
-            commit = _run(
-                ["git", "commit", "-m", "alarmclockxtreme sync " + time.strftime("%Y-%m-%d %H:%M:%S UTC")],
-                cwd=repo
-            )
-            if commit.returncode != 0:
+                # Merge current local state into the fresh durable state. The
+                # alarm scope is item-level LWW with tombstone protection.
+                _overlay_local_data(DATA_DIR, target)
+
+                _run(
+                    ["git", "config", "user.name", "AlarmClockXtreme Sync"],
+                    cwd=repo,
+                )
+                _run(
+                    [
+                        "git",
+                        "config",
+                        "user.email",
+                        "alarmclockxtreme-sync@users.noreply.github.com",
+                    ],
+                    cwd=repo,
+                )
+                _run(["git", "add", "-A"], cwd=repo)
+
+                commit = _run(
+                    [
+                        "git",
+                        "commit",
+                        "-m",
+                        "alarmclockxtreme sync "
+                        + time.strftime("%Y-%m-%d %H:%M:%S UTC"),
+                    ],
+                    cwd=repo,
+                )
+
+                if commit.returncode != 0:
+                    # Nothing changed relative to the current GitHub state.
+                    _replace_local_data_from(target)
+                    mark_pushed()
+                    return True
+
+                push_args = ["git", "push", "origin", "HEAD:main"]
+                if force:
+                    push_args.append("--force-with-lease")
+
+                pushed = _run(push_args, cwd=repo, timeout=120)
+                if pushed.returncode != 0:
+                    log.warning(
+                        "github push failed (attempt %d/%d): %s",
+                        attempt,
+                        PUSH_RETRIES,
+                        _redact(pushed.stderr[-700:]),
+                    )
+                    continue
+
+                # Make the running service consume exactly the merged dataset
+                # that was committed, so web/Android requests immediately read
+                # the same state that is now durable in GitHub.
+                _replace_local_data_from(target)
                 mark_pushed()
                 return True
 
-            push_args = ["git", "push", "origin", "HEAD:main"]
-            if force:
-                push_args.append("--force-with-lease")
-            pushed = _run(push_args, cwd=repo, timeout=120)
-            if pushed.returncode != 0:
-                log.warning("github push failed: %s", _redact(pushed.stderr[-700:]))
-                return False
+        except Exception:
+            log.exception("github push crashed (attempt %d/%d)", attempt, PUSH_RETRIES)
 
-        mark_pushed()
-        return True
-    except Exception:
-        log.exception("github push crashed")
-        return False
+    return False
 
 
 def status() -> dict:
