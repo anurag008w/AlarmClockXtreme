@@ -8,13 +8,14 @@ import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.domain.NextAlarmCalculator
 import com.squareup.moshi.Moshi
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import retrofit2.HttpException
+import java.nio.charset.StandardCharsets
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -23,9 +24,16 @@ import javax.inject.Singleton
  * Bidirectional alarm sync.
  *
  * The cloud stores user alarm intent. Android-only scheduler state (Room id and
- * nextTriggerTime) stays local. A last-synced snapshot lets us tell a remote
- * edit from an unrelated local scheduler update, preventing web changes from
- * being silently overwritten by stale Room state.
+ * nextTriggerTime) stays local. A last-synced snapshot lets us tell a local
+ * edit from a remote edit.
+ *
+ * Sync is deliberately write-first: local create/edit/delete is pushed before
+ * remote changes are pulled. This prevents a fast remote watchdog from
+ * replacing a just-made local change with stale cloud data.
+ *
+ * Local mutations are durable through Room + sync metadata. Successful cloud
+ * writes persist their mapping/version immediately, so a process death after a
+ * server-side commit cannot create a duplicate or resurrect a delete.
  */
 @Singleton
 class CloudSyncManager @Inject constructor(
@@ -42,11 +50,16 @@ class CloudSyncManager @Inject constructor(
     @Volatile
     private var applyingRemote = false
 
-    // Build the reflective adapter lazily. A malformed/corrupt local model or
-    // future Moshi/R8 incompatibility must never crash app startup for users
-    // who are not even using cloud sync yet.
     private val alarmAdapter: com.squareup.moshi.JsonAdapter<Alarm> by lazy {
         moshi.adapter(Alarm::class.java)
+    }
+
+    private val mapAdapter: com.squareup.moshi.JsonAdapter<Map<String, Any?>> by lazy {
+        moshi.adapter(TypesHolder.mapType)
+    }
+
+    private val anyAdapter: com.squareup.moshi.JsonAdapter<Any> by lazy {
+        moshi.adapter(Any::class.java)
     }
 
     fun isLoggedIn(): Boolean = prefs.isLoggedIn()
@@ -56,22 +69,16 @@ class CloudSyncManager @Inject constructor(
     suspend fun login(email: String, password: String): Result<String> = runCatching {
         val response = api.login(CloudAuthRequest(email.trim(), password))
         prefs.saveSession(response.token, response.user.email)
-
-        // Authentication success must not be turned into a "login failed"
-        // screen just because Render/GitHub is temporarily unavailable.
         runCatching { registerDevice() }
         runCatching { syncNow(forceFull = true) }
-
         response.user.email
     }
 
     suspend fun register(email: String, password: String): Result<String> = runCatching {
         val response = api.register(CloudAuthRequest(email.trim(), password))
         prefs.saveSession(response.token, response.user.email)
-
         runCatching { registerDevice() }
         runCatching { syncNow(forceFull = true) }
-
         response.user.email
     }
 
@@ -95,8 +102,16 @@ class CloudSyncManager @Inject constructor(
             val versions = prefs.getVersions().toMutableMap()
 
             val since = if (forceFull) EPOCH else prefs.getCursor()
+            var cursor = since
+
+            // Local intent goes first. This is the key ordering guarantee for
+            // fast create/edit/delete propagation and stale-remote protection.
+            pushLocalChanges(mapping, snapshots, versions) { updatedAt ->
+                cursor = maxTimestamp(cursor, updatedAt)
+            }
+
             val remote = api.getAlarms(auth(), since)
-            var cursor = remote.cursor
+            cursor = maxTimestamp(cursor, remote.cursor)
 
             applyingRemote = true
             try {
@@ -106,9 +121,8 @@ class CloudSyncManager @Inject constructor(
                     val localId = mapping[item.id]
                     var local = localId?.let { repository.getById(it) }
 
-                    // On first login/install, mapping is empty. Reuse an
-                    // existing Android alarm when its canonical cloud intent
-                    // is identical instead of importing a duplicate alarm.
+                    // First login/install fallback: reuse an existing Android
+                    // alarm when its canonical cloud intent is identical.
                     if (local == null && item.deletedAt == null) {
                         val remoteAlarmForMatch = decodeAlarm(item)
                         if (remoteAlarmForMatch != null) {
@@ -117,19 +131,14 @@ class CloudSyncManager @Inject constructor(
                                 candidate.id !in usedIds &&
                                     canonical(candidate) == canonical(remoteAlarmForMatch)
                             }
-                            if (local != null) {
-                                mapping[item.id] = local.id
-                            }
+                            if (local != null) mapping[item.id] = local.id
                         }
                     }
 
                     if (item.deletedAt != null) {
-                        // A remote tombstone wins over a stale local edit.
-                        // Never keep the local copy alive long enough to
-                        // resurrect a cloud-deleted alarm on a later push.
-                        if (local != null) {
-                            repository.deleteById(local.id)
-                        }
+                        // A cloud tombstone always wins over a stale Android
+                        // copy. Never resurrect a remotely deleted alarm.
+                        if (local != null) repository.deleteById(local.id)
                         mapping.remove(item.id)
                         snapshots.remove(item.id)
                         versions.remove(item.id)
@@ -138,8 +147,11 @@ class CloudSyncManager @Inject constructor(
 
                     val remoteAlarm = decodeAlarm(item) ?: continue
                     if (local == null) {
-                        val newId = repository.save(remoteAlarm.copy(id = 0L, nextTriggerTime = 0L))
-                        val saved = repository.getById(newId) ?: remoteAlarm.copy(id = newId)
+                        val newId = repository.save(
+                            remoteAlarm.copy(id = 0L, nextTriggerTime = 0L)
+                        )
+                        val saved = repository.getById(newId)
+                            ?: remoteAlarm.copy(id = newId, nextTriggerTime = 0L)
                         applySchedule(saved)
                         mapping[item.id] = newId
                         snapshots[item.id] = canonical(saved)
@@ -150,17 +162,9 @@ class CloudSyncManager @Inject constructor(
                     mapping[item.id] = local.id
                     val localChanged = canonical(local) != snapshots[item.id]
                     if (localChanged) {
-                        // Another client changed the same alarm after our last
-                        // snapshot. The cloud version is authoritative for
-                        // background sync, so replace the stale local edit.
-                        val conflictWinner = remoteAlarm.copy(
-                            id = local.id,
-                            nextTriggerTime = 0L
-                        )
-                        repository.update(conflictWinner)
-                        applySchedule(conflictWinner)
-                        snapshots[item.id] = canonical(conflictWinner)
-                        versions[item.id] = item.version
+                        // The local row changed after the push scan. Do not
+                        // replace it with remote data; the next local watchdog
+                        // pass will push the new local intent.
                         continue
                     }
 
@@ -177,25 +181,16 @@ class CloudSyncManager @Inject constructor(
                 applyingRemote = false
             }
 
-            pushLocalChanges(mapping, snapshots, versions) { updatedAt ->
-                cursor = maxTimestamp(cursor, updatedAt)
-            }
-
-            // Store sync metadata only after all remote and local operations
-            // completed. A failed push leaves the old cursor/snapshot intact,
-            // so the next run retries rather than losing the change.
-            prefs.setMapping(mapping)
-            prefs.setSnapshots(snapshots)
-            prefs.setVersions(versions)
+            persistMetadata(mapping, snapshots, versions)
             prefs.setCursor(cursor)
         }
     }
 
     @OptIn(FlowPreview::class)
     /**
-     * Lightweight in-process watchdog for Android-side create/edit/delete.
+     * Lightweight in-process watchdog for Android create/edit/delete.
      * Room invalidation wakes this collector; the short debounce coalesces
-     * rapid editor writes without adding a polling loop or wake lock.
+     * rapid editor writes without a polling loop or wake lock.
      */
     suspend fun observeLocalChanges() {
         repository.observeAll()
@@ -228,9 +223,8 @@ class CloudSyncManager @Inject constructor(
         val local = repository.getAll()
         val localIds = local.map { it.id }.toSet()
 
-        // Room deletions become cloud tombstones. A stale delete never
-        // overwrites a newer cloud edit: the latest remote version wins and
-        // is restored locally rather than silently discarding that edit.
+        // A missing mapped Room row is a local delete. Tombstone it in the
+        // cloud before any remote pull can resurrect the stale row.
         for ((remoteId, localId) in mapping.toMap()) {
             if (localId !in localIds) {
                 val expected = versions[remoteId] ?: 0L
@@ -240,33 +234,33 @@ class CloudSyncManager @Inject constructor(
                     mapping.remove(remoteId)
                     snapshots.remove(remoteId)
                     versions.remove(remoteId)
+                    persistMetadata(mapping, snapshots, versions)
                 } catch (e: HttpException) {
                     when (e.code()) {
                         404 -> {
                             mapping.remove(remoteId)
                             snapshots.remove(remoteId)
                             versions.remove(remoteId)
+                            persistMetadata(mapping, snapshots, versions)
                         }
                         409 -> {
                             val latest = fetchRemoteItem(remoteId)
                                 ?: throw IllegalStateException("remote_alarm_missing")
                             if (latest.deletedAt != null) {
-                                // The remote delete is newer. Keep it deleted.
                                 mapping.remove(remoteId)
                                 snapshots.remove(remoteId)
                                 versions.remove(remoteId)
+                                persistMetadata(mapping, snapshots, versions)
                             } else {
-                                val remoteAlarm = decodeAlarm(latest)
-                                    ?: throw IllegalStateException("remote_alarm_invalid")
-                                val restoredId = repository.save(
-                                    remoteAlarm.copy(id = 0L, nextTriggerTime = 0L)
-                                )
-                                val restored = repository.getById(restoredId)
-                                    ?: remoteAlarm.copy(id = restoredId, nextTriggerTime = 0L)
-                                applySchedule(restored)
-                                mapping[remoteId] = restoredId
+                                // A concurrent remote edit is preserved. Restore
+                                // the newest cloud copy locally and let the user
+                                // explicitly delete it again if still desired.
+                                val restored = saveRemoteCopy(localId, latest)
+                                mapping[remoteId] = restored.id
                                 snapshots[remoteId] = canonical(restored)
                                 versions[remoteId] = latest.version
+                                onUpdatedAt(latest.updatedAt)
+                                persistMetadata(mapping, snapshots, versions)
                             }
                         }
                         else -> throw e
@@ -275,86 +269,229 @@ class CloudSyncManager @Inject constructor(
             }
         }
 
+        // New local alarms get a deterministic remote id based on this device
+        // and the Room id. This closes the process-death window between a
+        // successful create and persisting the mapping.
         val inverse = mapping.entries.associate { it.value to it.key }
 
         for (alarm in local) {
-            val remoteId = inverse[alarm.id] ?: UUID.randomUUID().toString()
-            val localPayload = canonical(alarm)
+            var remoteId = inverse[alarm.id] ?: stableRemoteId(alarm.id)
+            val localCanonical = canonical(alarm)
+            val localPayload = alarmPayload(alarm)
             val snapshot = snapshots[remoteId]
 
-            if (snapshot == null || localPayload != snapshot) {
-                val expected = versions[remoteId] ?: 0L
-                var response: CloudAlarmWriteResponse? = null
-                try {
-                    response = api.putAlarm(
-                        auth(),
-                        remoteId,
-                        CloudAlarmWriteRequest(
-                            payload = alarmPayload(alarm),
-                            expectedVersion = expected
-                        )
-                    )
-                } catch (e: HttpException) {
-                    if (e.code() != 409) throw e
-
-                    // Another client won the race. Never retry the stale local
-                    // payload against the newer version: that would turn a
-                    // conflict into an implicit overwrite.
-                    val latest = fetchRemoteItem(remoteId)
-                        ?: throw IllegalStateException("remote_alarm_missing")
-
-                    if (latest.deletedAt != null) {
-                        // Remote deletion wins. Stale Android edits cannot
-                        // resurrect an alarm deleted on the web.
-                        repository.deleteById(alarm.id)
-                        mapping.remove(remoteId)
-                        snapshots.remove(remoteId)
-                        versions.remove(remoteId)
-                    } else {
-                        val remoteAlarm = decodeAlarm(latest)
-                            ?: throw IllegalStateException("remote_alarm_invalid")
-                        val conflictWinner = remoteAlarm.copy(
-                            id = alarm.id,
-                            nextTriggerTime = 0L
-                        )
-                        repository.update(conflictWinner)
-                        applySchedule(conflictWinner)
-                        mapping[remoteId] = alarm.id
-                        snapshots[remoteId] = canonical(conflictWinner)
-                        versions[remoteId] = latest.version
-                    }
-                    continue
-                }
-
-                val committed = response ?: throw IllegalStateException("alarm_write_missing_response")
+            if (snapshot != null && localCanonical == snapshot) {
                 mapping[remoteId] = alarm.id
-                snapshots[remoteId] = localPayload
-                versions[remoteId] = committed.version
-                onUpdatedAt(committed.updatedAt)
-            } else {
-                mapping[remoteId] = alarm.id
+                continue
             }
+
+            val expected = versions[remoteId] ?: 0L
+            val committed = try {
+                val response = api.putAlarm(
+                    auth(),
+                    remoteId,
+                    CloudAlarmWriteRequest(
+                        payload = localPayload,
+                        expectedVersion = expected
+                    )
+                )
+                CloudCommittedAlarm(response.payload, response.version, response.updatedAt)
+            } catch (e: HttpException) {
+                if (e.code() != 409) throw e
+
+                val latest = fetchRemoteItem(remoteId)
+                    ?: throw IllegalStateException("remote_alarm_missing")
+
+                if (expected == 0L && latest.deletedAt == null) {
+                    // Process may have died after the server committed a create
+                    // but before local metadata was persisted. Adopt it when
+                    // the payload matches; otherwise avoid an overwrite.
+                    if (canonicalPayload(latest.payload) == localCanonical) {
+                        CloudCommittedAlarm(latest.payload, latest.version, latest.updatedAt)
+                    } else {
+                        remoteId = UUID.randomUUID().toString()
+                        val response = api.putAlarm(
+                            auth(),
+                            remoteId,
+                            CloudAlarmWriteRequest(
+                                payload = localPayload,
+                                expectedVersion = 0L
+                            )
+                        )
+                        CloudCommittedAlarm(response.payload, response.version, response.updatedAt)
+                    }
+                } else if (latest.deletedAt != null) {
+                    // Remote deletion wins. Remove the stale Android copy so it
+                    // cannot be resurrected by the next watchdog pass.
+                    repository.deleteById(alarm.id)
+                    mapping.remove(remoteId)
+                    snapshots.remove(remoteId)
+                    versions.remove(remoteId)
+                    continue
+                } else {
+                    // Three-way merge preserves local-only and remote-only
+                    // fields. An exact same-field conflict keeps the current
+                    // cloud value instead of blindly overwriting it.
+                    val mergedPayload = mergePayload(
+                        baseJson = snapshots[remoteId],
+                        localPayload = localPayload,
+                        remotePayload = canonicalPayloadMap(latest.payload)
+                    )
+
+                    val mergedResponse = try {
+                        api.putAlarm(
+                            auth(),
+                            remoteId,
+                            CloudAlarmWriteRequest(
+                                payload = mergedPayload,
+                                expectedVersion = latest.version
+                            )
+                        )
+                    } catch (retryConflict: HttpException) {
+                        if (retryConflict.code() != 409) throw retryConflict
+                        val newest = fetchRemoteItem(remoteId)
+                            ?: throw IllegalStateException("remote_alarm_missing")
+
+                        if (newest.deletedAt != null) {
+                            repository.deleteById(alarm.id)
+                            mapping.remove(remoteId)
+                            snapshots.remove(remoteId)
+                            versions.remove(remoteId)
+                            continue
+                        }
+
+                        // A second concurrent writer won. Preserve that newest
+                        // cloud state rather than retrying stale Android data.
+                        val restored = saveRemoteCopy(alarm.id, newest)
+                        mapping[remoteId] = restored.id
+                        snapshots[remoteId] = canonical(restored)
+                        versions[remoteId] = newest.version
+                        onUpdatedAt(newest.updatedAt)
+                        persistMetadata(mapping, snapshots, versions)
+                        continue
+                    }
+
+                    CloudCommittedAlarm(
+                        mergedResponse.payload,
+                        mergedResponse.version,
+                        mergedResponse.updatedAt
+                    )
+                }
+            }
+
+            val committedAlarm = decodePayload(committed.payload)
+                ?: throw IllegalStateException("alarm_payload_invalid")
+
+            val localCommitted = committedAlarm.copy(
+                id = alarm.id,
+                nextTriggerTime = 0L
+            )
+            if (canonical(localCommitted) != localCanonical) {
+                repository.update(localCommitted)
+                applySchedule(localCommitted)
+            }
+
+            mapping[remoteId] = alarm.id
+            snapshots[remoteId] = canonical(localCommitted)
+            versions[remoteId] = committed.version
+            onUpdatedAt(committed.updatedAt)
+            persistMetadata(mapping, snapshots, versions)
         }
     }
 
-    private suspend fun fetchRemoteItem(remoteId: String): CloudAlarmDto? {
-        val remote = api.getAlarms(auth(), EPOCH)
-        return remote.alarms.firstOrNull { it.id == remoteId }
+    private suspend fun saveRemoteCopy(localId: Long, item: CloudAlarmDto): Alarm {
+        val remoteAlarm = decodeAlarm(item)
+            ?: throw IllegalStateException("remote_alarm_invalid")
+        val restored = remoteAlarm.copy(id = localId, nextTriggerTime = 0L)
+        repository.update(restored)
+        applySchedule(restored)
+        return restored
     }
 
-    private fun decodeAlarm(item: CloudAlarmDto): Alarm? {
-        return runCatching {
-            alarmAdapter.fromJson(mapToJson(item.payload))
-        }.getOrNull()
+    private fun mergePayload(
+        baseJson: String?,
+        localPayload: Map<String, Any?>,
+        remotePayload: Map<String, Any?>
+    ): Map<String, Any?> {
+        val base = baseJson?.let {
+            runCatching { mapAdapter.fromJson(it) ?: emptyMap() }.getOrNull()
+        } ?: emptyMap()
+
+        val keys = (base.keys + localPayload.keys + remotePayload.keys).toSet()
+        val merged = linkedMapOf<String, Any?>()
+
+        for (key in keys) {
+            val hasBase = base.containsKey(key)
+            val hasLocal = localPayload.containsKey(key)
+            val hasRemote = remotePayload.containsKey(key)
+
+            val baseValue = base[key]
+            val localValue = localPayload[key]
+            val remoteValue = remotePayload[key]
+
+            val localChanged = hasLocal != hasBase ||
+                (hasLocal && hasBase && !sameValue(localValue, baseValue))
+            val remoteChanged = hasRemote != hasBase ||
+                (hasRemote && hasBase && !sameValue(remoteValue, baseValue))
+
+            val include: Boolean
+            val value: Any?
+
+            when {
+                localChanged && !remoteChanged -> {
+                    include = hasLocal
+                    value = localValue
+                }
+                !localChanged && remoteChanged -> {
+                    include = hasRemote
+                    value = remoteValue
+                }
+                localChanged && remoteChanged && sameValue(localValue, remoteValue) -> {
+                    include = hasLocal
+                    value = localValue
+                }
+                localChanged && remoteChanged -> {
+                    include = hasRemote
+                    value = remoteValue
+                }
+                hasRemote -> {
+                    include = true
+                    value = remoteValue
+                }
+                hasLocal -> {
+                    include = true
+                    value = localValue
+                }
+                else -> {
+                    include = false
+                    value = null
+                }
+            }
+
+            if (include) merged[key] = value
+        }
+
+        return merged
     }
 
-    private fun alarmPayload(alarm: Alarm): Map<String, Any?> {
-        val json = canonical(alarm)
-        @Suppress("UNCHECKED_CAST")
-        return moshi.adapter<Map<String, Any?>>(
-            TypesHolder.mapType
-        ).fromJson(json) ?: emptyMap()
-    }
+    private fun sameValue(a: Any?, b: Any?): Boolean =
+        runCatching { anyAdapter.toJson(a) == anyAdapter.toJson(b) }
+            .getOrElse { a == b }
+
+    private fun canonicalPayload(payload: Map<String, Any?>): String? =
+        decodePayload(payload)?.let { canonical(it) }
+
+    private fun canonicalPayloadMap(payload: Map<String, Any?>): Map<String, Any?> =
+        decodePayload(payload)?.let { alarmPayload(it) } ?: payload
+
+    private fun decodePayload(payload: Map<String, Any?>): Alarm? =
+        runCatching { alarmAdapter.fromJson(mapToJson(payload)) }.getOrNull()
+
+    private fun decodeAlarm(item: CloudAlarmDto): Alarm? =
+        decodePayload(item.payload)
+
+    private fun alarmPayload(alarm: Alarm): Map<String, Any?> =
+        mapAdapter.fromJson(canonical(alarm)) ?: emptyMap()
 
     private fun canonical(alarm: Alarm): String {
         val normalized = alarm.sanitized().copy(
@@ -376,13 +513,39 @@ class CloudSyncManager @Inject constructor(
         scheduler.schedule(alarm.copy(nextTriggerTime = trigger))
     }
 
+    private suspend fun fetchRemoteItem(remoteId: String): CloudAlarmDto? {
+        val remote = api.getAlarms(auth(), EPOCH)
+        return remote.alarms.firstOrNull { it.id == remoteId }
+    }
+
+    private fun stableRemoteId(localId: Long): String {
+        val seed = "\${prefs.getDeviceId()}:$localId"
+        return UUID.nameUUIDFromBytes(seed.toByteArray(StandardCharsets.UTF_8)).toString()
+    }
+
+    private fun persistMetadata(
+        mapping: Map<String, Long>,
+        snapshots: Map<String, String>,
+        versions: Map<String, Long>
+    ) {
+        prefs.setMapping(mapping)
+        prefs.setSnapshots(snapshots)
+        prefs.setVersions(versions)
+    }
+
     private fun mapToJson(payload: Map<String, Any?>): String =
-        moshi.adapter<Map<String, Any?>>(TypesHolder.mapType).toJson(payload)
+        mapAdapter.toJson(payload)
 
     private fun maxTimestamp(a: String, b: String): String =
         if (a >= b) a else b
 
     private fun auth(): String = "Bearer " + prefs.getToken()
+
+    private data class CloudCommittedAlarm(
+        val payload: Map<String, Any?>,
+        val version: Long,
+        val updatedAt: String
+    )
 
     private object TypesHolder {
         val mapType = com.squareup.moshi.Types.newParameterizedType(
