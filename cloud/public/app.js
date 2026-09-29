@@ -109,6 +109,7 @@ async function refreshAfterConflict() {
     await syncNow({ forceFull: true, silent: true });
     $("syncState").textContent = "conflict refreshed";
   } catch {}
+}
 
 function openAlarm(remote = null) {
   state.editing = remote;
