@@ -1,6 +1,6 @@
 # AlarmClockXtreme
 
-[![Version](https://img.shields.io/badge/version-1.15.37-5CA6FF)](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest)
+[![Version](https://img.shields.io/badge/version-1.15.38-5CA6FF)](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest)
 [![License](https://img.shields.io/badge/license-Apache%202.0-65DDB9)](LICENSE)
 [![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white)](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest)
 [![Stars](https://img.shields.io/github/stars/SysAdminDoc/AlarmClockXtreme?style=flat&color=FFD166)](https://github.com/SysAdminDoc/AlarmClockXtreme/stargazers)
@@ -45,7 +45,7 @@ Download the signed APKs and matching checksums from the [latest release](https:
 Install the Play build over ADB:
 
 ```bash
-adb install AlarmClockXtreme-v1.15.37-play-release.apk
+adb install AlarmClockXtreme-v1.15.38-play-release.apk
 ```
 
 Each release includes `SHA256SUMS.txt` and certificate fingerprints so you can verify the file before installing it.
