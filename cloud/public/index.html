@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0e1117">
+  <title>AlarmClockXtreme Cloud</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div id="authView" class="shell center">
+    <section class="card auth-card">
+      <div class="eyebrow">ALARMCLOCKXTREME</div>
+      <h1>your alarms, everywhere</h1>
+      <p class="muted">sign in from the web and control the native Android alarm app</p>
+      <div class="auth-tabs">
+        <button id="loginTab" class="tab active">login</button>
+        <button id="registerTab" class="tab">create account</button>
+      </div>
+      <form id="authForm">
+        <input id="email" type="email" autocomplete="email" placeholder="email" required>
+        <input id="password" type="password" autocomplete="current-password" placeholder="password (8+ chars)" required>
+        <button class="primary" type="submit"><span id="authAction">login</span></button>
+      </form>
+      <div id="authError" class="error"></div>
+    </section>
+  </div>
+
+  <div id="appView" class="hidden">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">ALARMCLOCKXTREME CLOUD</div>
+        <div id="hello" class="top-title">cloud</div>
+      </div>
+      <div class="top-actions">
+        <span id="syncState" class="pill">offline</span>
+        <button id="logoutBtn" class="ghost">logout</button>
+      </div>
+    </header>
+
+    <main class="shell">
+      <section class="hero card">
+        <div>
+          <div id="clock" class="clock">00:00:00</div>
+          <div id="date" class="muted"></div>
+        </div>
+        <div class="hero-actions">
+          <button id="syncBtn" class="secondary">sync now</button>
+          <button id="newAlarmBtn" class="primary">+ alarm</button>
+        </div>
+      </section>
+
+      <nav class="nav">
+        <button class="nav-btn active" data-tab="alarms">alarms</button>
+        <button class="nav-btn" data-tab="timer">timer</button>
+        <button class="nav-btn" data-tab="stopwatch">stopwatch</button>
+        <button class="nav-btn" data-tab="world">world clocks</button>
+        <button class="nav-btn" data-tab="ai">ai assistant</button>
+        <button class="nav-btn" data-tab="activity">activity</button>
+      </nav>
+
+      <section id="tab-alarms" class="tab-panel active">
+        <div class="section-head">
+          <div>
+            <h2>alarms</h2>
+            <div class="muted">changes here sync to the Android app</div>
+          </div>
+          <button id="exportBtn" class="ghost">export</button>
+        </div>
+        <div id="alarmList" class="grid"></div>
+      </section>
+
+      <section id="tab-timer" class="tab-panel">
+        <div class="card utility">
+          <h2>timer</h2>
+          <div id="timerDisplay" class="utility-display">00:05:00</div>
+          <div class="row">
+            <input id="timerMinutes" type="number" min="0" max="999" value="5" placeholder="minutes">
+            <input id="timerSeconds" type="number" min="0" max="59" value="0" placeholder="seconds">
+          </div>
+          <div class="row">
+            <button id="timerStart" class="primary">start</button>
+            <button id="timerPause" class="secondary">pause</button>
+            <button id="timerReset" class="ghost">reset</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-stopwatch" class="tab-panel">
+        <div class="card utility">
+          <h2>stopwatch</h2>
+          <div id="stopwatchDisplay" class="utility-display">00:00:00.00</div>
+          <div class="row">
+            <button id="swStart" class="primary">start</button>
+            <button id="swLap" class="secondary">lap</button>
+            <button id="swReset" class="ghost">reset</button>
+          </div>
+          <div id="laps" class="list"></div>
+        </div>
+      </section>
+
+      <section id="tab-world" class="tab-panel">
+        <div class="section-head">
+          <div>
+            <h2>world clocks</h2>
+            <div class="muted">add the cities you care about</div>
+          </div>
+          <select id="timezonePicker">
+            <option value="Asia/Kolkata">India · Mumbai</option>
+            <option value="Europe/London">United Kingdom · London</option>
+            <option value="Europe/Berlin">Germany · Berlin</option>
+            <option value="America/New_York">USA · New York</option>
+            <option value="America/Los_Angeles">USA · Los Angeles</option>
+            <option value="Asia/Tokyo">Japan · Tokyo</option>
+            <option value="Australia/Sydney">Australia · Sydney</option>
+            <option value="Asia/Singapore">Singapore · Singapore</option>
+          </select>
+        </div>
+        <div id="worldList" class="grid"></div>
+      </section>
+
+      <section id="tab-ai" class="tab-panel">
+        <div class="card">
+          <h2>ai assistant</h2>
+          <p class="muted">for example: “set my physics alarm tomorrow at 6:00” or “disable the 7am alarm”</p>
+          <textarea id="aiCommand" rows="4" placeholder="tell the assistant what to do..."></textarea>
+          <div class="row">
+            <button id="aiRun" class="primary">run command</button>
+            <span id="aiStatus" class="muted"></span>
+          </div>
+          <pre id="aiResult" class="result-box"></pre>
+        </div>
+      </section>
+
+      <section id="tab-activity" class="tab-panel">
+        <div class="card">
+          <h2>activity</h2>
+          <div id="activityList" class="list"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="alarmDialog">
+    <form method="dialog" id="alarmForm" class="dialog-card">
+      <div class="section-head">
+        <h2 id="dialogTitle">new alarm</h2>
+        <button value="cancel" class="ghost">close</button>
+      </div>
+      <div class="form-grid">
+        <label>time<input id="alarmTime" type="time" required></label>
+        <label>label<input id="alarmLabel" maxlength="120" placeholder="study / wake up"></label>
+        <label class="wide">repeat days<input id="alarmDays" placeholder="MONDAY,TUESDAY,... or leave blank for once"></label>
+        <label>challenge
+          <select id="alarmChallenge">
+            <option value="NONE">none</option>
+            <option value="MATH_EASY">math easy</option>
+            <option value="MATH_MEDIUM">math medium</option>
+            <option value="MATH_HARD">math hard</option>
+            <option value="SHAKE">shake</option>
+            <option value="SEQUENCE">sequence</option>
+            <option value="MEMORY_PATTERN">memory pattern</option>
+            <option value="TYPING">typing</option>
+            <option value="VOICE_PHRASE">voice phrase</option>
+            <option value="WALK_STEPS">walk steps</option>
+            <option value="NFC_SCAN">NFC</option>
+            <option value="BARCODE_SCAN">barcode / QR</option>
+            <option value="PHOTO_MATCH">photo match</option>
+            <option value="SQUAT">squats</option>
+            <option value="WIFI_CONNECT">Wi-Fi</option>
+            <option value="MAZE">maze</option>
+            <option value="SIMON_SAYS">Simon Says</option>
+            <option value="WORDLE">Wordle</option>
+            <option value="CHESS_MATE">Chess Mate</option>
+            <option value="PUSH_UP">push-up</option>
+            <option value="PLANK_HOLD">plank</option>
+          </select>
+        </label>
+        <label>volume<input id="alarmVolume" type="number" min="0" max="100" value="100"></label>
+        <label>enabled<select id="alarmEnabled"><option value="true">yes</option><option value="false">no</option></select></label>
+        <label class="wide">advanced alarm JSON<textarea id="alarmAdvanced" rows="12"></textarea></label>
+      </div>
+      <div class="row end">
+        <button id="deleteAlarmBtn" type="button" class="danger hidden">delete</button>
+        <span class="spacer"></span>
+        <button value="cancel" class="secondary">cancel</button>
+        <button id="saveAlarmBtn" value="default" class="primary">save & sync</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="/app.js"></script>
+</body>
+</html>
