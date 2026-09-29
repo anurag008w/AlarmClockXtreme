@@ -20,7 +20,10 @@ android {
         minSdk = 26
         targetSdk = 36
         versionCode = 137
-        versionName = "1.15.35"
+        versionName = "1.15.36"
+
+        val cloudBaseUrl = providers.gradleProperty("cloudBaseUrl").orElse("https://alarmclockxtreme-cloud.onrender.com/").get()
+        buildConfigField("String", "CLOUD_BASE_URL", "\"${cloudBaseUrl.trimEnd('/')}/\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -427,6 +430,7 @@ dependencies {
     implementation("com.squareup.retrofit2:retrofit:2.11.0")
     implementation("com.squareup.retrofit2:converter-moshi:2.11.0")
     implementation("com.squareup.moshi:moshi:1.15.2")
+    implementation("com.squareup.moshi:moshi-kotlin:1.15.2")
     ksp("com.squareup.moshi:moshi-kotlin-codegen:1.15.2")
     // OkHttp (explicit — also used by WebhookService and HueSunriseWorker).
     // 5.x adds an HTTP/2 total-header-size limit (resource-exhaustion guard).
