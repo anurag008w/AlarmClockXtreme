@@ -33,6 +33,12 @@ class AlarmConflictTests(unittest.IsolatedAsyncioTestCase):
     async def asyncTearDown(self):
         self.patches.stop()
 
+    async def test_updated_at_keeps_subsecond_precision(self):
+        first = server.usersync.now_utc()
+        second = server.usersync.now_utc()
+        self.assertRegex(first, r"\\.\\d{6}Z$")
+        self.assertRegex(second, r"\\.\\d{6}Z$")
+
     async def test_stale_update_is_rejected(self):
         created = await server.mutate_alarm(
             "user-1", "alarm-1", {"hour": 7, "minute": 0, "label": "Morning"}
