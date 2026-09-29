@@ -109,14 +109,24 @@ def _merge_alarm_scope(local: Any, remote: Any) -> dict:
             merged_items[alarm_id] = local_item
             continue
 
+        # Version is the logical mutation clock. Prefer it over wall-clock
+        # time so a stale Render filesystem cannot overwrite a newer durable
+        # alarm simply because its local retry received a later timestamp.
+        local_version = int(local_item.get("version", 0) or 0)
+        remote_version = int(remote_item.get("version", 0) or 0)
+
         local_ts = _timestamp(local_item.get("updated_at"))
         remote_ts = _timestamp(remote_item.get("updated_at"))
 
-        if local_ts > remote_ts:
+        if local_version > remote_version:
+            merged_items[alarm_id] = local_item
+        elif local_version < remote_version:
+            merged_items[alarm_id] = remote_item
+        elif local_ts > remote_ts:
             merged_items[alarm_id] = local_item
         elif local_ts == remote_ts:
-            # Deterministic safety rule for the vanishingly unlikely timestamp
-            # tie: a tombstone beats a live row, never the other way around.
+            # Deterministic safety rule for the unlikely exact tie:
+            # tombstones beat live rows, never the other way around.
             if local_item.get("deleted_at") and not remote_item.get("deleted_at"):
                 merged_items[alarm_id] = local_item
 
