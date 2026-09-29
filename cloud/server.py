@@ -427,15 +427,16 @@ async def register_device(body: dict, user=Depends(current_user)):
 
 @app.post("/api/sync/refresh")
 async def refresh_sync(user=Depends(current_user)):
-    # GitHub is the durable source of truth for web sessions. Never push the
-    # running Render filesystem before a refresh pull: that local copy can be
-    # stale after an Android/device change and would resurrect deleted or
-    # overwritten alarms into the cloud.
-    #
-    # Alarm mutations already persist + push synchronously before their API
-    # response returns, so refresh does not need a push phase. Pull first,
-    # replace the ephemeral filesystem, then let the normal web GET read it.
+    # GitHub is the durable source of truth, but a previous write can still be
+    # pending locally after a transient network failure. The GitHub push path
+    # is conflict-safe and merges alarm rows against the newest checkout, so
+    # flush that pending state before pulling the durable dataset back down.
     async with _sync_lock:
+        if github_sync.has_data_changed():
+            pushed = await asyncio.to_thread(github_sync.push_data)
+            if not pushed:
+                raise HTTPException(503, "github_sync_failed_retry")
+
         pulled = await asyncio.to_thread(github_sync.pull_data)
         if not pulled:
             raise HTTPException(503, "github_pull_failed_retry")
