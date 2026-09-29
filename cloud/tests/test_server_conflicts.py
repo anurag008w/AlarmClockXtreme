@@ -18,7 +18,7 @@ class AlarmConflictTests(unittest.IsolatedAsyncioTestCase):
         async def fake_alarms_record(user_id):
             return self.records.setdefault(user_id, {"items": {}})
 
-        async def fake_persist(user_id, record):
+        async def fake_persist(user_id, record, **_kwargs):
             self.records[user_id] = copy.deepcopy(record)
             return record
 
