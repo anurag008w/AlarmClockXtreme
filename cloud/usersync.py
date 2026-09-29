@@ -19,7 +19,7 @@ _SAFE_RE = re.compile(r"[^A-Za-z0-9_.-]")
 
 
 def now_utc() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return datetime.now(timezone.utc).isoformat(timespec="microseconds").replace("+00:00", "Z")
 
 
 def safe_key(value: str) -> str:
