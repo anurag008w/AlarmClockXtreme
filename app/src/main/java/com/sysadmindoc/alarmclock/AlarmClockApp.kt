@@ -13,6 +13,8 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
+import com.sysadmindoc.alarmclock.data.cloud.CloudSyncManager
+import com.sysadmindoc.alarmclock.data.cloud.CloudSyncWorker
 import com.sysadmindoc.alarmclock.receiver.MissedAlarmUnlockReceiver
 import com.sysadmindoc.alarmclock.service.AlarmService
 import com.sysadmindoc.alarmclock.service.NextAlarmNotifier
@@ -49,6 +51,7 @@ class AlarmClockApp : Application(), Configuration.Provider {
     @Inject lateinit var youTubeDownloadInitializer: YouTubeDownloadInitializer
     @Inject lateinit var preferencesManager: PreferencesManager
     @Inject lateinit var wearNextAlarmBridge: WearNextAlarmBridge
+    @Inject lateinit var cloudSyncManager: CloudSyncManager
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var unlockedStartupComplete = false
@@ -116,6 +119,18 @@ class AlarmClockApp : Application(), Configuration.Provider {
             ExistingPeriodicWorkPolicy.KEEP,
             healthCheck
         )
+
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "cloud_sync",
+            ExistingPeriodicWorkPolicy.KEEP,
+            PeriodicWorkRequestBuilder<CloudSyncWorker>(15, TimeUnit.MINUTES).build()
+        )
+
+        // Cloud sync watches Room while the process is alive, while WorkManager
+        // provides a background fallback after the process is killed.
+        appScope.launch {
+            runCatching { cloudSyncManager.observeLocalChanges() }
+        }
 
         // v1.10.6: Keep the first-meeting auto-alarm responsive without
         // running periodic calendar reads when the feature is disabled.
