@@ -585,7 +585,7 @@ app.get("/api/audit", authRequired, async (req, res) => {
 });
 
 app.use(express.static(publicDir, { extensions: ["html"] }));
-app.get("*", (_req, res) => res.sendFile(path.join(publicDir, "index.html")));
+app.get("/{*splat}", (_req, res) => res.sendFile(path.join(publicDir, "index.html")));
 
 bootstrap()
   .then(() => {
