@@ -7,6 +7,9 @@ import com.sysadmindoc.alarmclock.data.remote.HolidayApi
 import com.sysadmindoc.alarmclock.data.remote.WeatherAlertsApi
 import com.sysadmindoc.alarmclock.data.remote.WeatherApi
 import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import com.sysadmindoc.alarmclock.BuildConfig
+import com.sysadmindoc.alarmclock.data.cloud.CloudApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -23,7 +26,7 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideMoshi(): Moshi = Moshi.Builder().build()
+    fun provideMoshi(): Moshi = Moshi.Builder().addLast(KotlinJsonAdapterFactory()).build()
 
     @Provides
     @Singleton
@@ -100,4 +103,6 @@ object NetworkModule {
             .build()
             .create(WeatherAlertsApi::class.java)
     }
+
+    private fun String.ensureTrailingSlash(): String = if (endsWith("/")) this else "$this/"
 }
