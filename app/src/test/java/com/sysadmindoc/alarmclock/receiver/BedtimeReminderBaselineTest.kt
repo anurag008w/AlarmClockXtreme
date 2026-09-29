@@ -42,7 +42,6 @@ class BedtimeReminderBaselineTest {
             .edit()
             .clear()
             .commit()
-        shadowOf(context.getSystemService(NotificationManager::class.java)).removeAllNotifications()
     }
 
     private fun fireReminder(): Notification? {
