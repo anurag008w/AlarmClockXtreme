@@ -223,6 +223,29 @@ class CloudSyncManager @Inject constructor(
         val local = repository.getAll()
         val localIds = local.map { it.id }.toSet()
 
+        // Bootstrap/re-login dedupe: when local Room alarms have no cloud
+        // mapping yet, inspect the existing cloud dataset once and adopt an
+        // exact canonical match instead of creating a second remote row.
+        // This preserves intentional duplicates: one remote row is claimed
+        // by at most one local alarm; additional identical local rows still
+        // receive their own stable IDs.
+        val mappedLocalIds = mapping.values.toSet()
+        val bootstrapRemotes = if (local.any { it.id !in mappedLocalIds }) {
+            api.getAlarms(auth(), EPOCH).alarms
+        } else {
+            emptyList()
+        }
+        val bootstrapMatches = bootstrapRemotes
+            .asSequence()
+            .filter { it.deletedAt == null }
+            .filter { item ->
+                val remoteCanonical = canonicalPayload(item.payload)
+                remoteCanonical != null && remoteCanonical.isNotBlank()
+            }
+            .sortedByDescending { it.updatedAt }
+            .toList()
+        val claimedBootstrapRemoteIds = mutableSetOf<String>()
+
         // A missing mapped Room row is a local delete. Tombstone it in the
         // cloud before any remote pull can resurrect the stale row.
         for ((remoteId, localId) in mapping.toMap()) {
@@ -276,8 +299,29 @@ class CloudSyncManager @Inject constructor(
 
         for (alarm in local) {
             var remoteId = inverse[alarm.id] ?: stableRemoteId(alarm.id)
-            val localCanonical = canonical(alarm)
-            val localPayload = alarmPayload(alarm)
+            var localCanonical = canonical(alarm)
+            var localPayload = alarmPayload(alarm)
+
+            // When the Room row is currently unmapped (first login, restored
+            // app data, or metadata cleared by an older build), claim an
+            // existing identical cloud alarm before creating a new ID.
+            if (inverse[alarm.id] == null) {
+                val match = bootstrapMatches.firstOrNull { remote ->
+                    remote.id !in mapping &&
+                        remote.id !in claimedBootstrapRemoteIds &&
+                        canonicalPayload(remote.payload) == localCanonical
+                }
+                if (match != null) {
+                    remoteId = match.id
+                    claimedBootstrapRemoteIds += match.id
+                    mapping[remoteId] = alarm.id
+                    snapshots[remoteId] = localCanonical
+                    versions[remoteId] = match.version
+                    onUpdatedAt(match.updatedAt)
+                    continue
+                }
+            }
+
             val snapshot = snapshots[remoteId]
 
             if (snapshot != null && localCanonical == snapshot) {
