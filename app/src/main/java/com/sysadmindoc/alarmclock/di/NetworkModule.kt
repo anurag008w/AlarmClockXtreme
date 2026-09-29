@@ -38,6 +38,18 @@ object NetworkModule {
 
     @Provides
     @Singleton
+    @Provides
+    @Singleton
+    fun provideCloudApi(moshi: Moshi, client: OkHttpClient): CloudApi {
+        val baseUrl = BuildConfig.CLOUD_BASE_URL.ensureTrailingSlash()
+        return Retrofit.Builder()
+            .baseUrl(baseUrl)
+            .client(client)
+            .addConverterFactory(MoshiConverterFactory.create(moshi))
+            .build()
+            .create(CloudApi::class.java)
+    }
+
     fun provideWeatherApi(moshi: Moshi, client: OkHttpClient): WeatherApi {
         return Retrofit.Builder()
             .baseUrl("https://api.open-meteo.com/")
