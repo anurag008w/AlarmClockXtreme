@@ -452,9 +452,11 @@ async def register_device(body: dict, user=Depends(current_user)):
         "lastSeenAt": usersync.now_utc(),
     }
     record["devices"] = devices
-    await usersync.save_scope(user["id"], "devices", record)
-    if not await asyncio.to_thread(github_sync.push_data):
-        raise HTTPException(503, "github_sync_failed_retry")
+    # Serialize the filesystem mutation with the GitHub durability cycle.
+    async with _sync_lock:
+        await usersync.save_scope(user["id"], "devices", record)
+        if not await asyncio.to_thread(github_sync.push_data):
+            raise HTTPException(503, "github_sync_failed_retry")
     return {"ok": True}
 
 
