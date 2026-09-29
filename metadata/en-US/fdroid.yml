@@ -1,4 +1,4 @@
-# AlarmClockXtreme v1.15.41 release metadata
+# AlarmClockXtreme v1.15.42 release metadata
 Categories:
   - Time
 License: Apache-2.0
@@ -43,9 +43,9 @@ RepoType: git
 Repo: https://github.com/SysAdminDoc/AlarmClockXtreme.git
 
 Builds:
-  - versionName: 1.15.41
-    versionCode: 143
-    commit: v1.15.41
+  - versionName: 1.15.42
+    versionCode: 144
+    commit: v1.15.42
     subdir: app
     gradle:
       - fdroid
@@ -60,5 +60,5 @@ AntiFeatures:
       Local crash logs do not use network access and are never uploaded by
       the app.
 
-CurrentVersion: 1.15.41
-CurrentVersionCode: 143
+CurrentVersion: 1.15.42
+CurrentVersionCode: 144
