@@ -112,6 +112,45 @@ class AlarmMergeTests(unittest.TestCase):
         self.assertEqual(merged["items"]["a1"]["version"], 3)
         self.assertEqual(merged["items"]["a1"]["payload"]["label"], "new remote")
 
+    def test_overlay_preserves_newer_remote_tombstone(self):
+        root = self._temp_dir("overlay")
+        local_root = root / "local"
+        remote_root = root / "remote"
+        local_file = local_root / "sync" / "user-1" / "alarms.json"
+        remote_file = remote_root / "sync" / "user-1" / "alarms.json"
+        local_file.parent.mkdir(parents=True)
+        remote_file.parent.mkdir(parents=True)
+
+        local_file.write_text(json.dumps({
+            "schema": 1,
+            "items": {
+                "a1": {
+                    "id": "a1",
+                    "version": 2,
+                    "updated_at": "2026-09-30T00:00:01.000000Z",
+                    "deleted_at": None,
+                    "payload": {"label": "stale local"},
+                }
+            },
+        }), encoding="utf-8")
+        remote_file.write_text(json.dumps({
+            "schema": 1,
+            "items": {
+                "a1": {
+                    "id": "a1",
+                    "version": 3,
+                    "updated_at": "2026-09-30T00:00:02.000000Z",
+                    "deleted_at": "2026-09-30T00:00:02.000000Z",
+                    "payload": None,
+                }
+            },
+        }), encoding="utf-8")
+
+        github_sync._overlay_local_data(local_root, remote_root)
+        merged = json.loads(remote_file.read_text(encoding="utf-8"))
+        self.assertEqual(merged["items"]["a1"]["version"], 3)
+        self.assertIsNotNone(merged["items"]["a1"]["deleted_at"])
+
     def test_independent_alarm_changes_are_merged_not_replaced(self):
         local = {
             "schema": 1,
