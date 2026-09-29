@@ -126,6 +126,13 @@ def sanitize_alarm(payload: dict[str, Any]) -> dict[str, Any]:
     except (TypeError, ValueError):
         raise HTTPException(400, "invalid_alarm_number")
 
+    if "ringtoneUri" in out:
+        ringtone_value = str(out.get("ringtoneUri", "")).strip()
+        if ringtone_value.lower() in {"default", "default_alarm", "system_default"}:
+            out["ringtoneUri"] = ""
+        elif ringtone_value.lower() == "silent":
+            out["ringtoneUri"] = "silent"
+
     for key, max_len in (
         ("label", 120),
         ("group", 40),
