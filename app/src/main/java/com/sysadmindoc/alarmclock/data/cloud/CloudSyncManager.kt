@@ -163,7 +163,7 @@ class CloudSyncManager @Inject constructor(
     suspend fun observeLocalChanges() {
         repository.observeAll()
             .distinctUntilChanged()
-            .debounce(1500)
+            .debounce(1500L)
             .collectLatest {
                 if (!applyingRemote && isLoggedIn()) {
                     runCatching { syncNow() }
