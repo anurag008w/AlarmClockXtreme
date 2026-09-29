@@ -9,7 +9,7 @@ import secrets
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import github_sync
+import github_sync
 
 DATA_DIR = github_sync.DATA_DIR
 USERS_FILE = DATA_DIR / "users.json"
