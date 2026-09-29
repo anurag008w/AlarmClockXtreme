@@ -1,5 +1,6 @@
 package com.sysadmindoc.alarmclock.ui.cloud
 
+import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.data.cloud.CloudSyncManager
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,7 +45,8 @@ data class CloudAccountUiState(
 
 @HiltViewModel
 class CloudAccountViewModel @Inject constructor(
-    private val syncManager: CloudSyncManager
+    private val syncManager: CloudSyncManager,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
     private val _ui = MutableStateFlow(
         CloudAccountUiState(loggedIn = syncManager.isLoggedIn(), email = syncManager.email())
@@ -57,8 +60,8 @@ class CloudAccountViewModel @Inject constructor(
         viewModelScope.launch {
             _ui.value = _ui.value.copy(busy = true, message = "")
             syncManager.syncNow()
-                .onSuccess { _ui.value = _ui.value.copy(busy = false, message = "sync complete") }
-                .onFailure { _ui.value = _ui.value.copy(busy = false, message = it.message ?: "sync failed") }
+                .onSuccess { _ui.value = _ui.value.copy(busy = false, message = context.getString(R.string.cloud_sync_complete)) }
+                .onFailure { _ui.value = _ui.value.copy(busy = false, message = it.message ?: context.getString(R.string.cloud_sync_failed)) }
         }
     }
 
@@ -67,7 +70,7 @@ class CloudAccountViewModel @Inject constructor(
             _ui.value = _ui.value.copy(busy = true, aiMessage = "")
             syncManager.sendAiCommand(command)
                 .onSuccess { _ui.value = _ui.value.copy(busy = false, aiMessage = it) }
-                .onFailure { _ui.value = _ui.value.copy(busy = false, aiMessage = it.message ?: "ai failed") }
+                .onFailure { _ui.value = _ui.value.copy(busy = false, aiMessage = it.message ?: context.getString(R.string.cloud_ai_failed)) }
         }
     }
 
@@ -80,8 +83,8 @@ class CloudAccountViewModel @Inject constructor(
         viewModelScope.launch {
             _ui.value = _ui.value.copy(busy = true, message = "")
             block()
-                .onSuccess { email -> _ui.value = CloudAccountUiState(loggedIn = true, email = email, message = "account connected") }
-                .onFailure { _ui.value = _ui.value.copy(busy = false, message = it.message ?: "request failed") }
+                .onSuccess { email -> _ui.value = CloudAccountUiState(loggedIn = true, email = email, message = context.getString(R.string.cloud_account_connected)) }
+                .onFailure { _ui.value = _ui.value.copy(busy = false, message = it.message ?: context.getString(R.string.cloud_request_failed)) }
         }
     }
 }
