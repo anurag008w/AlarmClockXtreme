@@ -2,6 +2,19 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.15.38] - 2026-09-29
+
+### Fixed
+
+- Made Android cloud alarm sync react to Room create, edit, and delete changes with a lightweight in-process watchdog.
+- Shortened foreground Android cloud polling so web-side alarm changes reach the phone within seconds while the app is open.
+- Added a lightweight web alarm watchdog with immediate refresh on reconnect and preserved sub-second sync cursor precision to avoid missing rapid changes.
+- Reduced the GitHub persistence watchdog interval so cloud data is durably mirrored more quickly.
+
+### Release build
+
+- Bumped the Android and Wear release to version 1.15.38 (version code 140) with the cloud-sync reliability fixes included.
+
 ## [1.15.37] - 2026-09-29
 
 ### Added
