@@ -302,11 +302,15 @@ class CloudSyncManager @Inject constructor(
                 val latest = fetchRemoteItem(remoteId)
                     ?: throw IllegalStateException("remote_alarm_missing")
 
-                if (expected == 0L && latest.deletedAt == null) {
-                    // Process may have died after the server committed a create
-                    // but before local metadata was persisted. Adopt it when
-                    // the payload matches; otherwise avoid an overwrite.
-                    if (canonicalPayload(latest.payload) == localCanonical) {
+                if (expected == 0L) {
+                    // A zero expected version means we do not have a committed
+                    // cloud version locally. Adopt an already-created matching
+                    // row (crash recovery), otherwise always create under a
+                    // fresh id. In particular, never turn a new local alarm
+                    // into a delete just because an old tombstone uses the same
+                    // deterministic id.
+                    if (latest.deletedAt == null &&
+                        canonicalPayload(latest.payload) == localCanonical) {
                         CloudCommittedAlarm(latest.payload, latest.version, latest.updatedAt)
                     } else {
                         remoteId = UUID.randomUUID().toString()
@@ -402,8 +406,17 @@ class CloudSyncManager @Inject constructor(
     private suspend fun saveRemoteCopy(localId: Long, item: CloudAlarmDto): Alarm {
         val remoteAlarm = decodeAlarm(item)
             ?: throw IllegalStateException("remote_alarm_invalid")
-        val restored = remoteAlarm.copy(id = localId, nextTriggerTime = 0L)
-        repository.update(restored)
+
+        val existing = repository.getById(localId)
+        val restoredId = if (existing != null) {
+            repository.update(remoteAlarm.copy(id = localId, nextTriggerTime = 0L))
+            localId
+        } else {
+            repository.save(remoteAlarm.copy(id = 0L, nextTriggerTime = 0L))
+        }
+
+        val restored = repository.getById(restoredId)
+            ?: remoteAlarm.copy(id = restoredId, nextTriggerTime = 0L)
         applySchedule(restored)
         return restored
     }
