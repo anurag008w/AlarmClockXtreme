@@ -9,6 +9,7 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - Refresh now flushes pending writes safely before pulling the durable dataset.
 - Android foreground alarm sync watchdog tightened for faster create/edit/delete propagation.
 - Preserved alarm tombstones and remote edits during cross-device races.
+- Release build v1.15.39 (version code 141) includes the cross-device cloud sync safety fixes.
 
 ## [1.15.38] - 2026-09-29
 
