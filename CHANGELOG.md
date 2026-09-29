@@ -5,7 +5,7 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 ## [1.15.40]
 
 ### Fixed
-- Prevented duplicate cloud alarms when an Android account is re-linked or local sync metadata is rebuilt by adopting an exact existing cloud alarm before creating a new row.
+- Prevented duplicate cloud alarms when an Android account is re-linked on another device or local sync metadata is rebuilt by adopting an exact existing cloud alarm before creating a new row.
 - Serialized alarm writes with the GitHub pull/push cycle so a background refresh cannot erase a just-created, edited, or deleted alarm before it becomes durable.
 - Kept the lightweight cross-device watchdogs: Android 2s foreground, web 3s, and GitHub durability fallback 10s.
 - Hardened cross-device persistence so pending alarm changes retry through transient GitHub sync failures without silently reverting the UI.
