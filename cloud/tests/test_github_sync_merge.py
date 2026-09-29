@@ -1,4 +1,9 @@
+import os
 import unittest
+
+os.environ.setdefault("GH_TOKEN", "test-token")
+os.environ.setdefault("GITHUB_REPO", "test-owner/test-repo")
+os.environ.setdefault("GITHUB_SYNC_ENABLED", "false")
 
 import github_sync
 
