@@ -39,14 +39,25 @@ class AlarmConflictTests(unittest.IsolatedAsyncioTestCase):
         self.assertRegex(first, r"\.\d{6}Z$")
         self.assertRegex(second, r"\.\d{6}Z$")
 
-    async def test_refresh_never_pushes_stale_render_copy_before_pull(self):
-        with patch.object(server.github_sync, "pull_data", return_value=True) as pull_data, \
+    async def test_refresh_pulls_clean_dataset_without_push(self):
+        with patch.object(server.github_sync, "has_data_changed", return_value=False), \
+             patch.object(server.github_sync, "pull_data", return_value=True) as pull_data, \
              patch.object(server.github_sync, "push_data", return_value=True) as push_data:
             result = await server.refresh_sync({"id": "user-1", "email": "user@example.com"})
 
         self.assertTrue(result["ok"])
         pull_data.assert_called_once()
         push_data.assert_not_called()
+
+    async def test_refresh_flushes_pending_local_write_before_pull(self):
+        with patch.object(server.github_sync, "has_data_changed", return_value=True), \
+             patch.object(server.github_sync, "push_data", return_value=True) as push_data, \
+             patch.object(server.github_sync, "pull_data", return_value=True) as pull_data:
+            result = await server.refresh_sync({"id": "user-1", "email": "user@example.com"})
+
+        self.assertTrue(result["ok"])
+        push_data.assert_called_once()
+        pull_data.assert_called_once()
 
     async def test_stale_update_is_rejected(self):
         created = await server.mutate_alarm(
