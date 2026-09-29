@@ -108,7 +108,10 @@ function sanitizeAlarmPayload(payload) {
   if (typeof out.repeatDays === "string") {
     out.repeatDays = out.repeatDays.split(",").map(s => s.trim()).filter(Boolean);
   }
-  if (!Array.isArray(out.repeatDays)) out.repeatDays = [];
+  const validDays = new Set(["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY","SUNDAY"]);
+  out.repeatDays = Array.isArray(out.repeatDays)
+    ? [...new Set(out.repeatDays.map(x => String(x).toUpperCase()).filter(x => validDays.has(x)))]
+    : [];
   out.isEnabled = Boolean(out.isEnabled);
   return out;
 }
