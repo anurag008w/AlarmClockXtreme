@@ -5,6 +5,11 @@
       <verify-signatures>false</verify-signatures>
    </configuration>
    <components>
+      <component group="com.android.tools.build" name="aapt2" version="8.11.1-12782657">
+         <artifact name="aapt2-8.11.1-12782657-linux.jar">
+            <sha256 value="5ce2f1c4262b99174047f3d413816c57ceef5fb00a520264cf5ed564576bf250" origin="Verified published SHA-256"/>
+         </artifact>
+      </component>
       <component group="com.google.guava" name="guava-parent" version="33.0.0-jre">
          <artifact name="guava-parent-33.0.0-jre.pom">
             <sha256 value="040cc88c680b413d70ba9fc8371b36093021b10996aa3598621de767d418229a" origin="Verified Maven Central checksum"/>
