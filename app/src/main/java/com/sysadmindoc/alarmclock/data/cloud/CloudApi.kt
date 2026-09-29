@@ -7,6 +7,7 @@ import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.PUT
+import retrofit2.http.Query
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -43,7 +44,8 @@ interface CloudApi {
     @DELETE("api/alarms/{id}")
     suspend fun deleteAlarm(
         @Header("Authorization") authorization: String,
-        @Path("id") id: String
+        @Path("id") id: String,
+        @Query("expectedVersion") expectedVersion: Long = 0
     ): CloudDeleteResponse
 
     @POST("api/ai/command")
