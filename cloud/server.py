@@ -352,8 +352,14 @@ async def put_alarm(
 
 
 @app.delete("/api/alarms/{alarm_id}")
-async def delete_alarm(alarm_id: str, user=Depends(current_user)):
-    return await mutate_alarm(user["id"], alarm_id, None, delete=True)
+async def delete_alarm(
+    alarm_id: str,
+    expectedVersion: int = 0,
+    user=Depends(current_user),
+):
+    return await mutate_alarm(
+        user["id"], alarm_id, None, delete=True, expected=max(0, expectedVersion)
+    )
 
 
 @app.get("/api/audit")
