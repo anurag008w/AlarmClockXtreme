@@ -132,6 +132,20 @@ def sanitize_alarm(payload: dict[str, Any]) -> dict[str, Any]:
         ("profileName", 40),
         ("guardianPhone", 40),
         ("dismissActionPayload", 2048),
+        ("ringtoneUri", 2048),
+        ("spotifyUri", 2048),
+        ("internetRadioUrl", 2048),
+        ("photoMatchUri", 2048),
+        ("firingBackgroundImageUri", 2048),
+        ("nfcTagId", 128),
+        ("barcodeValue", 512),
+        ("wifiDismissSsid", 64),
+        ("fixedTimezoneId", 128),
+        ("shiftPatternStartDate", 32),
+        ("specificDate", 32),
+        ("morningRoutine", 2048),
+        ("challengeChain", 512),
+        ("ringtonePool", 4096),
     ):
         if key in out:
             out[key] = str(out[key])[:max_len]
@@ -149,10 +163,68 @@ def sanitize_alarm(payload: dict[str, Any]) -> dict[str, Any]:
         str(x).upper() for x in repeat_days
         if str(x).upper() in valid_days
     })
-    out["isEnabled"] = bool(out.get("isEnabled", True))
+    def parse_bool(value: Any, default: bool = False) -> bool:
+        if isinstance(value, bool):
+            return value
+        if value is None:
+            return default
+        token = str(value).strip().lower()
+        if token in {"true", "1", "yes", "on"}:
+            return True
+        if token in {"false", "0", "no", "off"}:
+            return False
+        return default
+
+    boolean_defaults = {
+        "isEnabled": True,
+        "vibrationEnabled": True,
+        "overrideSystemVolume": True,
+        "showOnLockScreen": True,
+        "flashWake": False,
+        "ttsEnabled": False,
+        "wakeConfirmEnabled": False,
+        "smartAlarmEnabled": False,
+        "skipOnHolidays": False,
+        "hueEnabled": False,
+        "progressiveSnooze": False,
+        "backupSoundEnabled": False,
+        "sunriseSimulation": False,
+        "guardianEnabled": False,
+        "locationDismissEnabled": False,
+        "flashlightStrobe": False,
+        "dismissAtRingtoneEnd": False,
+        "holdToDismissEnabled": False,
+        "firingBackgroundImageEnabled": False,
+        "firingBackgroundBlurEnabled": True,
+    }
+    for key, default in boolean_defaults.items():
+        out[key] = parse_bool(out.get(key), default)
+    out["isEnabled"] = out["isEnabled"]
 
     # These are Android-device-local scheduling values. The cloud stores
     # alarm intent, not a trigger timestamp tied to one handset.
+    valid_vibration_patterns = {"default", "gentle", "heartbeat", "escalating", "sos"}
+    out["vibrationPattern"] = str(out.get("vibrationPattern", "default")).lower()
+    if out["vibrationPattern"] not in valid_vibration_patterns:
+        out["vibrationPattern"] = "default"
+
+    valid_hardware_actions = {"NONE", "SNOOZE", "DISMISS"}
+    out["hardwareButtonAction"] = str(out.get("hardwareButtonAction", "NONE")).upper()
+    if out["hardwareButtonAction"] not in valid_hardware_actions:
+        out["hardwareButtonAction"] = "NONE"
+
+    valid_dismiss_actions = {"NONE", "WEBHOOK", "HUE_SCENE", "BROADCAST"}
+    out["dismissActionType"] = str(out.get("dismissActionType", "NONE")).upper()
+    if out["dismissActionType"] not in valid_dismiss_actions:
+        out["dismissActionType"] = "NONE"
+
+    out["timezonePolicy"] = "FIXED" if str(out.get("timezonePolicy", "LOCAL")).upper() == "FIXED" else "LOCAL"
+    out["solarAnchor"] = "SUNSET" if str(out.get("solarAnchor", "SUNRISE")).upper() == "SUNSET" else "SUNRISE"
+
+    valid_shift_patterns = {"", "DDNNO", "FOUR_ON_FOUR_OFF", "PANAMA", "DUPONT", "PITMAN"}
+    shift = str(out.get("shiftPattern", "")).upper()
+    out["shiftPattern"] = shift if shift in valid_shift_patterns else ""
+    
     out["id"] = 0
     out["nextTriggerTime"] = 0
     return out
