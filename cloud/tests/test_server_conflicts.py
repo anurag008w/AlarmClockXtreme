@@ -39,6 +39,15 @@ class AlarmConflictTests(unittest.IsolatedAsyncioTestCase):
         self.assertRegex(first, r"\.\d{6}Z$")
         self.assertRegex(second, r"\.\d{6}Z$")
 
+    async def test_refresh_never_pushes_stale_render_copy_before_pull(self):
+        with patch.object(server.github_sync, "pull_data", return_value=True) as pull_data, \
+             patch.object(server.github_sync, "push_data", return_value=True) as push_data:
+            result = await server.refresh_sync({"id": "user-1", "email": "user@example.com"})
+
+        self.assertTrue(result["ok"])
+        pull_data.assert_called_once()
+        push_data.assert_not_called()
+
     async def test_stale_update_is_rejected(self):
         created = await server.mutate_alarm(
             "user-1", "alarm-1", {"hour": 7, "minute": 0, "label": "Morning"}
