@@ -2,6 +2,27 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.15.36] - 2026-09-29
+
+### Added
+
+- Added an optional cloud account layer with web controls and Android sync for
+  alarms, while keeping the existing on-device alarm engine as the scheduler.
+- Added GitHub-backed persistent cloud storage, conflict-aware alarm versions,
+  device registration, audit history, and controlled AI alarm commands.
+- Added a responsive web dashboard with alarm management, timers, stopwatch,
+  world clocks, activity, export, and PWA support.
+
+### Fixed
+
+- Fixed Android cloud authentication requests being obfuscated by R8 so the
+  server now receives the required `email` and `password` JSON fields.
+- Kept cloud Moshi models and their JSON members through release shrinking so
+  login, registration, sync, and AI responses remain compatible in minified
+  builds.
+- Added the missing Gradle dependency verification checksums required by the
+  Android release graph.
+
 ## [1.15.35] - 2026-09-05
 
 ### Changed
