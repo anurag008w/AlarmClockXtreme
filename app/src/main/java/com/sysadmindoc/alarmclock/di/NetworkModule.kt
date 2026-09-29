@@ -34,11 +34,7 @@ object NetworkModule {
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(15, TimeUnit.SECONDS)
         .writeTimeout(15, TimeUnit.SECONDS)
-        .build()
-
-    @Provides
-    @Singleton
-    @Provides
+        .build()    @Provides
     @Singleton
     fun provideCloudApi(moshi: Moshi, client: OkHttpClient): CloudApi {
         val baseUrl = BuildConfig.CLOUD_BASE_URL.ensureTrailingSlash()
