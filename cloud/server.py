@@ -20,7 +20,7 @@ import github_sync
 import usersync
 
 BASE = Path(__file__).resolve().parent
-PUBLIC = BASE / "public"
+PUBLIC = (BASE / "public").resolve()
 JWT_SECRET = os.environ.get("JWT_SECRET", "").strip()
 AI_API_KEY = os.environ.get("AI_API_KEY", "").strip()
 AI_BASE_URL = os.environ.get("AI_BASE_URL", "https://api.openai.com/v1").rstrip("/")
@@ -86,13 +86,20 @@ def current_user(request: Request) -> dict:
     raw = request.headers.get("authorization", "")
     if not raw.startswith("Bearer "):
         raise HTTPException(401, "missing_token")
+    token = raw[7:].strip()
+    if not token:
+        raise HTTPException(401, "invalid_token")
     try:
-        payload = jwt.decode(raw[7:], JWT_SECRET, algorithms=["HS256"])
-    except jwt.PyJWTError:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+        user_id = payload.get("sub")
+        email = payload.get("email")
+        if not isinstance(user_id, str) or not user_id or not isinstance(email, str) or not email:
+            raise ValueError("invalid_claims")
+    except (jwt.PyJWTError, ValueError, TypeError):
         raise HTTPException(401, "invalid_token")
     return {
-        "id": str(payload["sub"]),
-        "email": str(payload["email"]),
+        "id": user_id,
+        "email": email,
     }
 
 
@@ -557,7 +564,11 @@ async def ai_command(body: AiCommand, user=Depends(current_user)):
 
 @app.get("/{path:path}")
 async def spa(path: str):
-    candidate = PUBLIC / path
-    if path and candidate.is_file() and PUBLIC in candidate.parents:
+    candidate = (PUBLIC / path).resolve()
+    try:
+        candidate.relative_to(PUBLIC)
+    except ValueError:
+        return FileResponse(PUBLIC / "index.html")
+    if path and candidate.is_file():
         return FileResponse(candidate)
     return FileResponse(PUBLIC / "index.html")
