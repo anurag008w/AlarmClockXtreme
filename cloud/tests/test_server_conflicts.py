@@ -36,7 +36,7 @@ class AlarmConflictTests(unittest.IsolatedAsyncioTestCase):
     async def test_updated_at_keeps_subsecond_precision(self):
         first = server.usersync.now_utc()
         second = server.usersync.now_utc()
-        self.assertRegex(first, r"\\.\\d{6}Z$")
+        self.assertRegex(first, r"\.\d{6}Z$")
         self.assertRegex(second, r"\\.\\d{6}Z$")
 
     async def test_stale_update_is_rejected(self):
