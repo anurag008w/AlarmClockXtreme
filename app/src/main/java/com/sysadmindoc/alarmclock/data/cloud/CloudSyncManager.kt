@@ -201,7 +201,7 @@ class CloudSyncManager @Inject constructor(
                 } catch (e: HttpException) {
                     if (e.code() != 404 && e.code() != 409) throw e
                     val latest = fetchRemoteItem(remoteId)
-                    if (latest?.deletedAt == null) {
+                    if (latest != null && latest.deletedAt == null) {
                         val response = api.deleteAlarm(auth(), remoteId, latest.version)
                         onUpdatedAt(response.updatedAt)
                     }
