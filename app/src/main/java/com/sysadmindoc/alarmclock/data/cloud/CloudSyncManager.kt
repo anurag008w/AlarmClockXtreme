@@ -309,7 +309,11 @@ class CloudSyncManager @Inject constructor(
                 val match = bootstrapMatches.firstOrNull { remote ->
                     remote.id !in mapping &&
                         remote.id !in claimedBootstrapRemoteIds &&
-                        canonicalPayload(remote.payload) == localCanonical
+                        run {
+                            val remoteAlarm = decodeAlarm(remote)
+                            (remoteAlarm != null && sameAlarmIdentity(remoteAlarm, alarm)) ||
+                                canonicalPayload(remote.payload) == localCanonical
+                        }
                 }
                 if (match != null) {
                     remoteId = match.id
@@ -575,10 +579,19 @@ class CloudSyncManager @Inject constructor(
         return remote.alarms.firstOrNull { it.id == remoteId }
     }
 
-    private fun stableRemoteId(localId: Long): String {
-        val seed = "\${prefs.getDeviceId()}:$localId"
+    private fun stableRemoteId(alarm: Alarm): String {
+        // createdAt is immutable alarm identity carried across devices.
+        // Room ids are device-local and must never define cloud identity.
+        val seed = if (alarm.createdAt > 0L) {
+            "alarm-created:${alarm.createdAt}"
+        } else {
+            "alarm-device:${prefs.getDeviceId()}:fallback"
+        }
         return UUID.nameUUIDFromBytes(seed.toByteArray(StandardCharsets.UTF_8)).toString()
     }
+
+    private fun sameAlarmIdentity(a: Alarm, b: Alarm): Boolean =
+        a.createdAt > 0L && b.createdAt > 0L && a.createdAt == b.createdAt
 
     private fun persistMetadata(
         mapping: Map<String, Long>,
