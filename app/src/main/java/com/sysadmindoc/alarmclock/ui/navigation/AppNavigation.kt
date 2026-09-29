@@ -515,6 +515,7 @@ private fun AppNavHost(
 
         composable(Screen.Settings.route) {
             SettingsScreen(
+                onNavigateToCloud = { navController.navigate(Screen.CloudAccount.route) },
                 onNavigateToStats = {
                     navController.navigate(Screen.Stats.route)
                 },
