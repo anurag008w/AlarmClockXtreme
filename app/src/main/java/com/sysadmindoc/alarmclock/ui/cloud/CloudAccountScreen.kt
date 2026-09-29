@@ -15,6 +15,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -23,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -164,16 +166,23 @@ fun CloudAccountScreen(
     ) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(stringResource(R.string.cloud_account_title), style = MaterialTheme.typography.headlineSmall)
-            Text(
-                text = stringResource(R.string.cloud_account_back),
-                modifier = Modifier,
-                color = MaterialTheme.colorScheme.primary
-            )
+            TextButton(onClick = onNavigateBack, enabled = !state.busy) {
+                Text(
+                    text = stringResource(R.string.cloud_account_back),
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
         }
 
         if (!state.loggedIn) {
             OutlinedTextField(email, { email = it }, Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.cloud_email)) })
-            OutlinedTextField(password, { password = it }, Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.cloud_password)) })
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text(stringResource(R.string.cloud_password)) },
+                visualTransformation = PasswordVisualTransformation()
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Button(
                     onClick = { if (registerMode) viewModel.register(email, password) else viewModel.login(email, password) },
