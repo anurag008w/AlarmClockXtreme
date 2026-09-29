@@ -23,7 +23,7 @@ jobs:
       ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
       ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
       ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-      GH_TOKEN: ${{ github.token }}
+      GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
     steps:
       - uses: actions/checkout@v4
 
@@ -95,9 +95,32 @@ jobs:
           path: app/build/outputs/apk/play/release/app-play-release.apk
           if-no-files-found: error
 
+      - name: Verify CI gate for this commit
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 60); do
+            RUN_JSON="$(gh run list --workflow cloud-android-verification.yml --commit \"$GITHUB_SHA\" --limit 1 --json status,conclusion,databaseId)"
+            STATUS="$(printf '%s' "$RUN_JSON" | jq -r '.[0].status // empty')"
+            CONCLUSION="$(printf '%s' "$RUN_JSON" | jq -r '.[0].conclusion // empty')"
+            RUN_ID="$(printf '%s' "$RUN_JSON" | jq -r '.[0].databaseId // empty')"
+            if [[ "$STATUS" == "completed" ]]; then
+              [[ "$CONCLUSION" == "success" ]] || { echo "::error title=Verification failed::Cloud and Android verification run $RUN_ID finished with $CONCLUSION."; exit 1; }
+              echo "Verification passed for $GITHUB_SHA (run $RUN_ID)."
+              exit 0
+            fi
+            echo "Waiting for Cloud and Android verification (attempt $attempt/60)..."
+            sleep 10
+          done
+          echo "::error title=Verification timeout::Cloud and Android verification did not complete within the release gate window."
+          exit 1
+
       - name: Publish GitHub Release
         shell: bash
         env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
           RELEASE_TAG: v${{ steps.version.outputs.version_name }}
           VERSION_NAME: ${{ steps.version.outputs.version_name }}
           VERSION_CODE: ${{ steps.version.outputs.version_code }}
