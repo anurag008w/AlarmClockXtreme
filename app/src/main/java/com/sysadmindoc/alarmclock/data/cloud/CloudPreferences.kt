@@ -3,10 +3,9 @@ package com.sysadmindoc.alarmclock.data.cloud
 import android.content.Context
 import android.provider.Settings
 import org.json.JSONObject
-import org.json.JSONObject
 import java.util.UUID
 
-class CloudPreferences(context: Context) {
+class CloudPreferences(private val context: Context) {
     private val prefs = context.getSharedPreferences("cloud_sync", Context.MODE_PRIVATE)
 
     fun getToken(): String = prefs.getString("token", "") ?: ""
