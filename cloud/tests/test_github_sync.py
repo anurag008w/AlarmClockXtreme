@@ -1,9 +1,17 @@
+import json
+import tempfile
+from pathlib import Path
 import unittest
 
 import github_sync
 
 
 class AlarmMergeTests(unittest.TestCase):
+    def _temp_dir(self, _name):
+        path = Path(tempfile.mkdtemp())
+        self.addCleanup(lambda: __import__("shutil").rmtree(path, ignore_errors=True))
+        return path
+
     def test_higher_remote_version_beats_later_stale_timestamp(self):
         local = {
             "schema": 1,
