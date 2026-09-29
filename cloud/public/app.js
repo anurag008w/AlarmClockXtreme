@@ -768,7 +768,7 @@ function startPolling() {
     if (state.token && document.visibilityState === "visible") {
       syncNow({silent:true}).catch(() => {});
     }
-  }, 3000);
+  }, 2000);
 }
 window.addEventListener("online", () => {
   if (state.token && document.visibilityState === "visible") {
