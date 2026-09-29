@@ -195,16 +195,17 @@ def _replace_local_data_from(remote_root: Path) -> None:
             shutil.copy2(item, destination)
 
 
-def compute_fingerprint() -> str:
+def compute_fingerprint(root: Path | None = None) -> str:
+    root = root or DATA_DIR
     digest = hashlib.sha256()
-    if not DATA_DIR.exists():
+    if not root.exists():
         return ""
 
-    for item in sorted(DATA_DIR.rglob("*")):
+    for item in sorted(root.rglob("*")):
         if not item.is_file() or item.name.endswith(".tmp"):
             continue
         try:
-            digest.update(str(item.relative_to(DATA_DIR)).encode())
+            digest.update(str(item.relative_to(root)).encode())
             digest.update(item.read_bytes())
         except OSError:
             continue
@@ -256,10 +257,25 @@ def pull_data() -> bool:
                 mark_pushed()
                 return True
 
+            # Never replace a live alarm dataset with a possibly stale
+            # GitHub checkout. Another service/device can push an older whole
+            # file while this process is alive. Merge the current local state
+            # onto the fresh checkout first; alarm tombstones and newer edits
+            # therefore survive an out-of-band rollback.
+            remote_fingerprint = compute_fingerprint(remote)
+            _overlay_local_data(DATA_DIR, remote)
+            merged_fingerprint = compute_fingerprint(remote)
             _replace_local_data_from(remote)
 
         _last_pull_ok = True
-        mark_pushed()
+        global _last_push_fingerprint
+        if merged_fingerprint == remote_fingerprint:
+            mark_pushed()
+        else:
+            # The pull recovered local state that is newer than GitHub. Keep
+            # the durable fingerprint as the pending baseline so the watchdog
+            # immediately pushes the repaired merged dataset.
+            _last_push_fingerprint = remote_fingerprint
         return True
     except Exception:
         log.exception("github pull crashed")
