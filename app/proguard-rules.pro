@@ -99,3 +99,8 @@
 # path does not create Zstandard streams, and adding zstd-jni would ship native
 # code that is not needed for alarm audio downloads.
 -dontwarn com.github.luben.zstd.**
+
+# ===== Cloud API models =====
+# Cloud models use Moshi reflection for flexible Map<String, Any?> payloads.
+# Keep class members stable so release R8 shrinking cannot rename JSON fields.
+-keep class com.sysadmindoc.alarmclock.data.cloud.** { *; }
