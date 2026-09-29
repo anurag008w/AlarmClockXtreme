@@ -10,6 +10,7 @@ import com.squareup.moshi.Moshi
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -160,6 +161,7 @@ class CloudSyncManager @Inject constructor(
         }
     }
 
+    @OptIn(FlowPreview::class)
     suspend fun observeLocalChanges() {
         repository.observeAll()
             .distinctUntilChanged()
