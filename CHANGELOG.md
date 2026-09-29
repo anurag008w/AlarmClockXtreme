@@ -2,6 +2,11 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.15.42]
+
+- Finalized bidirectional alarm-sync reliability fixes: immediate Room watchdog, fast web watchdog, GitHub pull/merge protection, tombstone safety, and stable cross-device alarm identity to prevent edit duplicates.
+- Signed-release workflow now requires the Cloud and Android verification gate and a writable release token.
+
 ## [1.15.41]
 
 - Hardened bidirectional alarm sync so GitHub pulls merge with live local alarm state instead of replacing it.
