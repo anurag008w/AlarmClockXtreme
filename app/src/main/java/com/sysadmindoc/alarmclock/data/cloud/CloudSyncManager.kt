@@ -192,10 +192,15 @@ class CloudSyncManager @Inject constructor(
     }
 
     @OptIn(FlowPreview::class)
+    /**
+     * Lightweight in-process watchdog for Android-side create/edit/delete.
+     * Room invalidation wakes this collector; the short debounce coalesces
+     * rapid editor writes without adding a polling loop or wake lock.
+     */
     suspend fun observeLocalChanges() {
         repository.observeAll()
             .distinctUntilChanged()
-            .debounce(1500L)
+            .debounce(300L)
             .collectLatest {
                 if (!applyingRemote && isLoggedIn()) {
                     runCatching { syncNow() }
