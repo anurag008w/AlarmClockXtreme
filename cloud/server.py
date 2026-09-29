@@ -14,7 +14,7 @@ import jwt
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
 
 import github_sync
 import usersync
@@ -46,7 +46,7 @@ _sync_lock = asyncio.Lock()
 
 
 class Credentials(BaseModel):
-    email: EmailStr
+    email: str
     password: str = Field(min_length=8, max_length=128)
 
 
@@ -272,8 +272,11 @@ async def health():
 
 @app.post("/api/auth/register")
 async def register(body: Credentials):
+    email = body.email.strip().lower()
+    if "@" not in email or len(email) > 200:
+        raise HTTPException(400, "invalid_email")
     try:
-        user = await usersync.register(body.email, body.password)
+        user = await usersync.register(email, body.password)
     except ValueError as exc:
         raise HTTPException(409, str(exc))
 
@@ -286,7 +289,10 @@ async def register(body: Credentials):
 
 @app.post("/api/auth/login")
 async def login(body: Credentials):
-    user = await usersync.authenticate(body.email, body.password)
+    email = body.email.strip().lower()
+    if "@" not in email or len(email) > 200:
+        raise HTTPException(400, "invalid_email")
+    user = await usersync.authenticate(email, body.password)
     if not user:
         raise HTTPException(401, "invalid_credentials")
     await audit(user["id"], "login")
