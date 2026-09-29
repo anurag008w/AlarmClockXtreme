@@ -298,7 +298,7 @@ class CloudSyncManager @Inject constructor(
         val inverse = mapping.entries.associate { it.value to it.key }
 
         for (alarm in local) {
-            var remoteId = inverse[alarm.id] ?: stableRemoteId(alarm.id)
+            var remoteId = inverse[alarm.id] ?: stableRemoteId(alarm)
             var localCanonical = canonical(alarm)
             var localPayload = alarmPayload(alarm)
 
