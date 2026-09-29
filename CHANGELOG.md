@@ -13,6 +13,10 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - Added a responsive web dashboard with alarm management, timers, stopwatch,
   world clocks, activity, export, and PWA support.
 
+### Release build
+
+- Reissued the v1.15.36 signed build after aligning all tracked release metadata.
+
 ### Fixed
 
 - Fixed Android cloud authentication requests being obfuscated by R8 so the
