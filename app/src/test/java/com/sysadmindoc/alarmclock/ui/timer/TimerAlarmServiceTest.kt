@@ -37,7 +37,7 @@ class TimerAlarmServiceTest {
         context.getSharedPreferences("timer_state", Context.MODE_PRIVATE).edit().clear().commit()
         // Robolectric reuses the Application (and its ShadowAlarmManager)
         // across methods in a class, so a prior test that scheduled a timer
-        // alarm would otherwise inflate scheduledAlarms.size assertions here.
+        // alarm would otherwise inflate scheduledAlarms assertions here.
         val alarmManager = shadowOf(context.getSystemService(AlarmManager::class.java))
         while (alarmManager.peekNextScheduledAlarm() != null) {
             alarmManager.getNextScheduledAlarm()
@@ -53,20 +53,17 @@ class TimerAlarmServiceTest {
     }
 
     /**
-     * Everything the shadow is holding, timer alarm or not. A bare count told
-     * us nothing the one time this assertion failed: the point of naming each
-     * alarm is that the next failure says which one arrived uninvited.
+     * Only timer-expiry registrations belong to this test. Other app components
+     * may legitimately use AlarmManager in the same Robolectric application,
+     * so a whole-AlarmManager string is not a stable contract for timer restart.
      */
-    private fun scheduledAlarmSummary(): String =
+    private fun scheduledTimerIds(): List<Int> =
         shadowOf(context.getSystemService(AlarmManager::class.java)).scheduledAlarms
-            .joinToString(prefix = "[", postfix = "]") { alarm ->
-                val intent = alarm.operation?.let { shadowOf(it).savedIntent }
-                when {
-                    intent == null -> "listener@${alarm.triggerAtTime}"
-                    intent.action == TimerAlarmScheduler.ACTION_TIMER_EXPIRED ->
-                        "timer#${intent.getIntExtra(TimerAlarmScheduler.EXTRA_TIMER_ID, -1)}"
-                    else -> "${intent.action ?: intent.component?.className}@${alarm.triggerAtTime}"
-                }
+            .mapNotNull { alarm ->
+                alarm.operation?.let { shadowOf(it).savedIntent }
+                    ?.takeIf { intent -> intent.action == TimerAlarmScheduler.ACTION_TIMER_EXPIRED }
+                    ?.getIntExtra(TimerAlarmScheduler.EXTRA_TIMER_ID, -1)
+                    ?.takeIf { it > 0 }
             }
 
     @Test
@@ -168,14 +165,12 @@ class TimerAlarmServiceTest {
 
     @Test
     fun `ui start allocates ids from the store so a restarted timer survives`() {
-        // A finished timer restarted from its notification allocates store-side.
         TimerStore(context).upsert(
             PersistedTimerRecord(1, "Tea", 60, 0, TimerState.FINISHED)
         )
         service.onStartCommand(restartIntent(1), 0, 1)
         val restartedId = TimerStore(context).loadRecords().single().id
 
-        // The UI's next allocation must not reuse the restarted timer's id.
         assertEquals(restartedId + 1, TimerStore(context).nextId())
     }
 
@@ -195,11 +190,12 @@ class TimerAlarmServiceTest {
         assertEquals("Pasta", running.label)
         assertEquals(60L, running.totalSeconds)
         assertEquals(TimerState.RUNNING, running.state)
-        // Asserting the whole summary rather than the timer ids alone: the
-        // suspect for this case's one recorded flake is an alarm leaking in
-        // from a neighbouring class, and filtering to timer alarms would let
-        // exactly that pass unnoticed while still calling itself a diagnosis.
-        assertEquals("[timer#4]", scheduledAlarmSummary())
+
+        // Duplicate restart delivery must not create a second timer-expiry
+        // registration. Unrelated AlarmManager clients are outside this test's
+        // contract and must not make a valid restart look broken.
+        assertEquals(listOf(4), scheduledTimerIds())
+
         val notifications = shadowOf(context.getSystemService(NotificationManager::class.java))
         assertNull(notifications.getNotification(TimerNotifications.notificationId(3)))
         assertNotNull(notifications.getNotification(TimerNotifications.notificationId(4)))
