@@ -50,6 +50,8 @@ object NetworkModule {
             .create(CloudApi::class.java)
     }
 
+    @Provides
+    @Singleton
     fun provideWeatherApi(moshi: Moshi, client: OkHttpClient): WeatherApi {
         return Retrofit.Builder()
             .baseUrl("https://api.open-meteo.com/")
