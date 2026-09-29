@@ -33,6 +33,8 @@ import com.sysadmindoc.alarmclock.data.cloud.CloudSyncManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import org.json.JSONObject
+import retrofit2.HttpException
 import javax.inject.Inject
 
 data class CloudAccountUiState(
@@ -60,8 +62,18 @@ class CloudAccountViewModel @Inject constructor(
         viewModelScope.launch {
             _ui.value = _ui.value.copy(busy = true, message = "")
             syncManager.syncNow()
-                .onSuccess { _ui.value = _ui.value.copy(busy = false, message = context.getString(R.string.cloud_sync_complete)) }
-                .onFailure { _ui.value = _ui.value.copy(busy = false, message = it.message ?: context.getString(R.string.cloud_sync_failed)) }
+                .onSuccess {
+                    _ui.value = _ui.value.copy(
+                        busy = false,
+                        message = context.getString(R.string.cloud_sync_complete)
+                    )
+                }
+                .onFailure {
+                    _ui.value = _ui.value.copy(
+                        busy = false,
+                        message = cloudErrorMessage(it)
+                    )
+                }
         }
     }
 
@@ -69,8 +81,18 @@ class CloudAccountViewModel @Inject constructor(
         viewModelScope.launch {
             _ui.value = _ui.value.copy(busy = true, aiMessage = "")
             syncManager.sendAiCommand(command)
-                .onSuccess { _ui.value = _ui.value.copy(busy = false, aiMessage = it) }
-                .onFailure { _ui.value = _ui.value.copy(busy = false, aiMessage = it.message ?: context.getString(R.string.cloud_ai_failed)) }
+                .onSuccess {
+                    _ui.value = _ui.value.copy(
+                        busy = false,
+                        aiMessage = it
+                    )
+                }
+                .onFailure {
+                    _ui.value = _ui.value.copy(
+                        busy = false,
+                        aiMessage = cloudErrorMessage(it)
+                    )
+                }
         }
     }
 
@@ -83,9 +105,45 @@ class CloudAccountViewModel @Inject constructor(
         viewModelScope.launch {
             _ui.value = _ui.value.copy(busy = true, message = "")
             block()
-                .onSuccess { email -> _ui.value = CloudAccountUiState(loggedIn = true, email = email, message = context.getString(R.string.cloud_account_connected)) }
-                .onFailure { _ui.value = _ui.value.copy(busy = false, message = it.message ?: context.getString(R.string.cloud_request_failed)) }
+                .onSuccess { email ->
+                    _ui.value = CloudAccountUiState(
+                        loggedIn = true,
+                        email = email,
+                        message = context.getString(R.string.cloud_account_connected)
+                    )
+                }
+                .onFailure {
+                    _ui.value = _ui.value.copy(
+                        busy = false,
+                        message = cloudErrorMessage(it)
+                    )
+                }
         }
+    }
+
+    private fun cloudErrorMessage(error: Throwable): String {
+        if (error is HttpException) {
+            val body = runCatching {
+                error.response()?.errorBody()?.string().orEmpty()
+            }.getOrDefault("")
+
+            val detail = runCatching {
+                val json = JSONObject(body)
+                when (val value = json.opt("detail")) {
+                    is String -> value
+                    is org.json.JSONArray -> value.toString()
+                    else -> ""
+                }
+            }.getOrDefault("")
+
+            if (detail.isNotBlank()) {
+                return "HTTP " + error.code() + ": " + detail.replace('_', ' ')
+            }
+            return "HTTP " + error.code() + ": " + context.getString(R.string.cloud_request_failed)
+        }
+
+        return error.message?.takeIf { it.isNotBlank() }
+            ?: context.getString(R.string.cloud_request_failed)
     }
 }
 
