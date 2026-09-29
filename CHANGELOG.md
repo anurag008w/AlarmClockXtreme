@@ -1,3 +1,7 @@
+# Changelog
+
+All notable changes to AlarmClockXtreme will be documented in this file.
+
 ## [1.15.39]
 
 ### Fixed
@@ -5,10 +9,6 @@
 - Refresh now flushes pending writes safely before pulling the durable dataset.
 - Android foreground alarm sync watchdog tightened for faster create/edit/delete propagation.
 - Preserved alarm tombstones and remote edits during cross-device races.
-
-# Changelog
-
-All notable changes to AlarmClockXtreme will be documented in this file.
 
 ## [1.15.38] - 2026-09-29
 
