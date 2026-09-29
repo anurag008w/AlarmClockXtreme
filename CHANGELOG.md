@@ -6,6 +6,7 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Fixed
 - Made GitHub-backed alarm persistence conflict-safe across devices and Render process restarts.
+- Alarm create, edit, delete, and their audit records now share one durable GitHub commit, preventing stale refreshes from reviving old alarm state.
 - Refresh now flushes pending writes safely before pulling the durable dataset.
 - Android foreground alarm sync watchdog tightened for faster create/edit/delete propagation.
 - Preserved alarm tombstones and remote edits during cross-device races.
