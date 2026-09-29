@@ -50,6 +50,8 @@ adb install AlarmClockXtreme-v1.15.38-play-release.apk
 
 Each release includes `SHA256SUMS.txt` and certificate fingerprints so you can verify the file before installing it.
 
+When cloud sync is enabled, alarm create, edit, toggle, and delete changes are watched locally and reflected across the Android app and web dashboard within seconds while connected.
+
 ## Why People Choose It
 
 ### Alarms that take reliability seriously
