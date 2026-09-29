@@ -21,9 +21,9 @@ GH_TOKEN = os.environ.get("GH_TOKEN", "").strip()
 SYNC_ENABLED = os.environ.get("GITHUB_SYNC_ENABLED", "true").strip().lower() != "false"
 
 try:
-    SYNC_INTERVAL = max(30, int(os.environ.get("GITHUB_SYNC_INTERVAL", "30")))
+    SYNC_INTERVAL = max(10, int(os.environ.get("GITHUB_SYNC_INTERVAL", "10")))
 except ValueError:
-    SYNC_INTERVAL = 30
+    SYNC_INTERVAL = 10
 
 PUSH_RETRIES = 3
 
