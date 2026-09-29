@@ -3,17 +3,27 @@ name: Android signed release
 on:
   workflow_dispatch:
   push:
+    branches:
+      - "main"
     tags:
       - "v*"
 
+permissions:
+  contents: write
+
 jobs:
   release:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.ref_type == 'tag' ||
+      contains(github.event.head_commit.message, '[publish-release]')
     runs-on: ubuntu-latest
     env:
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
       ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
       ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
 
@@ -25,6 +35,32 @@ jobs:
       - name: Make Gradle wrapper executable
         shell: bash
         run: chmod +x gradlew
+
+      - name: Read release version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION_NAME="$(sed -nE 's/^[[:space:]]*versionName[[:space:]]*=[[:space:]]*"([^"]+)".*$/\1/p' app/build.gradle.kts | head -n1)"
+          VERSION_CODE="$(sed -nE 's/^[[:space:]]*versionCode[[:space:]]*=[[:space:]]*([0-9]+).*$/\1/p' app/build.gradle.kts | head -n1)"
+          test -n "$VERSION_NAME"
+          test -n "$VERSION_CODE"
+          echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "Release version: $VERSION_NAME ($VERSION_CODE)"
+
+      - name: Require tag/version match
+        if: github.ref_type == 'tag'
+        shell: bash
+        env:
+          EXPECTED_TAG: v${{ steps.version.outputs.version_name }}
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF_NAME" != "$EXPECTED_TAG" ]]; then
+            echo "::error title=Release tag/version mismatch::Tag $GITHUB_REF_NAME does not match app version $EXPECTED_TAG."
+            exit 1
+          fi
 
       - name: Require release signing secrets
         shell: bash
@@ -52,9 +88,30 @@ jobs:
       - name: Build signed Play APK
         run: ./gradlew assemblePlayRelease --no-daemon
 
-      - name: Upload signed APK
+      - name: Upload signed APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: AlarmClockXtreme-play-release
           path: app/build/outputs/apk/play/release/app-play-release.apk
           if-no-files-found: error
+
+      - name: Publish GitHub Release
+        shell: bash
+        env:
+          RELEASE_TAG: v${{ steps.version.outputs.version_name }}
+          VERSION_NAME: ${{ steps.version.outputs.version_name }}
+          VERSION_CODE: ${{ steps.version.outputs.version_code }}
+        run: |
+          set -euo pipefail
+          APK="app/build/outputs/apk/play/release/app-play-release.apk"
+
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "$APK" --clobber
+          else
+            gh release create "$RELEASE_TAG" "$APK" \
+              --target "$GITHUB_SHA" \
+              --title "AlarmClockXtreme v$VERSION_NAME" \
+              --generate-notes
+          fi
+
+          echo "Published GitHub Release: $RELEASE_TAG ($VERSION_CODE)"
