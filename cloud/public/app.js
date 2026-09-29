@@ -93,6 +93,10 @@ function cursorStorageKey() {
   return state.user?.id ? `acx_cursor_${state.user.id}` : "acx_cursor_anon";
 }
 
+async function refreshCloudDataset() {
+  return api("/api/sync/refresh", { method: "POST" });
+}
+
 async function authSubmit(event) {
   event.preventDefault();
   setAuthError("");
@@ -107,6 +111,7 @@ async function authSubmit(event) {
     state.alarms = [];
     localStorage.setItem("acx_token", state.token);
     localStorage.removeItem(cursorStorageKey());
+    await refreshCloudDataset();
     showApp();
     await syncNow({ forceFull: true });
     renderWorld();
@@ -736,6 +741,7 @@ document.addEventListener("visibilitychange", () => {
   try {
     const me = await api("/api/me");
     state.user = me.user;
+    await refreshCloudDataset();
     showApp();
     await syncNow({forceFull:true});
     renderWorld();
