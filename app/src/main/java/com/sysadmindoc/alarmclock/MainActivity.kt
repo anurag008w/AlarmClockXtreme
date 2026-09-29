@@ -45,6 +45,7 @@ class MainActivity : ComponentActivity() {
     private var pendingSharedAlarmToken: String? = null
     private var pendingSharedAlarmDraft by mutableStateOf<Alarm?>(null)
     private var foregroundCloudSyncJob: Job? = null
+    private var localCloudSyncObserverJob: Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -120,6 +121,14 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        // Room invalidation watchdog: create/edit/delete is pushed as soon as
+        // the local alarm list changes. The 300 ms debounce coalesces slider/
+        // editor bursts without polling or a wake lock.
+        localCloudSyncObserverJob?.cancel()
+        localCloudSyncObserverJob = lifecycleScope.launch {
+            cloudSyncManager.observeLocalChanges()
+        }
+
         val snapshot = AlarmService.activeAlarm.get() ?: return
         val intent = Intent(this, AlarmFiringActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
@@ -133,6 +142,8 @@ class MainActivity : ComponentActivity() {
     override fun onPause() {
         foregroundCloudSyncJob?.cancel()
         foregroundCloudSyncJob = null
+        localCloudSyncObserverJob?.cancel()
+        localCloudSyncObserverJob = null
         super.onPause()
     }
 
