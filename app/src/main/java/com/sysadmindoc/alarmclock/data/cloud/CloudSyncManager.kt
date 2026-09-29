@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.data.cloud
 
 import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
 import com.sysadmindoc.alarmclock.BuildConfig
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
@@ -20,7 +21,7 @@ import javax.inject.Singleton
 
 @Singleton
 class CloudSyncManager @Inject constructor(
-    private val context: Context,
+    @ApplicationContext private val context: Context,
     private val api: CloudApi,
     private val moshi: Moshi,
     private val repository: AlarmRepository,
@@ -142,7 +143,7 @@ class CloudSyncManager @Inject constructor(
             if (existing != null) {
                 val updated = alarm.copy(id = existingLocalId)
                 repository.update(updated)
-                schedule(updated)
+                if (updated.isEnabled) schedule(updated) else scheduler.cancel(existingLocalId)
                 return
             }
         }
