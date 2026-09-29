@@ -103,7 +103,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        lifecycleScope.launchWhenResumed {
+        lifecycleScope.launch {
             runCatching { cloudSyncManager.syncNow() }
         }
         val snapshot = AlarmService.activeAlarm.get() ?: return
