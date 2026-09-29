@@ -236,6 +236,7 @@ fun SettingsScreen(
     onNavigateToStopwatch: () -> Unit = {},
     onNavigateToBedtime: () -> Unit = {},
     onOpenOnboardingChecklist: () -> Unit = {},
+    onNavigateToCloud: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -367,7 +368,15 @@ fun SettingsScreen(
                     item(key = "settings-hero") {
                         AlarmClockHeroHeader(
                             title = stringResource(R.string.settings_title),
-                            subtitle = state.appVersion
+                            subtitle = state.appVersion,
+                            actions = {
+                                IconButton(onClick = onNavigateToCloud) {
+                                    Icon(
+                                        imageVector = Icons.Default.Cloud,
+                                        contentDescription = stringResource(R.string.cloud_account_title)
+                                    )
+                                }
+                            }
                         )
                     }
                     settingsItem("settings-home-readiness") {
