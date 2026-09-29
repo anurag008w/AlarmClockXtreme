@@ -33,3 +33,6 @@ AGENTS.md
 .ai/
 PROJECT_CONTEXT.md
 CONTINUATION_PROMPT.md
+
+.env
+cloud/node_modules/
