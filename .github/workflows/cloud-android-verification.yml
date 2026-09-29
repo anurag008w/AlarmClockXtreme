@@ -28,5 +28,6 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
+      - run: python -m py_compile cloud/github_sync.py cloud/usersync.py cloud/server.py
       - run: chmod +x gradlew
       - run: ./gradlew testFdroidDebug --no-daemon
