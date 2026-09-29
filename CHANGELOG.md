@@ -2,6 +2,20 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.15.37] - 2026-09-29
+
+### Added
+
+- Added a web alarm ringtone selector with a portable Android system-default
+  option and an explicit silent option.
+- Normalized default-ringtone aliases in cloud alarm commands so web and AI
+  clients can request the Android device's default alarm sound consistently.
+
+### Release build
+
+- Bumped the Android and Wear release to version 1.15.37 (version code 139)
+  and aligned all tracked release metadata for the signed release.
+
 ## [1.15.36] - 2026-09-29
 
 ### Added
