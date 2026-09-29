@@ -2366,4 +2366,11 @@
     <string name="oem_huawei_title">Allow background activity on Huawei</string>
     <string name="oem_coloros_title">Allow background activity on ColorOS</string>
     <string name="oem_vivo_title">Allow background activity on Vivo</string>
+
+    <!-- Cloud account -->
+    <string name="cloud_sync_complete">Sync complete</string>
+    <string name="cloud_sync_failed">Sync failed</string>
+    <string name="cloud_ai_failed">AI request failed</string>
+    <string name="cloud_account_connected">Account connected</string>
+    <string name="cloud_request_failed">Request failed</string>
 </resources>
