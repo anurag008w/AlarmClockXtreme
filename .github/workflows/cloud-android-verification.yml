@@ -32,7 +32,13 @@ jobs:
       - run: ./gradlew testFdroidDebug --no-daemon
 
   signed-release:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      secrets.ANDROID_KEYSTORE_BASE64 != '' &&
+      secrets.ANDROID_KEYSTORE_PASSWORD != '' &&
+      secrets.ANDROID_KEY_ALIAS != '' &&
+      secrets.ANDROID_KEY_PASSWORD != ''
     runs-on: ubuntu-latest
     env:
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
