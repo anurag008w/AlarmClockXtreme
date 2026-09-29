@@ -13,6 +13,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.cloud.CloudSyncManager
@@ -41,6 +44,7 @@ class MainActivity : ComponentActivity() {
     private var lastHandledShareTokenKey: String? = null
     private var pendingSharedAlarmToken: String? = null
     private var pendingSharedAlarmDraft by mutableStateOf<Alarm?>(null)
+    private var foregroundCloudSyncJob: Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -104,9 +108,18 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        lifecycleScope.launch {
-            runCatching { cloudSyncManager.syncNow() }
+
+        // Pull web-side edits shortly after they happen while the Android app
+        // is open. WorkManager remains the background fallback when the process
+        // is not alive.
+        foregroundCloudSyncJob?.cancel()
+        foregroundCloudSyncJob = lifecycleScope.launch {
+            while (isActive) {
+                runCatching { cloudSyncManager.syncNow() }
+                delay(30_000L)
+            }
         }
+
         val snapshot = AlarmService.activeAlarm.get() ?: return
         val intent = Intent(this, AlarmFiringActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
@@ -115,6 +128,12 @@ class MainActivity : ComponentActivity() {
             putExtra(AlarmScheduler.EXTRA_ALARM_FIRE_ID, snapshot.fireId)
         }
         startActivity(intent)
+    }
+
+    override fun onPause() {
+        foregroundCloudSyncJob?.cancel()
+        foregroundCloudSyncJob = null
+        super.onPause()
     }
 
     override fun onNewIntent(intent: Intent) {
