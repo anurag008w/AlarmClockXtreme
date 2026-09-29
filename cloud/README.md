@@ -1,35 +1,39 @@
 # AlarmClockXtreme Cloud
 
-This folder adds the web control plane for the existing native Android AlarmClockXtreme app.
+The existing native Android AlarmClockXtreme app now has a web control plane backed by the same native alarm model.
 
-## Architecture
+## GitHub data sync
 
-- Android remains the native scheduling layer for device alarm behaviour.
-- Cloud stores authenticated accounts and synchronized alarm payloads in PostgreSQL.
-- The web dashboard can create, edit, enable or disable, delete, export, and inspect alarms.
-- Android syncs on login, app resume, native Room changes, and a 15-minute WorkManager fallback.
-- AI uses controlled alarm CRUD tools and is scoped to the authenticated user.
+This follows the SmartRotator pattern:
+- private GitHub data repository
+- per-user JSON files under an isolated alarmclockxtreme/ directory
+- startup pull before the service accepts traffic
+- automatic push after data mutations
+- periodic pull when the local dataset is clean
+- push protection when startup pull failed
+- no PostgreSQL database
+
+The default data repository is anurag008w/smartrotator-data in the alarmclockxtreme/ subdirectory.
+
+A user's password is stored only as a salted scrypt hash. Never store a plaintext password, JWT secret, GitHub token, or AI API key in the data repository.
 
 ## Render
 
-render.yaml is a Blueprint for a Node web service plus PostgreSQL.
-The service binds to 0.0.0.0:$PORT and exposes /api/health.
+The root render.yaml deploys the cloud/ directory as a Python service.
 
-Important: Render's current Free Postgres plan expires after 30 days. For long-lived data, use a persistent PostgreSQL provider or a paid database plan.
+Required Render secrets: GH_TOKEN and JWT_SECRET.
+Optional AI secrets: AI_API_KEY, AI_BASE_URL, AI_MODEL.
 
-## Environment
-
-Required: DATABASE_URL and JWT_SECRET.
-Optional AI provider: AI_API_KEY, AI_BASE_URL, AI_MODEL.
-
-Never put real passwords, JWT secrets, database URLs, API keys, or user datasets in this public repository.
+The service intentionally refuses to start if GitHub sync is unavailable, because an empty ephemeral filesystem must never overwrite the existing private dataset.
 
 ## Android
 
-The native client defaults to https://alarmclockxtreme-cloud.onrender.com/.
-Override the endpoint during an Android build with -PcloudBaseUrl=https://your-service.onrender.com/.
-In the app, open Settings and tap the cloud icon to register or log in and run AI commands.
+The native Android app uses the same API for login, account registration, alarm sync, and AI commands.
+The default endpoint is https://alarmclockxtreme-cloud.onrender.com/.
+Override it at build time with -PcloudBaseUrl=https://your-service.onrender.com/.
 
-## Device-only functions
+Native exact scheduling, ringtone playback, dismissal challenges, NFC/camera/step integrations, and other OS-specific alarm behaviour remain on Android. Web changes sync alarm configuration and the phone applies native scheduling locally.
 
-Browser control manages cloud alarm configuration. Exact native scheduling, NFC/camera/step dismissal, ringtone playback, and OS or hardware integrations still execute on Android.
+## Web
+
+The web dashboard provides clock, cloud alarm CRUD, timer, stopwatch, world clocks, AI alarm control, activity, and export.
