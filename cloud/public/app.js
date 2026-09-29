@@ -68,7 +68,7 @@ function headers(extra = {}) {
   return { "content-type": "application/json", ...extra, ...(state.token ? { authorization: `Bearer ${state.token}` } : {}) };
 }
 async function api(path, optionsArg = {}) {
-  const response = await fetch(path, { ...optionsArg, headers: { ...headers(), ...(optionsArg.headers || {}) } });
+  const response = await fetch(path, { cache: "no-store", ...optionsArg, headers: { ...headers(), ...(optionsArg.headers || {}) } });
   const body = await response.json().catch(() => ({}));
   if (response.status === 401) {
     state.token = "";
@@ -768,8 +768,13 @@ function startPolling() {
     if (state.token && document.visibilityState === "visible") {
       syncNow({silent:true}).catch(() => {});
     }
-  }, 30000);
+  }, 3000);
 }
+window.addEventListener("online", () => {
+  if (state.token && document.visibilityState === "visible") {
+    syncNow({silent:true}).catch(() => {});
+  }
+});
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible" && state.token) syncNow({silent:true}).catch(() => {});
 });
