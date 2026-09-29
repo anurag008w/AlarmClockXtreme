@@ -132,7 +132,7 @@ python scripts/osv_gradle_audit.py
 Verify an APK against the certificate fingerprint published with the release:
 
 ```bash
-apksigner verify --print-certs AlarmClockXtreme-v1.15.37-play-release.apk
+apksigner verify --print-certs AlarmClockXtreme-v1.15.38-play-release.apk
 ```
 
 For Android 17 and 16 KB page-size testing, run:
