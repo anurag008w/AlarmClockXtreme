@@ -418,6 +418,22 @@ async def register_device(body: dict, user=Depends(current_user)):
     return {"ok": True}
 
 
+@app.post("/api/sync/refresh")
+async def refresh_sync(user=Depends(current_user)):
+    # Reconcile the running filesystem with the persistent GitHub dataset
+    # before the web UI reads alarms. Preserve locally-created changes by
+    # pushing them first, then pull the latest repository state.
+    async with _sync_lock:
+        if github_sync.has_data_changed():
+            pushed = await asyncio.to_thread(github_sync.push_data)
+            if not pushed:
+                raise HTTPException(503, "github_sync_failed_retry")
+        pulled = await asyncio.to_thread(github_sync.pull_data)
+        if not pulled:
+            raise HTTPException(503, "github_pull_failed_retry")
+    return {"ok": True, "sync": github_sync.status()}
+
+
 @app.get("/api/alarms")
 async def get_alarms(
     since: str = "1970-01-01T00:00:00Z",
