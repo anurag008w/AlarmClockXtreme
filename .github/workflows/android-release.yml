@@ -22,6 +22,10 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      - name: Make Gradle wrapper executable
+        shell: bash
+        run: chmod +x gradlew
+
       - name: Require release signing secrets
         shell: bash
         run: |
