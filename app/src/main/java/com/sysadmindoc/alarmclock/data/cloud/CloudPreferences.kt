@@ -3,6 +3,7 @@ package com.sysadmindoc.alarmclock.data.cloud
 import android.content.Context
 import android.provider.Settings
 import org.json.JSONObject
+import org.json.JSONObject
 import java.util.UUID
 
 class CloudPreferences(context: Context) {
@@ -22,6 +23,8 @@ class CloudPreferences(context: Context) {
             .remove("email")
             .remove("cursor")
             .remove("alarm_mapping")
+            .remove("alarm_snapshots")
+            .remove("alarm_versions")
             .apply()
     }
 
@@ -56,5 +59,33 @@ class CloudPreferences(context: Context) {
         val json = JSONObject()
         mapping.forEach { (remoteId, localId) -> json.put(remoteId, localId) }
         prefs.edit().putString("alarm_mapping", json.toString()).apply()
+    }
+
+    fun getSnapshots(): Map<String, String> {
+        val raw = prefs.getString("alarm_snapshots", "{}") ?: "{}"
+        return runCatching {
+            val json = JSONObject(raw)
+            json.keys().asSequence().associateWith { json.optString(it, "") }
+        }.getOrDefault(emptyMap())
+    }
+
+    fun setSnapshots(snapshots: Map<String, String>) {
+        val json = JSONObject()
+        snapshots.forEach { (remoteId, snapshot) -> json.put(remoteId, snapshot) }
+        prefs.edit().putString("alarm_snapshots", json.toString()).apply()
+    }
+
+    fun getVersions(): Map<String, Long> {
+        val raw = prefs.getString("alarm_versions", "{}") ?: "{}"
+        return runCatching {
+            val json = JSONObject(raw)
+            json.keys().asSequence().associateWith { json.optLong(it, 0L) }
+        }.getOrDefault(emptyMap())
+    }
+
+    fun setVersions(versions: Map<String, Long>) {
+        val json = JSONObject()
+        versions.forEach { (remoteId, version) -> json.put(remoteId, version) }
+        prefs.edit().putString("alarm_versions", json.toString()).apply()
     }
 }
