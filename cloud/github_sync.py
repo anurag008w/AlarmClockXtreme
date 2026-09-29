@@ -19,9 +19,9 @@ GH_TOKEN = os.environ.get("GH_TOKEN", "").strip()
 SYNC_ENABLED = os.environ.get("GITHUB_SYNC_ENABLED", "true").strip().lower() != "false"
 
 try:
-    SYNC_INTERVAL = max(60, int(os.environ.get("GITHUB_SYNC_INTERVAL", "180")))
+    SYNC_INTERVAL = max(30, int(os.environ.get("GITHUB_SYNC_INTERVAL", "30")))
 except ValueError:
-    SYNC_INTERVAL = 180
+    SYNC_INTERVAL = 30
 
 _last_push_fingerprint = ""
 _last_pull_ok = False
