@@ -35,6 +35,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.ui.alarmedit.AlarmEditScreen
+import com.sysadmindoc.alarmclock.ui.cloud.CloudAccountScreen
 import com.sysadmindoc.alarmclock.ui.alarmlist.AlarmListScreen
 import com.sysadmindoc.alarmclock.ui.bedtime.BedtimeScreen
 import com.sysadmindoc.alarmclock.ui.components.BottomNavContainer
@@ -66,6 +67,7 @@ sealed class Screen(val route: String) {
     data object SharedAlarmImport : Screen("shared_alarm_import")
     // v1.8.0
     data object News : Screen("news")
+    data object CloudAccount : Screen("cloud_account")
 }
 
 data class BottomNavItem(
@@ -527,6 +529,12 @@ private fun AppNavHost(
                         launchSingleTop = true
                     }
                 }
+            )
+        }
+
+        composable(Screen.CloudAccount.route) {
+            CloudAccountScreen(
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 
