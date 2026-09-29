@@ -319,7 +319,7 @@ function repeatDaysEditor() {
   return `<section class="section-card">
     <div class="section-title"><div><h3>repeat</h3><div class="section-description">Select the weekdays that should fire this alarm.</div></div></div>
     <div class="day-grid">${DAYS.map(([value,label]) => `<button type="button" class="day-button ${selected.has(value) ? "active" : ""}" data-day="${value}">${label}<span style="display:block;margin-top:3px;font-size:10px">${value.slice(0,3)}</span></button>`).join("")}</div>
-    <div class="hint" style="margin-top:10px">${selected.size ? selected.size === 7 ? "Every day" : selected.size === 5 && ["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"].every(x=>selected.has(x)) ? "Weekdays" : Array.from(selected).map(x=>x.slice(0,3)).join(" · ") : "Once")}</div>
+    <div class="hint" style="margin-top:10px">${selected.size ? selected.size === 7 ? "Every day" : selected.size === 5 && ["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"].every(x=>selected.has(x)) ? "Weekdays" : Array.from(selected).map(x=>x.slice(0,3)).join(" · ") : "Once"}</div>
   </section>`;
 }
 
