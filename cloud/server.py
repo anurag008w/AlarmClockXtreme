@@ -254,7 +254,14 @@ async def alarms_record(user_id: str) -> dict:
     return record
 
 
-async def audit(user_id: str, action: str, entity_id: str | None = None, detail: dict | None = None) -> None:
+async def audit(
+    user_id: str,
+    action: str,
+    entity_id: str | None = None,
+    detail: dict | None = None,
+    *,
+    push: bool = False,
+) -> None:
     record = await usersync.get_scope(user_id, "audit")
     events = record.get("events", [])
     if not isinstance(events, list):
@@ -269,9 +276,35 @@ async def audit(user_id: str, action: str, entity_id: str | None = None, detail:
     record["events"] = events[-200:]
     await usersync.save_scope(user_id, "audit", record)
 
+    if push:
+        async with _sync_lock:
+            pushed = await asyncio.to_thread(github_sync.push_data)
+        if not pushed:
+            raise HTTPException(503, "github_sync_failed_retry")
 
-async def persist_alarm_record(user_id: str, record: dict) -> dict:
+
+async def persist_alarm_record(
+    user_id: str,
+    record: dict,
+    *,
+    audit_action: str | None = None,
+    audit_entity_id: str | None = None,
+    audit_detail: dict | None = None,
+) -> dict:
+    # Save the alarm and its audit event before the single GitHub push. This
+    # prevents audit.json from making the working tree look dirty after an
+    # already-pushed alarm mutation, which could otherwise make refresh_sync
+    # push an obsolete Render copy over newer GitHub data.
     stored = await usersync.save_scope(user_id, "alarms", record)
+    if audit_action:
+        await audit(
+            user_id,
+            audit_action,
+            audit_entity_id,
+            audit_detail,
+            push=False,
+        )
+
     async with _sync_lock:
         pushed = await asyncio.to_thread(github_sync.push_data)
     if not pushed:
@@ -316,12 +349,12 @@ async def mutate_alarm(
         }
 
         record["items"][alarm_id] = item
-        await persist_alarm_record(user_id, record)
-        await audit(
+        await persist_alarm_record(
             user_id,
-            "delete" if delete else ("update" if current else "create"),
-            alarm_id,
-            {"version": version},
+            record,
+            audit_action="delete" if delete else ("update" if current else "create"),
+            audit_entity_id=alarm_id,
+            audit_detail={"version": version},
         )
         return item_response(item)
 
@@ -393,7 +426,7 @@ async def login(body: Credentials):
     user = await usersync.authenticate(email, body.password)
     if not user:
         raise HTTPException(401, "invalid_credentials")
-    await audit(user["id"], "login")
+    await audit(user["id"], "login", push=True)
     return {"token": token_for(user), "user": public_user(user)}
 
 
