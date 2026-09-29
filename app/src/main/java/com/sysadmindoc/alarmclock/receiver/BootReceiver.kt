@@ -9,6 +9,7 @@ import com.sysadmindoc.alarmclock.ui.timer.TimerNotifications
 import com.sysadmindoc.alarmclock.ui.timer.TimerStore
 import com.sysadmindoc.alarmclock.util.ReliabilityDoctor
 import com.sysadmindoc.alarmclock.worker.BootRescheduleWorker
+import com.sysadmindoc.alarmclock.data.cloud.CloudSyncWorker
 import com.sysadmindoc.alarmclock.worker.AlarmHealthWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -87,6 +88,12 @@ class BootReceiver : BroadcastReceiver() {
                     sourceAction = action,
                     forceRecalculate = forceRecalculate
                 )
+
+                // BootReceiver can run without MainActivity ever opening.
+                // Queue an immediate network-aware sync instead of waiting
+                // for the periodic 15-minute cloud worker.
+                CloudSyncWorker.enqueueImmediate(appContext)
+
                 if (shouldCheckAlarmHealthAfter(action)) {
                     AlarmHealthWorker.enqueueImmediate(appContext)
                 }
