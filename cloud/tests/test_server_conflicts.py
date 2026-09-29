@@ -5,8 +5,8 @@ import unittest
 from unittest.mock import AsyncMock, patch
 
 os.environ.setdefault("JWT_SECRET", "test-secret")
-os.environ.setdefault("GH_TOKEN", "test-token")
-os.environ.setdefault("GITHUB_SYNC_ENABLED", "false")
+os.environ["GH_TOKEN"] = os.environ.get("GH_TOKEN") or "test-token"
+os.environ["GITHUB_SYNC_ENABLED"] = "false"
 
 import server
 
