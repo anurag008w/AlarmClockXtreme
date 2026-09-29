@@ -2,6 +2,14 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.15.41]
+
+- Hardened bidirectional alarm sync so GitHub pulls merge with live local alarm state instead of replacing it.
+- Prevented deleted alarms from being resurrected by stale GitHub/device copies.
+- Kept create, edit, delete propagation lightweight and near-immediate across Android and web watchdogs.
+- Preserved three-way conflict handling and durable sync metadata.
+- Updated release metadata to v1.15.41 (versionCode 143).
+
 ## [1.15.40]
 
 ### Fixed
