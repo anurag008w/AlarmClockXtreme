@@ -109,14 +109,14 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
 
-        // Lightweight foreground watchdog: pull web-side edits every few
-        // seconds while the Android app is open. WorkManager remains the
+        // Lightweight foreground watchdog: pull web-side edits every couple
+        // of seconds while the Android app is open. WorkManager remains the
         // background fallback when the process is not alive.
         foregroundCloudSyncJob?.cancel()
         foregroundCloudSyncJob = lifecycleScope.launch {
             while (isActive) {
                 runCatching { cloudSyncManager.syncNow() }
-                delay(5_000L)
+                delay(2_000L)
             }
         }
 
