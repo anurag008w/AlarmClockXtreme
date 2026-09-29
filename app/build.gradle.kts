@@ -20,7 +20,7 @@ android {
         minSdk = 26
         targetSdk = 36
         versionCode = 137
-        versionName = "1.15.36"
+        versionName = "1.15.35"
 
         val cloudBaseUrl = providers.gradleProperty("cloudBaseUrl").orElse("https://alarmclockxtreme-cloud.onrender.com/").get()
         buildConfigField("String", "CLOUD_BASE_URL", "\"${cloudBaseUrl.trimEnd('/')}/\"")
