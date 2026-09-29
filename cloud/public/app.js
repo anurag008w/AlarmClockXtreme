@@ -306,6 +306,33 @@ function fieldTextarea(key, label, value, help="", wide=true) {
     ${help ? `<small class="field-help">${escapeHtml(help)}</small>` : ""}
   </label>`;
 }
+function ringtoneField(value) {
+  const current = String(value ?? "");
+  const options = [
+    ["", "Default Alarm (Android device)"],
+    ["silent", "Silent"]
+  ];
+  if (current && current !== "silent") {
+    options.push([current, "Current Android ringtone (device-local)"]);
+  }
+  const selected = current;
+  return `
+    <label class="field wide">
+      <span>Alarm ringtone</span>
+      <select data-ringtone-preset>
+        ${options.map(([v, label]) =>
+          `<option value="${escapeAttr(v)}" ${v === selected ? "selected" : ""}>${escapeHtml(label)}</option>`
+        ).join("")}
+      </select>
+      <small class="field-help">Default Alarm uses the phone's current Android system alarm tone. System ringtone files themselves are device-local.</small>
+    </label>
+    <label class="field wide">
+      <span>Android ringtone URI</span>
+      <input data-field="ringtoneUri" type="text" value="${escapeAttr(current)}" placeholder="content://…">
+      <small class="field-help">Advanced override. The URI must be readable by the Android device receiving this alarm.</small>
+    </label>`;
+}
+
 function fieldSwitch(key, label, checked, help="") {
   return `<label class="switch-field">
     <span class="switch-copy"><strong>${escapeHtml(label)}</strong>${help ? `<small>${escapeHtml(help)}</small>` : ""}</span>
@@ -388,7 +415,7 @@ function renderSection(tab) {
 
   if (tab === "sound") {
     return sectionCard("Sound","Alarm audio, volume, vibration and ringtone behavior.",
-      fieldText("ringtoneUri","Ringtone URI",d.ringtoneUri,"Android device-local URI. The web cannot upload or preview a phone ringtone.",true,"content://…") +
+      ringtoneField(d.ringtoneUri) +
       fieldNumber("volume","Alarm volume",d.volume,0,100,1) +
       fieldSelect("vibrationIntensity","Vibration intensity",String(d.vibrationIntensity),[["0","Off"],["1","Gentle"],["2","Intense"]]) +
       fieldSelect("vibrationPattern","Vibration pattern",d.vibrationPattern,[["default","Default"],["gentle","Gentle"],["heartbeat","Heartbeat"],["escalating","Escalating"],["sos","SOS"]]) +
@@ -501,6 +528,12 @@ function bindEditorEvents() {
     el.addEventListener("input", update);
     el.addEventListener("change", update);
   });
+  $("alarmEditor").querySelectorAll("[data-ringtone-preset]").forEach(select => {
+    select.addEventListener("change", () => {
+      editorDraft.ringtoneUri = select.value;
+      renderEditor();
+    });
+  });
   $("alarmEditor").querySelectorAll("[data-day]").forEach(btn => {
     btn.addEventListener("click", () => {
       const day = btn.dataset.day;
@@ -537,6 +570,12 @@ function applyNumericBoundsBeforeSave(payload) {
   Object.entries(ranges).forEach(([key,[lo,hi]]) => {
     payload[key] = Math.max(lo, Math.min(hi, num(payload[key], lo)));
   });
+  const ringtoneValue = String(payload.ringtoneUri || "").trim();
+  payload.ringtoneUri = ["default", "default_alarm", "system_default"].includes(ringtoneValue.toLowerCase())
+    ? ""
+    : ringtoneValue.toLowerCase() === "silent"
+      ? "silent"
+      : ringtoneValue;
   payload.label = String(payload.label || "").trim().slice(0,120);
   payload.group = String(payload.group || "").trim().slice(0,40);
   payload.profileName = String(payload.profileName || "").trim().slice(0,40);
