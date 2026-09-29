@@ -1,0 +1,33 @@
+name: Dependency verification audit
+
+on:
+  push:
+    paths:
+      - ".github/workflows/dependency-verification-audit.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Run isolated verification metadata audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          cp -a . "$tmp/repo"
+          cd "$tmp/repo"
+          chmod +x gradlew
+          ./gradlew testFdroidDebug --no-daemon --write-verification-metadata sha256
+          echo "===== GENERATED VERIFICATION DIFF ====="
+          git diff -- gradle/verification-metadata.xml
