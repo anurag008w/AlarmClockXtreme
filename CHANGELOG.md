@@ -8,6 +8,7 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - Prevented deleted alarms from being resurrected by stale GitHub/device copies.
 - Kept create, edit, delete propagation lightweight and near-immediate across Android and web watchdogs.
 - Preserved three-way conflict handling and durable sync metadata.
+- Release verification is required to pass before the signed Android release is published.
 - Updated release metadata to v1.15.41 (versionCode 143).
 
 ## [1.15.40]
