@@ -9,6 +9,10 @@ on:
 jobs:
   cloud:
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: test-token
+      GITHUB_REPO: test-owner/test-repo
+      GITHUB_SYNC_ENABLED: "false"
     defaults:
       run:
         working-directory: cloud
