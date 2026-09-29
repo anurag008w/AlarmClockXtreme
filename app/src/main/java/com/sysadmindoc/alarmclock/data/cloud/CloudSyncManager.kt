@@ -42,7 +42,12 @@ class CloudSyncManager @Inject constructor(
     @Volatile
     private var applyingRemote = false
 
-    private val alarmAdapter = moshi.adapter(Alarm::class.java)
+    // Build the reflective adapter lazily. A malformed/corrupt local model or
+    // future Moshi/R8 incompatibility must never crash app startup for users
+    // who are not even using cloud sync yet.
+    private val alarmAdapter: com.squareup.moshi.JsonAdapter<Alarm> by lazy {
+        moshi.adapter(Alarm::class.java)
+    }
 
     fun isLoggedIn(): Boolean = prefs.isLoggedIn()
     fun email(): String = prefs.getEmail()
@@ -51,16 +56,22 @@ class CloudSyncManager @Inject constructor(
     suspend fun login(email: String, password: String): Result<String> = runCatching {
         val response = api.login(CloudAuthRequest(email.trim(), password))
         prefs.saveSession(response.token, response.user.email)
-        registerDevice()
-        syncNow(forceFull = true).getOrThrow()
+
+        // Authentication success must not be turned into a "login failed"
+        // screen just because Render/GitHub is temporarily unavailable.
+        runCatching { registerDevice() }
+        runCatching { syncNow(forceFull = true) }
+
         response.user.email
     }
 
     suspend fun register(email: String, password: String): Result<String> = runCatching {
         val response = api.register(CloudAuthRequest(email.trim(), password))
         prefs.saveSession(response.token, response.user.email)
-        registerDevice()
-        syncNow(forceFull = true).getOrThrow()
+
+        runCatching { registerDevice() }
+        runCatching { syncNow(forceFull = true) }
+
         response.user.email
     }
 
@@ -93,7 +104,24 @@ class CloudSyncManager @Inject constructor(
                     cursor = maxTimestamp(cursor, item.updatedAt)
 
                     val localId = mapping[item.id]
-                    val local = localId?.let { repository.getById(it) }
+                    var local = localId?.let { repository.getById(it) }
+
+                    // On first login/install, mapping is empty. Reuse an
+                    // existing Android alarm when its canonical cloud intent
+                    // is identical instead of importing a duplicate alarm.
+                    if (local == null && item.deletedAt == null) {
+                        val remoteAlarmForMatch = decodeAlarm(item)
+                        if (remoteAlarmForMatch != null) {
+                            val usedIds = mapping.values.toSet()
+                            local = repository.getAll().firstOrNull { candidate ->
+                                candidate.id !in usedIds &&
+                                    canonical(candidate) == canonical(remoteAlarmForMatch)
+                            }
+                            if (local != null) {
+                                mapping[item.id] = local.id
+                            }
+                        }
+                    }
 
                     if (item.deletedAt != null) {
                         // A remote tombstone wins over a stale local edit.
