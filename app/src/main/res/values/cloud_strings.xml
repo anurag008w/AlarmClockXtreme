@@ -1,0 +1,16 @@
+<resources>
+    <string name="cloud_account_title">Cloud account</string>
+    <string name="cloud_account_back">Back</string>
+    <string name="cloud_email">Email</string>
+    <string name="cloud_password">Password</string>
+    <string name="cloud_login">Login</string>
+    <string name="cloud_create_account">Create account</string>
+    <string name="cloud_use_login">Use login</string>
+    <string name="cloud_use_register">Create account instead</string>
+    <string name="cloud_connected">Connected and syncing</string>
+    <string name="cloud_sync_now">Sync now</string>
+    <string name="cloud_logout">Log out</string>
+    <string name="cloud_ai_title">AI alarm control</string>
+    <string name="cloud_ai_command">Tell the assistant what to do</string>
+    <string name="cloud_ai_run">Run command</string>
+</resources>
