@@ -59,6 +59,35 @@ class AlarmConflictTests(unittest.IsolatedAsyncioTestCase):
         push_data.assert_called_once()
         pull_data.assert_called_once()
 
+    async def test_alarm_reads_reconcile_to_durable_github_head(self):
+        await server.alarms_record("user-1")
+        with patch.object(
+            server.github_sync,
+            "ensure_current",
+            return_value=True,
+        ) as ensure_current:
+            response = await server.get_alarms(
+                since="1970-01-01T00:00:00Z",
+                user={"id": "user-1", "email": "u@example.com"},
+            )
+        ensure_current.assert_called_once_with(2.0)
+        self.assertEqual(response["alarms"], [])
+        self.assertEqual(response["cursor"], "1970-01-01T00:00:00Z")
+
+    async def test_alarm_read_fails_closed_when_durable_refresh_fails(self):
+        with patch.object(
+            server.github_sync,
+            "ensure_current",
+            return_value=False,
+        ):
+            with self.assertRaises(server.HTTPException) as ctx:
+                await server.get_alarms(
+                    since="1970-01-01T00:00:00Z",
+                    user={"id": "user-1", "email": "u@example.com"},
+                )
+        self.assertEqual(ctx.exception.status_code, 503)
+        self.assertEqual(ctx.exception.detail, "github_refresh_failed_retry")
+
     async def test_stale_update_is_rejected(self):
         created = await server.mutate_alarm(
             "user-1", "alarm-1", {"hour": 7, "minute": 0, "label": "Morning"}
