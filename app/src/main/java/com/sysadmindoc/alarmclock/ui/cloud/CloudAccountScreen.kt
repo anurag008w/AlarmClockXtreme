@@ -34,6 +34,7 @@ import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.data.cloud.CloudSyncManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import retrofit2.HttpException
@@ -61,7 +62,7 @@ class CloudAccountViewModel @Inject constructor(
     fun register(email: String, password: String) = submit { syncManager.register(email, password) }
 
     fun sync() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             _ui.value = _ui.value.copy(busy = true, message = "")
             syncManager.syncNow()
                 .onSuccess {
@@ -80,7 +81,7 @@ class CloudAccountViewModel @Inject constructor(
     }
 
     fun runAi(command: String) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             _ui.value = _ui.value.copy(busy = true, aiMessage = "")
             syncManager.sendAiCommand(command)
                 .onSuccess {
@@ -104,7 +105,7 @@ class CloudAccountViewModel @Inject constructor(
     }
 
     private fun submit(block: suspend () -> Result<String>) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             _ui.value = _ui.value.copy(busy = true, message = "")
             block()
                 .onSuccess { email ->

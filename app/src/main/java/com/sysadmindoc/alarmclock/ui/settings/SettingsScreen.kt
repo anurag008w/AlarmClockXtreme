@@ -313,7 +313,18 @@ fun SettingsScreen(
         }
         ({
             viewModel.requestHealthConnectPermissions { permissions ->
-                launcher.launch(permissions)
+                // Devices without a Health Connect provider (or with it
+                // disabled) have no handler for the permission intent, and
+                // an unguarded launch crashes the app on toggle.
+                runCatching { launcher.launch(permissions) }
+                    .onFailure {
+                        viewModel.updateHealthConnectEnabled(false)
+                        Toast.makeText(
+                            context,
+                            R.string.settings_health_unavailable,
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
             }
         })
     } else {

@@ -16,6 +16,7 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.cloud.CloudSyncManager
@@ -113,7 +114,10 @@ class MainActivity : ComponentActivity() {
         // of seconds while the Android app is open. WorkManager remains the
         // background fallback when the process is not alive.
         foregroundCloudSyncJob?.cancel()
-        foregroundCloudSyncJob = lifecycleScope.launch {
+        // Dispatchers.IO is deliberate: sync serializes Room rows with Moshi
+        // and parses sync metadata on every pass. On the main thread that
+        // CPU work froze low-end devices during ordinary app use.
+        foregroundCloudSyncJob = lifecycleScope.launch(Dispatchers.IO) {
             while (isActive) {
                 runCatching { cloudSyncManager.syncNow() }
                 delay(2_000L)
