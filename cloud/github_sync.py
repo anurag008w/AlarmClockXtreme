@@ -280,6 +280,10 @@ def pull_data() -> bool:
 
         _last_pull_ok = True
         global _last_push_fingerprint
+        # Even when local recovery produced pending writes, the in-memory data
+        # is now based on this exact GitHub commit. A later push may safely
+        # advance it, and the commit guard will reject any concurrent advance.
+        _base_remote_sha = remote_sha
         if merged_fingerprint == remote_fingerprint:
             mark_pushed()
         else:
