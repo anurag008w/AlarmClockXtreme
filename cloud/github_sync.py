@@ -32,6 +32,10 @@ _last_pull_ok = False
 # Commit that DATA_DIR was pulled from. A push is refused when GitHub advanced
 # since this baseline, preventing stale Render instances from overwriting data.
 _base_remote_sha = ""
+# Monotonic cache for the lightweight GitHub HEAD probe used by read paths.
+# This prevents every 2-second web/Android watchdog tick from doing a full
+# repository clone while still converging quickly when GitHub advances.
+_last_remote_probe_monotonic = 0.0
 
 
 def _redact(value: str) -> str:
@@ -230,6 +234,48 @@ def _ensure_ready() -> bool:
         return False
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     return True
+
+
+def remote_head_sha() -> str | None:
+    """Return the current durable GitHub HEAD without cloning the repository."""
+    if not _ensure_ready():
+        return None
+    result = _run(["git", "ls-remote", _auth_url(), "HEAD"], timeout=20)
+    if result.returncode != 0:
+        log.warning("github head probe failed: %s", _redact(result.stderr[-500:]))
+        return None
+    token = result.stdout.strip().split()
+    return token[0] if token else None
+
+
+def ensure_current(min_probe_interval: float = 2.0) -> bool:
+    """
+    Ensure DATA_DIR is based on the latest durable GitHub state.
+
+    Read-heavy clients can call this cheaply: most calls only perform a cached
+    git ls-remote HEAD probe. A full pull/merge happens only when the durable
+    commit advanced, so web/Android watchdogs stay responsive without cloning
+    GitHub every few seconds.
+    """
+    global _last_remote_probe_monotonic
+
+    if not _ensure_ready():
+        return False
+
+    now = time.monotonic()
+    interval = max(0.5, float(min_probe_interval))
+    if now - _last_remote_probe_monotonic < interval:
+        return _last_pull_ok
+
+    _last_remote_probe_monotonic = now
+    remote_sha = remote_head_sha()
+    if not remote_sha:
+        return False
+
+    if _base_remote_sha and remote_sha == _base_remote_sha:
+        return True
+
+    return pull_data()
 
 
 def pull_data() -> bool:
