@@ -29,6 +29,7 @@ PUSH_RETRIES = 3
 
 _last_push_fingerprint = ""
 _last_pull_ok = False
+_last_remote_head = ""
 # Commit that DATA_DIR was pulled from. A push is refused when GitHub advanced
 # since this baseline, preventing stale Render instances from overwriting data.
 _base_remote_sha = ""
@@ -44,6 +45,18 @@ def _redact(value: str) -> str:
 
 def _auth_url() -> str:
     return "https://" + GH_TOKEN + "@" + "github.com/" + DATA_REPO + ".git"
+
+
+def _remote_head() -> str:
+    """Return the current main branch SHA without cloning the data repo."""
+    if not _ensure_ready():
+        return ""
+    result = _run(["git", "ls-remote", _auth_url(), "refs/heads/main"], timeout=20)
+    if result.returncode != 0:
+        log.warning("github remote head check failed: %s", _redact(result.stderr[-400:]))
+        return ""
+    line = result.stdout.strip().splitlines()
+    return line[0].split()[0] if line and line[0].split() else ""
 
 
 def _run(args: list[str], *, cwd: Path | None = None, timeout: int = 90):
@@ -306,6 +319,8 @@ def pull_data() -> bool:
                 return False
             remote_sha = head.stdout.strip()
 
+            head = _run(["git", "rev-parse", "HEAD"], cwd=repo, timeout=10)
+            cloned_head = head.stdout.strip() if head.returncode == 0 else ""
             remote = repo / DATA_SUBDIR
             if not remote.exists():
                 DATA_DIR.mkdir(parents=True, exist_ok=True)
