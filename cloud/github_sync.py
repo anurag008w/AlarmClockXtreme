@@ -296,6 +296,7 @@ def pull_data() -> bool:
 
 def push_data(force: bool = False) -> bool:
     global _base_remote_sha
+
     if not _ensure_ready():
         return False
     if not _last_pull_ok:
@@ -309,9 +310,8 @@ def push_data(force: bool = False) -> bool:
             with tempfile.TemporaryDirectory() as tmp:
                 repo = Path(tmp) / "repo"
 
-                # Always clone the newest GitHub state for every attempt.
-                # This makes retries converge instead of retrying against an
-                # obsolete base after another device/process has pushed.
+                # Always clone the newest GitHub state. Retries therefore
+                # converge instead of replaying an obsolete whole-file snapshot.
                 clone = _run(
                     ["git", "clone", "--depth", "1", _auth_url(), str(repo)],
                     timeout=120,
@@ -326,22 +326,26 @@ def push_data(force: bool = False) -> bool:
                     continue
 
                 head = _run(["git", "rev-parse", "HEAD"], cwd=repo)
-            if head.returncode != 0:
-                return False
-            remote_sha = head.stdout.strip()
-            if _base_remote_sha and remote_sha != _base_remote_sha:
-                log.warning(
-                    "github push rejected: remote advanced from %s to %s",
-                    _base_remote_sha,
-                    remote_sha,
-                )
-                return False
+                if head.returncode != 0:
+                    continue
+                remote_sha = head.stdout.strip()
 
-            target = repo / DATA_SUBDIR
+                # The running service may be based on an older GitHub commit.
+                # Refuse a blind overwrite; the next sync/refresh can pull and
+                # reconcile the newest durable state first.
+                if _base_remote_sha and remote_sha != _base_remote_sha:
+                    log.warning(
+                        "github push rejected: remote advanced from %s to %s",
+                        _base_remote_sha,
+                        remote_sha,
+                    )
+                    return False
+
+                target = repo / DATA_SUBDIR
                 target.mkdir(parents=True, exist_ok=True)
 
-                # Merge current local state into the fresh durable state. The
-                # alarm scope is item-level LWW with tombstone protection.
+                # Merge alarms per item with version/tombstone protection and
+                # overlay the other persisted scopes normally.
                 _overlay_local_data(DATA_DIR, target)
 
                 _run(
@@ -371,9 +375,9 @@ def push_data(force: bool = False) -> bool:
                 )
 
                 if commit.returncode != 0:
-                    # Nothing changed relative to the current GitHub state.
                     _replace_local_data_from(target)
                     mark_pushed()
+                    _base_remote_sha = remote_sha
                     return True
 
                 push_args = ["git", "push", "origin", "HEAD:main"]
@@ -390,18 +394,24 @@ def push_data(force: bool = False) -> bool:
                     )
                     continue
 
-                # Make the running service consume exactly the merged dataset
-                # that was committed, so web/Android requests immediately read
-                # the same state that is now durable in GitHub.
                 _replace_local_data_from(target)
                 mark_pushed()
+
+                new_head = _run(["git", "rev-parse", "HEAD"], cwd=repo)
+                if new_head.returncode == 0:
+                    _base_remote_sha = new_head.stdout.strip()
+                else:
+                    _base_remote_sha = remote_sha
                 return True
 
         except Exception:
-            log.exception("github push crashed (attempt %d/%d)", attempt, PUSH_RETRIES)
+            log.exception(
+                "github push crashed (attempt %d/%d)",
+                attempt,
+                PUSH_RETRIES,
+            )
 
     return False
-
 
 def status() -> dict:
     return {
