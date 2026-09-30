@@ -29,6 +29,9 @@ PUSH_RETRIES = 3
 
 _last_push_fingerprint = ""
 _last_pull_ok = False
+# Commit that DATA_DIR was pulled from. A push is refused when GitHub advanced
+# since this baseline, preventing stale Render instances from overwriting data.
+_base_remote_sha = ""
 
 
 def _redact(value: str) -> str:
@@ -230,7 +233,7 @@ def _ensure_ready() -> bool:
 
 
 def pull_data() -> bool:
-    global _last_pull_ok
+    global _last_pull_ok, _base_remote_sha
     if not _ensure_ready():
         _last_pull_ok = False
         return False
@@ -250,11 +253,19 @@ def pull_data() -> bool:
                 )
                 return False
 
+            head = _run(["git", "rev-parse", "HEAD"], cwd=repo)
+            if head.returncode != 0:
+                _last_pull_ok = False
+                log.warning("github pull could not resolve HEAD")
+                return False
+            remote_sha = head.stdout.strip()
+
             remote = repo / DATA_SUBDIR
             if not remote.exists():
                 DATA_DIR.mkdir(parents=True, exist_ok=True)
                 _last_pull_ok = True
                 mark_pushed()
+                _base_remote_sha = remote_sha
                 return True
 
             # Never replace a live alarm dataset with a possibly stale
@@ -284,6 +295,7 @@ def pull_data() -> bool:
 
 
 def push_data(force: bool = False) -> bool:
+    global _base_remote_sha
     if not _ensure_ready():
         return False
     if not _last_pull_ok:
@@ -313,7 +325,19 @@ def push_data(force: bool = False) -> bool:
                     )
                     continue
 
-                target = repo / DATA_SUBDIR
+                head = _run(["git", "rev-parse", "HEAD"], cwd=repo)
+            if head.returncode != 0:
+                return False
+            remote_sha = head.stdout.strip()
+            if _base_remote_sha and remote_sha != _base_remote_sha:
+                log.warning(
+                    "github push rejected: remote advanced from %s to %s",
+                    _base_remote_sha,
+                    remote_sha,
+                )
+                return False
+
+            target = repo / DATA_SUBDIR
                 target.mkdir(parents=True, exist_ok=True)
 
                 # Merge current local state into the fresh durable state. The
