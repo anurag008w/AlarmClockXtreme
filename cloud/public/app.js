@@ -4,6 +4,8 @@ const state = {
   alarms: [],
   editing: null,
   loginMode: true,
+  mutationInFlight: false,
+  newAlarmId: "",
   worldZones: ["Asia/Kolkata", "Europe/London", "America/New_York"]
 };
 
@@ -371,6 +373,13 @@ let editorTab = "overview";
 
 function openAlarm(remote = null) {
   state.editing = remote;
+  // A new alarm keeps ONE cloud id for the whole editing session. A retried
+  // save (double click, Enter resubmit, slow network) then conflicts on the
+  // server instead of creating a second identical alarm.
+  state.newAlarmId = remote ? "" : crypto.randomUUID();
+  const deleteBtn = $("deleteAlarmBtn");
+  deleteBtn.dataset.armed = "";
+  deleteBtn.textContent = "delete";
   editorDraft = { ...clone(DEFAULT_ALARM), ...(remote?.payload ? clone(remote.payload) : {}) };
   editorDraft.repeatDays = Array.isArray(editorDraft.repeatDays) ? [...editorDraft.repeatDays] : [];
   editorTab = "overview";
@@ -599,10 +608,29 @@ function applyNumericBoundsBeforeSave(payload) {
   return payload;
 }
 
+function draftIsUntouchedDefault() {
+  const candidate = applyNumericBoundsBeforeSave(clone(editorDraft));
+  const base = applyNumericBoundsBeforeSave(clone(DEFAULT_ALARM));
+  // createdAt is stamped at page load; it is not an intentional edit.
+  base.createdAt = candidate.createdAt;
+  return JSON.stringify(candidate) === JSON.stringify(base);
+}
+
 async function saveAlarm(event) {
   event.preventDefault();
+  if (state.mutationInFlight) return;
+  if (!state.editing && draftIsUntouchedDefault()) {
+    $("syncState").textContent = "nothing to save yet";
+    alert("Nothing to save yet - set a time or label first.");
+    return;
+  }
   const payload = applyNumericBoundsBeforeSave(clone(editorDraft));
-  const id = state.editing?.id || crypto.randomUUID();
+  const id = state.editing?.id || state.newAlarmId || crypto.randomUUID();
+  state.mutationInFlight = true;
+  const saveBtn = $("saveAlarmBtn");
+  const deleteBtn = $("deleteAlarmBtn");
+  saveBtn.disabled = true;
+  deleteBtn.disabled = true;
   localMutationEpoch++;
   try {
     const remote = await api(`/api/alarms/${id}`, {
@@ -613,6 +641,7 @@ async function saveAlarm(event) {
     if (index >= 0) state.alarms[index] = remote;
     else state.alarms.push(remote);
     state.editing = null;
+    state.newAlarmId = "";
     $("alarmDialog").close();
     renderAlarms();
     $("syncState").textContent = "synced";
@@ -629,13 +658,35 @@ async function saveAlarm(event) {
       return;
     }
     alert(error.message.replaceAll("_", " "));
+  } finally {
+    state.mutationInFlight = false;
+    saveBtn.disabled = false;
+    deleteBtn.disabled = false;
   }
 }
 
 async function deleteAlarm() {
   const id = state.editing?.id;
-  if (!id) return;
-  if (!confirm("delete this alarm?")) return;
+  if (!id || state.mutationInFlight) return;
+  const btn = $("deleteAlarmBtn");
+  // Two-step inline confirmation. Native confirm() blocks automation and
+  // headless browsers; an armed button never hangs a session.
+  if (btn.dataset.armed !== "1") {
+    btn.dataset.armed = "1";
+    btn.textContent = "confirm delete?";
+    setTimeout(() => {
+      if (btn.dataset.armed === "1") {
+        btn.dataset.armed = "";
+        btn.textContent = "delete";
+      }
+    }, 5000);
+    return;
+  }
+  btn.dataset.armed = "";
+  btn.textContent = "delete";
+  state.mutationInFlight = true;
+  btn.disabled = true;
+  $("saveAlarmBtn").disabled = true;
   localMutationEpoch++;
   try {
     await api(`/api/alarms/${id}?expectedVersion=${encodeURIComponent(state.editing?.version || 0)}`, { method: "DELETE" });
@@ -655,6 +706,10 @@ async function deleteAlarm() {
       return;
     }
     alert(error.message.replaceAll("_", " "));
+  } finally {
+    state.mutationInFlight = false;
+    btn.disabled = false;
+    $("saveAlarmBtn").disabled = false;
   }
 }
 
@@ -743,6 +798,9 @@ $("syncBtn").onclick = () => syncNow().catch(() => {});
 $("newAlarmBtn").onclick = () => openAlarm();
 $("alarmForm").addEventListener("submit", saveAlarm);
 $("deleteAlarmBtn").onclick = deleteAlarm;
+// Close and cancel never save: they only dismiss the editor.
+$("closeEditorBtn").onclick = () => $("alarmDialog").close();
+$("cancelEditorBtn").onclick = () => $("alarmDialog").close();
 $("exportBtn").onclick = () => {
   const blob = new Blob([JSON.stringify(state.alarms.map(x => x.payload), null, 2)], {type:"application/json"});
   const url = URL.createObjectURL(blob);

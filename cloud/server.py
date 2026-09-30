@@ -6,6 +6,7 @@ import json
 import os
 import secrets
 import time
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +26,13 @@ JWT_SECRET = os.environ.get("JWT_SECRET", "").strip()
 AI_API_KEY = os.environ.get("AI_API_KEY", "").strip()
 AI_BASE_URL = os.environ.get("AI_BASE_URL", "https://api.openai.com/v1").rstrip("/")
 AI_MODEL = os.environ.get("AI_MODEL", "gpt-4o-mini")
+APP_VERSION = "1.15.44"
+try:
+    DUPLICATE_CREATE_WINDOW_SECONDS = max(
+        0, int(os.environ.get("DUPLICATE_CREATE_WINDOW_SECONDS", "120"))
+    )
+except ValueError:
+    DUPLICATE_CREATE_WINDOW_SECONDS = 120
 
 if not JWT_SECRET:
     raise RuntimeError("JWT_SECRET is required")
@@ -33,7 +41,7 @@ if not github_sync.GH_TOKEN:
 if "/" not in github_sync.DATA_REPO:
     raise RuntimeError("GITHUB_REPO must be owner/repo")
 
-app = FastAPI(title="AlarmClockXtreme Cloud", version="1.1.0")
+app = FastAPI(title="AlarmClockXtreme Cloud", version=APP_VERSION)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -339,6 +347,42 @@ async def persist_alarm_record(
             raise HTTPException(503, "github_sync_failed_retry")
         return stored
 
+def _guard_duplicate_create(record: dict, new_payload: dict) -> None:
+    """Refuse retry-storm creates.
+
+    A create under a brand-new id whose sanitized payload is identical to a
+    live alarm row written moments ago is the same logical alarm submitted
+    again (double click, Enter resubmit, or a client retry after a slow
+    response). Rejecting it here is what stops one dashboard save from
+    turning into two identical alarm cards. Intentional duplicate alarms
+    still work: their createdAt differs, or they are created after the
+    window, or an identical older row is tombstoned first.
+    """
+    if DUPLICATE_CREATE_WINDOW_SECONDS <= 0:
+        return
+    try:
+        new_key = json.dumps(new_payload, sort_keys=True)
+    except (TypeError, ValueError):
+        return
+    now = datetime.now(timezone.utc)
+    for existing in record.get("items", {}).values():
+        if not isinstance(existing, dict) or existing.get("deleted_at"):
+            continue
+        existing_payload = existing.get("payload")
+        if not isinstance(existing_payload, dict):
+            continue
+        try:
+            if json.dumps(existing_payload, sort_keys=True) != new_key:
+                continue
+            updated = datetime.fromisoformat(
+                str(existing.get("updated_at", "")).replace("Z", "+00:00")
+            )
+        except (TypeError, ValueError):
+            continue
+        if (now - updated) <= timedelta(seconds=DUPLICATE_CREATE_WINDOW_SECONDS):
+            raise HTTPException(409, "duplicate_create_suspected")
+
+
 async def mutate_alarm(
     user_id: str,
     alarm_id: str,
@@ -366,13 +410,17 @@ async def mutate_alarm(
 
         version = int(current.get("version", 0)) + 1 if current else 1
         updated_at = usersync.now_utc()
+        sanitized = None if delete else sanitize_alarm(payload or {})
+
+        if not delete and current is None and sanitized is not None:
+            _guard_duplicate_create(record, sanitized)
 
         item = {
             "id": alarm_id,
             "version": version,
             "updated_at": updated_at,
             "deleted_at": updated_at if delete else None,
-            "payload": None if delete else sanitize_alarm(payload or {}),
+            "payload": sanitized,
         }
 
         record["items"][alarm_id] = item
@@ -429,6 +477,11 @@ async def health():
     return {
         "ok": bool(sync["pull_ok"]),
         "service": "alarmclockxtreme-cloud",
+        "version": APP_VERSION,
+        "commit": (
+            os.environ.get("RENDER_GIT_COMMIT", "")
+            or os.environ.get("GIT_COMMIT", "")
+        )[:8],
         "sync": sync,
     }
 

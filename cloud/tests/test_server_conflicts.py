@@ -184,6 +184,56 @@ class AlarmConflictTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(conflicts[0].detail, "version_conflict")
         self.assertEqual(self.records["user-1"]["items"]["alarm-1"]["version"], 2)
 
+    async def test_duplicate_create_burst_is_rejected(self):
+        created = await server.mutate_alarm(
+            "user-1",
+            "alarm-1",
+            {"hour": 8, "minute": 48, "label": "Test - Divya"},
+        )
+        self.assertEqual(created["version"], 1)
+
+        # Same logical alarm submitted again under a fresh id (double click,
+        # Enter resubmit, client retry) must not become a second row.
+        with self.assertRaises(server.HTTPException) as ctx:
+            await server.mutate_alarm(
+                "user-1",
+                "alarm-2",
+                {"hour": 8, "minute": 48, "label": "Test - Divya"},
+            )
+        self.assertEqual(ctx.exception.status_code, 409)
+        self.assertEqual(ctx.exception.detail, "duplicate_create_suspected")
+        self.assertNotIn("alarm-2", self.records["user-1"]["items"])
+
+    async def test_duplicate_create_allowed_after_window(self):
+        await server.mutate_alarm(
+            "user-1", "alarm-1", {"hour": 6, "minute": 0, "label": "Gym"}
+        )
+        with patch.object(server, "DUPLICATE_CREATE_WINDOW_SECONDS", 0):
+            created = await server.mutate_alarm(
+                "user-1", "alarm-2", {"hour": 6, "minute": 0, "label": "Gym"}
+            )
+        self.assertEqual(created["version"], 1)
+
+    async def test_tombstoned_identical_alarm_does_not_block_create(self):
+        await server.mutate_alarm(
+            "user-1", "alarm-1", {"hour": 21, "minute": 47, "label": "Test"}
+        )
+        await server.mutate_alarm(
+            "user-1", "alarm-1", None, delete=True, expected=1
+        )
+        created = await server.mutate_alarm(
+            "user-1", "alarm-2", {"hour": 21, "minute": 47, "label": "Test"}
+        )
+        self.assertEqual(created["version"], 1)
+
+    async def test_distinct_payload_create_is_not_blocked(self):
+        await server.mutate_alarm(
+            "user-1", "alarm-1", {"hour": 7, "minute": 0, "label": "Wake Up"}
+        )
+        created = await server.mutate_alarm(
+            "user-1", "alarm-2", {"hour": 7, "minute": 0, "label": "Wake Up 2"}
+        )
+        self.assertEqual(created["version"], 1)
 
 if __name__ == "__main__":
     unittest.main()
