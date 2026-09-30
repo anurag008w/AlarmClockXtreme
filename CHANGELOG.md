@@ -8,6 +8,7 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - Cross-device alarm state remains durable-first: GitHub HEAD is reconciled before cloud reads, with version/tombstone protection and lightweight Android/web watchdogs.
 - Web mutation fencing prevents an older in-flight watchdog response from undoing a just-committed create/edit/toggle/delete on the dashboard.
 - Release pipeline trigger refreshed after the final sync-race fix.
+- Re-triggered signed release after aligning all v1.15.43 metadata declarations.
 - Release: v1.15.43 (versionCode 145).
 
 
