@@ -291,13 +291,40 @@ async def persist_alarm_record(
     audit_entity_id: str | None = None,
     audit_detail: dict | None = None,
 ) -> dict:
-    # Serialize the complete alarm mutation with GitHub pull/push activity.
-    # Without this lock, a background pull could replace DATA_DIR between the
-    # local write and the push, losing a just-created/edited/deleted alarm.
-    # The alarm row and its audit event therefore become one atomic durable
-    # operation from the server's point of view.
+    # Every alarm mutation starts from the newest durable GitHub snapshot.
+    # This is what makes multiple Render instances behave like one server:
+    # a stale instance cannot validate against an old version and then replace
+    # the newer GitHub dataset.
     async with _sync_lock:
-        stored = await usersync.save_scope(user_id, "alarms", record)
+        pulled = await asyncio.to_thread(github_sync.pull_data)
+        if not pulled:
+            raise HTTPException(503, "github_pull_failed_retry")
+
+        durable = await alarms_record(user_id)
+
+        if audit_entity_id:
+            proposed = record.get("items", {}).get(audit_entity_id)
+            latest = durable.get("items", {}).get(audit_entity_id)
+            if isinstance(proposed, dict):
+                proposed_version = int(proposed.get("version", 0) or 0)
+                expected_base = max(0, proposed_version - 1)
+                latest_version = (
+                    int(latest.get("version", 0) or 0)
+                    if isinstance(latest, dict)
+                    else 0
+                )
+                if latest_version != expected_base:
+                    # Another device/Render instance advanced this alarm after
+                    # this request's read. Never silently overwrite or roll
+                    # that change back to an older version.
+                    raise HTTPException(409, "version_conflict")
+
+        # Merge the complete request record into the freshly pulled dataset.
+        # Alarm rows merge by version/tombstone, so unrelated concurrent alarm
+        # edits survive even when the running instance had an older copy.
+        merged = github_sync._merge_alarm_scope(durable, record)
+
+        stored = await usersync.save_scope(user_id, "alarms", merged)
         if audit_action:
             await audit(
                 user_id,
