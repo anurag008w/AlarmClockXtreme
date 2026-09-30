@@ -10,6 +10,9 @@ const state = {
 let syncPromise = null;
 let syncController = null;
 let syncTimer = null;
+// Monotonic client mutation fence. A GET started before a local save/delete/toggle
+// must never be allowed to paint stale durable data over the just-committed UI.
+let localMutationEpoch = 0;
 
 const $ = (id) => document.getElementById(id);
 
@@ -138,10 +141,16 @@ async function syncNow({ forceFull = false, silent = false } = {}) {
     const timeout = setTimeout(() => syncController?.abort(), 12000);
     try {
       if (forceFull) state.alarms = [];
+      const mutationEpoch = localMutationEpoch;
       const cursorKey = cursorStorageKey();
       const cursor = forceFull ? new Date(0).toISOString() :
         (localStorage.getItem(cursorKey) || new Date(0).toISOString());
       const data = await api(`/api/alarms?since=${encodeURIComponent(cursor)}`, { signal: syncController.signal });
+      // A write completed while this GET was in flight. Discard this response;
+      // the write response already contains the authoritative committed row,
+      // and the next watchdog pass will reconcile any other concurrent changes.
+      if (mutationEpoch !== localMutationEpoch) return data;
+
       for (const remote of data.alarms) {
         const existing = state.alarms.findIndex(a => a.id === remote.id);
         if (remote.deletedAt) {
@@ -254,6 +263,7 @@ function renderAlarms() {
     btn.addEventListener("click", async () => {
       const remote = state.alarms.find(x => x.id === btn.dataset.toggle);
       if (!remote) return;
+      localMutationEpoch++;
       try {
         const latest = await api(`/api/alarms/${remote.id}`, {
           method: "PUT",
@@ -592,6 +602,7 @@ async function saveAlarm(event) {
   event.preventDefault();
   const payload = applyNumericBoundsBeforeSave(clone(editorDraft));
   const id = state.editing?.id || crypto.randomUUID();
+  localMutationEpoch++;
   try {
     const remote = await api(`/api/alarms/${id}`, {
       method: "PUT",
@@ -620,6 +631,7 @@ async function deleteAlarm() {
   const id = state.editing?.id;
   if (!id) return;
   if (!confirm("delete this alarm?")) return;
+  localMutationEpoch++;
   try {
     await api(`/api/alarms/${id}?expectedVersion=${encodeURIComponent(state.editing?.version || 0)}`, { method: "DELETE" });
     state.alarms = state.alarms.filter(a => a.id !== id);
