@@ -322,7 +322,7 @@ async def persist_alarm_record(
         # Merge the complete request record into the freshly pulled dataset.
         # Alarm rows merge by version/tombstone, so unrelated concurrent alarm
         # edits survive even when the running instance had an older copy.
-        merged = github_sync._merge_alarm_scope(durable, record)
+        merged = github_sync._merge_alarm_scope(record, durable)
 
         stored = await usersync.save_scope(user_id, "alarms", merged)
         if audit_action:
