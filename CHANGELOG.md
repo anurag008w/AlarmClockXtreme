@@ -7,6 +7,7 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - Fixed a web watchdog race where an in-flight stale read could repaint an older alarm state after a create, edit, toggle, or delete had already committed.
 - Cross-device alarm state remains durable-first: GitHub HEAD is reconciled before cloud reads, with version/tombstone protection and lightweight Android/web watchdogs.
 - Web mutation fencing prevents an older in-flight watchdog response from undoing a just-committed create/edit/toggle/delete on the dashboard.
+- Release pipeline trigger refreshed after the final sync-race fix.
 - Release: v1.15.43 (versionCode 145).
 
 
