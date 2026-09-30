@@ -275,6 +275,7 @@ function renderAlarms() {
         const idx = state.alarms.findIndex(x => x.id === latest.id);
         if (idx >= 0) state.alarms[idx] = latest;
         renderAlarms();
+        await syncNow({ forceFull: true, silent: true });
         refreshActivity();
       } catch (error) {
         if (error.message === "version_conflict" || error.message === "alarm_deleted_conflict") {
@@ -615,6 +616,10 @@ async function saveAlarm(event) {
     $("alarmDialog").close();
     renderAlarms();
     $("syncState").textContent = "synced";
+    // Reconfirm the persistent cloud dataset after every mutation.
+    // This prevents a stale tab/device from making an acknowledged edit,
+    // create, or delete appear to roll back on the next refresh.
+    await syncNow({ forceFull: true, silent: true });
     refreshActivity();
   } catch (error) {
     if (error.message === "version_conflict" || error.message === "alarm_deleted_conflict") {
@@ -638,6 +643,9 @@ async function deleteAlarm() {
     state.editing = null;
     $("alarmDialog").close();
     renderAlarms();
+    // Re-read the authoritative persistent dataset after the tombstone commit
+    // so a deleted alarm cannot reappear from stale client state.
+    await syncNow({ forceFull: true, silent: true });
     refreshActivity();
   } catch (error) {
     if (error.message === "version_conflict" || error.message === "alarm_deleted_conflict") {
