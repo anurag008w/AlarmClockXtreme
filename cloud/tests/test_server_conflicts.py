@@ -46,7 +46,7 @@ class AlarmConflictTests(unittest.IsolatedAsyncioTestCase):
             result = await server.refresh_sync({"id": "user-1", "email": "user@example.com"})
 
         self.assertTrue(result["ok"])
-        pull_data.assert_called_once()
+        ensure_current.assert_any_call(0.0)
         push_data.assert_not_called()
 
     async def test_refresh_flushes_pending_local_write_before_pull(self):
