@@ -95,6 +95,7 @@ jobs:
           path: app/build/outputs/apk/play/release/app-play-release.apk
           if-no-files-found: error
 
+      # Release gate intentionally allows slow Android verification to finish before publishing.
       - name: Verify CI gate for this commit
         shell: bash
         env:
