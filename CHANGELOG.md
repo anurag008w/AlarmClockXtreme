@@ -4,6 +4,7 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ## [1.15.42]
 
+- Added a GitHub commit-baseline guard so a stale web/Render instance cannot overwrite a newer cross-device alarm state.
 - Finalized bidirectional alarm-sync reliability fixes: immediate Room watchdog, fast web watchdog, GitHub pull/merge protection, tombstone safety, and stable cross-device alarm identity to prevent edit duplicates.
 - Signed-release workflow now requires the Cloud and Android verification gate and a writable release token.
 - Release candidate: v1.15.42 (versionCode 144).
