@@ -403,9 +403,14 @@ async def startup() -> None:
             await asyncio.sleep(github_sync.SYNC_INTERVAL)
             async with _sync_lock:
                 if github_sync.has_data_changed():
-                    await asyncio.to_thread(github_sync.push_data)
+                    pushed = await asyncio.to_thread(github_sync.push_data)
+                    if not pushed:
+                        # The durable repo may have advanced on another
+                        # instance. Pull/merge that state now; the next loop
+                        # (or a client read) will retry the pending local write.
+                        await asyncio.to_thread(github_sync.pull_data)
                 else:
-                    await asyncio.to_thread(github_sync.pull_data)
+                    await asyncio.to_thread(github_sync.ensure_current, 0.0)
 
     _sync_task = asyncio.create_task(loop())
 
@@ -489,19 +494,22 @@ async def register_device(body: dict, user=Depends(current_user)):
 
 @app.post("/api/sync/refresh")
 async def refresh_sync(user=Depends(current_user)):
-    # GitHub is the durable source of truth, but a previous write can still be
-    # pending locally after a transient network failure. The GitHub push path
-    # is conflict-safe and merges alarm rows against the newest checkout, so
-    # flush that pending state before pulling the durable dataset back down.
+    # GitHub is the durable source of truth. First reconcile the running
+    # instance against the newest durable commit, then flush any local pending
+    # write. This keeps login/refresh from ever reading a stale Render copy.
     async with _sync_lock:
+        current = await asyncio.to_thread(github_sync.ensure_current, 0.0)
+        if not current:
+            raise HTTPException(503, "github_refresh_failed_retry")
+
         if github_sync.has_data_changed():
             pushed = await asyncio.to_thread(github_sync.push_data)
             if not pushed:
                 raise HTTPException(503, "github_sync_failed_retry")
 
-        pulled = await asyncio.to_thread(github_sync.pull_data)
-        if not pulled:
-            raise HTTPException(503, "github_pull_failed_retry")
+        current = await asyncio.to_thread(github_sync.ensure_current, 0.0)
+        if not current:
+            raise HTTPException(503, "github_refresh_failed_retry")
     return {"ok": True, "sync": github_sync.status()}
 
 
@@ -510,7 +518,14 @@ async def get_alarms(
     since: str = "1970-01-01T00:00:00Z",
     user=Depends(current_user),
 ):
-    record = await alarms_record(user["id"])
+    # Every cloud read reconciles to the durable GitHub HEAD first. A lightweight
+    # cached HEAD probe makes this safe for the 2-second Android/web watchdogs:
+    # a clone only happens when the durable commit actually advances.
+    async with _sync_lock:
+        current = await asyncio.to_thread(github_sync.ensure_current, 2.0)
+        if not current:
+            raise HTTPException(503, "github_refresh_failed_retry")
+        record = await alarms_record(user["id"])
     changed = [
         item_response(item)
         for item in record["items"].values()
