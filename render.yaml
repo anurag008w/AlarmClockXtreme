@@ -17,7 +17,7 @@ services:
       - key: GITHUB_SYNC_ENABLED
         value: "true"
       - key: GITHUB_SYNC_INTERVAL
-        value: "10"
+        value: "5"
       - key: GH_TOKEN
         sync: false
       - key: JWT_SECRET
