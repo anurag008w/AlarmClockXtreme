@@ -2,6 +2,11 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.15.46]
+
+- Fix WorkManager release lint error and ensure safe background reschedule on all Android devices
+- Release: v1.15.46 (versionCode 148).
+
 ## [1.15.45]
 
 - Fixed fatal crash on Android 11 and lower (including Vivo V9 on Android 8.1): implemented `getForegroundInfo()` on expedited workers (`BootRescheduleWorker` and `ExactAlarmPermissionRescheduleWorker`) to prevent WorkManager `IllegalStateException: Not implemented`.

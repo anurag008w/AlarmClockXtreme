@@ -8,7 +8,6 @@ import android.os.Build
 import android.util.Log
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
 import com.sysadmindoc.alarmclock.worker.ExactAlarmPermissionRescheduleWorker
 
@@ -27,7 +26,6 @@ class ExactAlarmPermissionReceiver : BroadcastReceiver() {
         if (!alarmManager.canScheduleExactAlarms()) return
 
         val request = OneTimeWorkRequestBuilder<ExactAlarmPermissionRescheduleWorker>()
-            .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
             .build()
 
         WorkManager.getInstance(context.applicationContext).enqueueUniqueWork(

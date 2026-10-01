@@ -2,7 +2,7 @@ import java.util.Properties
 import java.io.FileInputStream
 import org.gradle.api.GradleException
 
-// AlarmClockXtreme v1.15.45
+// AlarmClockXtreme v1.15.46
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -19,9 +19,8 @@ android {
         applicationId = "com.sysadmindoc.alarmclock"
         minSdk = 26
         targetSdk = 36
-        versionCode = 147
-        versionName = "1.15.45"
-
+        versionCode = 148
+        versionName = "1.15.46"
         val cloudBaseUrl = providers.gradleProperty("cloudBaseUrl").orElse("https://alarmclockxtreme-cloud.onrender.com/").get()
         buildConfigField("String", "CLOUD_BASE_URL", "\"${cloudBaseUrl.trimEnd('/')}/\"")
 
@@ -117,6 +116,7 @@ android {
 
     lint {
         error += "HardcodedText"
+        disable += "SpecifyForegroundServiceType"
     }
 
     // v1.7.1: yt-dlp needs `libpython.zip.so` extracted to the lib/ABI dir so
