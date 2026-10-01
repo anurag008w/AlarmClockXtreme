@@ -2,6 +2,22 @@ name: Android signed release
 
 on:
   workflow_dispatch:
+    inputs:
+      version_name:
+        description: 'Release version name (e.g. 1.15.46)'
+        required: false
+        type: string
+        default: ''
+      version_code:
+        description: 'Release version code (e.g. 148, leave blank to auto-increment)'
+        required: false
+        type: string
+        default: ''
+      release_notes:
+        description: 'Release notes for CHANGELOG (optional)'
+        required: false
+        type: string
+        default: ''
   push:
     branches:
       - "main"
@@ -26,6 +42,26 @@ jobs:
       GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_TOKEN || github.token }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Apply dispatch version override
+        if: github.event_name == 'workflow_dispatch' && inputs.version_name != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/bump_version.py "${{ inputs.version_name }}" "${{ inputs.version_code }}" "${{ inputs.release_notes }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -am "chore: bump version to v${{ inputs.version_name }} [publish-release]"
+          git tag -f "v${{ inputs.version_name }}"
+          git push origin main
+          git push -f origin "v${{ inputs.version_name }}"
 
       - uses: actions/setup-java@v5
         with:
