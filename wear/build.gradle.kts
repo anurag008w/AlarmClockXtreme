@@ -14,8 +14,8 @@ android {
         applicationId = "com.sysadmindoc.alarmclock"
         minSdk = 26
         targetSdk = 36
-        versionCode = 146
-        versionName = "1.15.44"
+        versionCode = 147
+        versionName = "1.15.45"
     }
 
     signingConfigs {

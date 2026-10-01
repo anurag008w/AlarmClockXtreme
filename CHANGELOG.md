@@ -2,6 +2,15 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.15.45]
+
+- Fixed fatal crash on Android 11 and lower (including Vivo V9 on Android 8.1): implemented `getForegroundInfo()` on expedited workers (`BootRescheduleWorker` and `ExactAlarmPermissionRescheduleWorker`) to prevent WorkManager `IllegalStateException: Not implemented`.
+- Hardened R8 / ProGuard keep rules for release builds: added explicit keep rules for `youtubedl-android`, `NewPipeExtractor`, Google ML Kit, Health Connect, and Wearable to prevent class/method stripping on startup.
+- Added `android:extractNativeLibs="true"` and configured `ndk.abiFilters` for 32-bit and 64-bit architectures (`armeabi-v7a`, `arm64-v8a`, `x86`, `x86_64`) for reliable native library extraction across custom OEM package managers.
+- Added runtime guards around `HealthConnectClient.getSdkStatus()` and notification channel creation (`setBypassDnd`) to prevent crashes on unsupported devices and custom ROMs (such as Funtouch OS).
+- Broadened YouTube download initializer error handling to catch `Throwable`, ensuring linkage errors cannot terminate the application process.
+- Release: v1.15.45 (versionCode 147).
+
 ## [1.15.44]
 
 - Fixed the dashboard editor's cancel/close buttons submitting the alarm form: every "cancel" or "close" click silently saved the draft, which is what created duplicate alarms and accidental "untitled" 07:00 alarms. Cancel and close now only dismiss the editor.

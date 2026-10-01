@@ -1,17 +1,23 @@
 package com.sysadmindoc.alarmclock.worker
 
 import android.content.Context
+import android.content.pm.ServiceInfo
+import android.os.Build
 import android.util.Log
+import androidx.core.app.NotificationCompat
 import androidx.hilt.work.HiltWorker
 import androidx.work.BackoffPolicy
 import androidx.work.CoroutineWorker
 import androidx.work.Data
 import androidx.work.ExistingWorkPolicy
+import androidx.work.ForegroundInfo
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
+import com.sysadmindoc.alarmclock.service.AlarmService
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.CancellationException
@@ -28,6 +34,29 @@ class BootRescheduleWorker @AssistedInject constructor(
     @Assisted workerParams: WorkerParameters,
     private val alarmScheduler: AlarmScheduler
 ) : CoroutineWorker(context, workerParams) {
+
+    override suspend fun getForegroundInfo(): ForegroundInfo {
+        AlarmService.createNotificationChannels(applicationContext)
+        val notification = NotificationCompat.Builder(
+            applicationContext,
+            AlarmService.CHANNEL_UPCOMING
+        )
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle(applicationContext.getString(R.string.app_name))
+            .setContentText(applicationContext.getString(R.string.upcoming_notification_channel))
+            .setPriority(NotificationCompat.PRIORITY_MIN)
+            .build()
+
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            ForegroundInfo(
+                NOTIFICATION_ID,
+                notification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+            )
+        } else {
+            ForegroundInfo(NOTIFICATION_ID, notification)
+        }
+    }
 
     override suspend fun doWork(): Result {
         val sourceAction = inputData.getString(KEY_SOURCE_ACTION).orEmpty()
@@ -50,6 +79,7 @@ class BootRescheduleWorker @AssistedInject constructor(
 
     companion object {
         const val WORK_NAME = "boot_reschedule_alarms"
+        private const val NOTIFICATION_ID = 2001
 
         private const val TAG = "BootRescheduleWorker"
         private const val KEY_FORCE_RECALCULATE = "force_recalculate"

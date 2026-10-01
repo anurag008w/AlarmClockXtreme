@@ -129,55 +129,59 @@ class AlarmService : Service() {
         internal val activeAlarmId: Long get() = activeAlarm.get()?.alarmId ?: -1L
 
         fun createNotificationChannels(context: Context) {
-            val nm = context.getSystemService(NotificationManager::class.java)
+            val nm = context.getSystemService(NotificationManager::class.java) ?: return
 
-            val alarmChannel = NotificationChannel(
-                CHANNEL_ALARM,
-                context.getString(R.string.alarm_notification_channel),
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = context.getString(R.string.notif_channel_alarm_desc)
-                setBypassDnd(true)
-                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
-                setSound(null, null)
-                enableVibration(false)
-            }
-            nm.createNotificationChannel(alarmChannel)
+            runCatching {
+                val alarmChannel = NotificationChannel(
+                    CHANNEL_ALARM,
+                    context.getString(R.string.alarm_notification_channel),
+                    NotificationManager.IMPORTANCE_HIGH
+                ).apply {
+                    description = context.getString(R.string.notif_channel_alarm_desc)
+                    runCatching { setBypassDnd(true) }
+                    lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+                    setSound(null, null)
+                    enableVibration(false)
+                }
+                nm.createNotificationChannel(alarmChannel)
 
-            val upcomingChannel = NotificationChannel(
-                CHANNEL_UPCOMING,
-                context.getString(R.string.upcoming_notification_channel),
-                NotificationManager.IMPORTANCE_DEFAULT
-            ).apply {
-                description = context.getString(R.string.notif_channel_upcoming_desc)
-            }
-            nm.createNotificationChannel(upcomingChannel)
+                val upcomingChannel = NotificationChannel(
+                    CHANNEL_UPCOMING,
+                    context.getString(R.string.upcoming_notification_channel),
+                    NotificationManager.IMPORTANCE_DEFAULT
+                ).apply {
+                    description = context.getString(R.string.notif_channel_upcoming_desc)
+                }
+                nm.createNotificationChannel(upcomingChannel)
 
-            val missedChannel = NotificationChannel(
-                CHANNEL_MISSED,
-                context.getString(R.string.missed_notification_channel),
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = context.getString(R.string.notif_channel_missed_desc)
-            }
+                val missedChannel = NotificationChannel(
+                    CHANNEL_MISSED,
+                    context.getString(R.string.missed_notification_channel),
+                    NotificationManager.IMPORTANCE_HIGH
+                ).apply {
+                    description = context.getString(R.string.notif_channel_missed_desc)
+                }
 
-            // v1.12.1 (roadmap N8): timer-finished channel. IMPORTANCE_HIGH
-            // so it heads-up and bypasses standard "minimised" treatment,
-            // mirroring the missed-alarm class. Vibration is disabled at the
-            // channel — the timer's own MediaPlayer + vibrator handle the
-            // foreground experience; this notification is the
-            // user-isn't-looking-at-the-app surface.
-            val timerChannel = NotificationChannel(
-                CHANNEL_TIMER,
-                context.getString(R.string.notif_channel_timer_finished),
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = context.getString(R.string.notif_channel_timer_finished_desc)
-                setSound(null, null)
-                enableVibration(false)
+                // v1.12.1 (roadmap N8): timer-finished channel. IMPORTANCE_HIGH
+                // so it heads-up and bypasses standard "minimised" treatment,
+                // mirroring the missed-alarm class. Vibration is disabled at the
+                // channel — the timer's own MediaPlayer + vibrator handle the
+                // foreground experience; this notification is the
+                // user-isn't-looking-at-the-app surface.
+                val timerChannel = NotificationChannel(
+                    CHANNEL_TIMER,
+                    context.getString(R.string.notif_channel_timer_finished),
+                    NotificationManager.IMPORTANCE_HIGH
+                ).apply {
+                    description = context.getString(R.string.notif_channel_timer_finished_desc)
+                    setSound(null, null)
+                    enableVibration(false)
+                }
+                nm.createNotificationChannel(timerChannel)
+                nm.createNotificationChannel(missedChannel)
+            }.onFailure { e ->
+                Log.w(TAG, "Failed to create some or all notification channels", e)
             }
-            nm.createNotificationChannel(timerChannel)
-            nm.createNotificationChannel(missedChannel)
         }
     }
 

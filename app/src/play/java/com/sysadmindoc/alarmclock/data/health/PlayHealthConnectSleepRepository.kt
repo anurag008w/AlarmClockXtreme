@@ -32,11 +32,15 @@ class PlayHealthConnectSleepRepository @Inject constructor(
         includeRecords: Boolean
     ): HealthConnectSleepSummary =
         withContext(Dispatchers.IO) {
-            val availability = when (HealthConnectClient.getSdkStatus(context)) {
-                HealthConnectClient.SDK_AVAILABLE -> HealthConnectAvailability.AVAILABLE
-                HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED ->
-                    HealthConnectAvailability.PROVIDER_UPDATE_REQUIRED
-                else -> HealthConnectAvailability.UNAVAILABLE
+            val availability = try {
+                when (HealthConnectClient.getSdkStatus(context)) {
+                    HealthConnectClient.SDK_AVAILABLE -> HealthConnectAvailability.AVAILABLE
+                    HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED ->
+                        HealthConnectAvailability.PROVIDER_UPDATE_REQUIRED
+                    else -> HealthConnectAvailability.UNAVAILABLE
+                }
+            } catch (_: Throwable) {
+                HealthConnectAvailability.UNAVAILABLE
             }
 
             if (availability != HealthConnectAvailability.AVAILABLE) {

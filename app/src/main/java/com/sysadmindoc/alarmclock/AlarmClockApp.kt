@@ -162,7 +162,7 @@ class AlarmClockApp : Application(), Configuration.Provider {
         appScope.launch {
             try {
                 youTubeDownloadInitializer.initialize()
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
                 // Init failure must NOT crash the app — the downloader checks
                 // isAvailable() before letting the UI start a download.

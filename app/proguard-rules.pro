@@ -93,6 +93,26 @@
 # NewPipe extractor uses Jsoup; keep its public API.
 -keep class org.jsoup.** { *; }
 -dontwarn org.jsoup.**
+-keep class org.schabi.newpipe.extractor.** { *; }
+
+# ===== youtubedl-android / yt-dlp =====
+-keep class com.yausername.youtubedl_android.** { *; }
+-keep class io.github.junkfood02.youtubedl_android.** { *; }
+-keepclasseswithmembernames class * {
+    native <methods>;
+}
+
+# ===== Health Connect =====
+-keep class androidx.health.connect.** { *; }
+-dontwarn androidx.health.connect.**
+
+# ===== Google ML Kit =====
+-keep class com.google.mlkit.** { *; }
+-dontwarn com.google.mlkit.**
+
+# ===== Google Play Services Wearable =====
+-keep class com.google.android.gms.wearable.** { *; }
+-dontwarn com.google.android.gms.wearable.**
 
 # ===== Play downloader transitive hardening =====
 # Commons Compress references optional Zstandard classes; the app's downloader
@@ -104,3 +124,4 @@
 # Cloud models use Moshi reflection for flexible Map<String, Any?> payloads.
 # Keep class members stable so release R8 shrinking cannot rename JSON fields.
 -keep class com.sysadmindoc.alarmclock.data.cloud.** { *; }
+
