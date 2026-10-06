@@ -1,0 +1,34 @@
+name: Review-only source verification
+on:
+  push:
+    branches: ["review/web-cli-sync-20261006"]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      GH_TOKEN: test-token
+      GITHUB_REPO: test-owner/test-repo
+      GITHUB_SYNC_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply review source overlay (not a deployable branch)
+        run: python3 -m zipfile -e 1-review-source-overlay.zip .
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r cloud/requirements.txt
+      - run: python -m unittest discover -s cloud/tests -v
+        env:
+          PYTHONPATH: cloud
+      - run: python -m unittest discover -s scripts/tests -v
+      - run: node --check cloud/public/app.js && node --check cloud/public/settings.js
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+      - run: chmod +x gradlew
+      - run: ./gradlew testFdroidDebug --no-daemon
