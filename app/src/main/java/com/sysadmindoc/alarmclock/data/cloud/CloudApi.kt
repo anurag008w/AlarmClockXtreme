@@ -10,6 +10,8 @@ import retrofit2.http.PUT
 import retrofit2.http.Query
 import retrofit2.http.Path
 
+// Retrofit rejects Kotlin-generated wildcard types in request bodies.
+@JvmSuppressWildcards
 interface CloudApi {
 
     @POST("api/auth/login")
