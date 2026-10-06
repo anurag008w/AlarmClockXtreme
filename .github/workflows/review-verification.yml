@@ -24,7 +24,7 @@ jobs:
         env:
           PYTHONPATH: cloud
       - run: python -m unittest discover -s scripts/tests -v
-      - run: node --check cloud/public/app.js && node --check cloud/public/settings.js && node --check cloud/public/utilities.js
+      - run: node --check cloud/public/app.js && node --check cloud/public/settings.js && node --check cloud/public/utilities.js && node --check cloud/public/sections.js
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
