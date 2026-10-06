@@ -33,6 +33,14 @@ jobs:
           with zipfile.ZipFile('/tmp/reviewed.zip') as z:
               assert all(not p.startswith('.github/') and '..' not in pathlib.PurePosixPath(p).parts for p in z.namelist())
           PY
+      - name: Isolate cache test from production application startup
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('app/src/test/java/com/sysadmindoc/alarmclock/directboot/DirectBootAlarmCacheTest.kt')
+          s=p.read_text();assert '@Config(sdk = [30])' in s
+          p.write_text(s.replace('@Config(sdk = [30])','@Config(sdk = [30], application = android.app.Application::class)'))
+          PY
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
