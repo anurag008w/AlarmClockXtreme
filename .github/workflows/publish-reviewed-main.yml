@@ -50,6 +50,11 @@ jobs:
       - name: Version and publish normal source to main
         run: |
           set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          for name in ['build.gradle.kts','scripts/verify_api37_release.py']:
+              p=Path(name);p.write_bytes(p.read_bytes().replace(b'\r\n',b'\n'))
+          PY
           python3 scripts/bump_version.py 1.15.47 149 'Web and CLI controls, phone-owned sync and bounded existing-record readouts. Software tests passed; physical-device verification remains pending.'
           sed -i 's/APP_VERSION = "1.15.44"/APP_VERSION = "1.15.47"/' cloud/server.py
           git config user.name 'github-actions[bot]'
