@@ -24,10 +24,10 @@ jobs:
         env:
           PYTHONPATH: cloud
       - run: python -m unittest discover -s scripts/tests -v
-      - run: node --check cloud/public/app.js && node --check cloud/public/settings.js
+      - run: node --check cloud/public/app.js && node --check cloud/public/settings.js && node --check cloud/public/utilities.js
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
       - run: chmod +x gradlew
-      - run: ./gradlew testFdroidDebug --no-daemon
+      - run: ./gradlew testFdroidDebug testPlayDebug --no-daemon
