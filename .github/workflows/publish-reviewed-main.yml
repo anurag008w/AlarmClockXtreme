@@ -1,0 +1,62 @@
+name: Publish reviewed web CLI sync to main
+on:
+  push:
+    branches: [review/web-cli-sync-20261006]
+    paths: [.github/workflows/publish-reviewed-main.yml]
+permissions:
+  contents: write
+  actions: write
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
+      GITHUB_REPO: test-owner/test-repo
+      GITHUB_SYNC_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_TOKEN || github.token }}
+      - name: Require exact reviewed overlay and unchanged main
+        run: |
+          set -euo pipefail
+          echo 'c853cf73772aaaaae9d7f90b260a6e40dd59e4fe970a4b85b21ba0cd519b770f  1-review-source-overlay.zip' | sha256sum -c -
+          cp 1-review-source-overlay.zip /tmp/reviewed.zip
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = c2c7e4f8bcf9fb9a68fad9f442688aff2376f6e6
+          git checkout -B main origin/main
+          python3 -m zipfile -e /tmp/reviewed.zip .
+          python3 - <<'PY'
+          import pathlib,zipfile
+          with zipfile.ZipFile('/tmp/reviewed.zip') as z:
+              assert all(not p.startswith('.github/') and '..' not in pathlib.PurePosixPath(p).parts for p in z.namelist())
+          PY
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r cloud/requirements.txt
+      - run: python -m unittest discover -s cloud/tests -v
+        env:
+          PYTHONPATH: cloud
+      - run: python -m unittest discover -s scripts/tests -v
+      - run: for f in cloud/public/{app,settings,utilities,sections,practice,practice-data}.js; do node --check "$f"; done
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - run: chmod +x gradlew && ./gradlew testFdroidDebug testPlayDebug --no-daemon
+      - name: Version and publish normal source to main
+        run: |
+          set -euo pipefail
+          python3 scripts/bump_version.py 1.15.47 149 'Web and CLI controls, phone-owned sync and bounded existing-record readouts. Software tests passed; physical-device verification remains pending.'
+          sed -i 's/APP_VERSION = "1.15.44"/APP_VERSION = "1.15.47"/' cloud/server.py
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add .
+          git commit -m 'feat: release reviewed web CLI sync v1.15.47'
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = c2c7e4f8bcf9fb9a68fad9f442688aff2376f6e6
+          git push origin main
+          gh workflow run android-release.yml --ref main
