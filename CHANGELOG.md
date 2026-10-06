@@ -2,6 +2,11 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.15.48]
+
+- Fix Retrofit wildcard request-body parsing for cloud utility snapshots, utility acknowledgements, and dashboard snapshots. Add eager validation of every CloudApi endpoint and JSON-body regression coverage. No Android visible UI changes.
+- Release: v1.15.48 (versionCode 150).
+
 ## [1.15.47]
 
 - Web and CLI controls, phone-owned sync and bounded existing-record readouts. Software tests passed; physical-device verification remains pending.
