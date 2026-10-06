@@ -8,8 +8,17 @@ import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.domain.NextAlarmCalculator
 import com.squareup.moshi.Moshi
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.conflate
+import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.flow.map
+import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
+import com.sysadmindoc.alarmclock.receiver.BedtimeReceiver
+import java.time.ZonedDateTime
+import java.time.LocalTime
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.sync.Mutex
@@ -42,7 +51,10 @@ class CloudSyncManager @Inject constructor(
     private val moshi: Moshi,
     private val repository: AlarmRepository,
     private val scheduler: AlarmScheduler,
-    private val calculator: NextAlarmCalculator
+    private val calculator: NextAlarmCalculator,
+    private val preferencesManager: PreferencesManager,
+    private val eventRepository: com.sysadmindoc.alarmclock.data.repository.AlarmEventRepository,
+    private val sleepSnapshot: CloudSleepSnapshot
 ) {
     private val prefs = CloudPreferences(context)
     private val mutex = Mutex()
@@ -68,27 +80,34 @@ class CloudSyncManager @Inject constructor(
 
     suspend fun login(email: String, password: String): Result<String> = runCatching {
         val response = api.login(CloudAuthRequest(email.trim(), password))
-        prefs.saveSession(response.token, response.user.email)
-        runCatching { registerDevice() }
+        mutex.withLock {
+            prefs.saveSession(response.token,response.user.email)
+            runCatching { registerDevice() }
+        }
         runCatching { syncNow(forceFull = true) }
         response.user.email
     }
 
     suspend fun register(email: String, password: String): Result<String> = runCatching {
         val response = api.register(CloudAuthRequest(email.trim(), password))
-        prefs.saveSession(response.token, response.user.email)
-        runCatching { registerDevice() }
+        mutex.withLock {
+            prefs.saveSession(response.token,response.user.email)
+            runCatching { registerDevice() }
+        }
         runCatching { syncNow(forceFull = true) }
         response.user.email
     }
 
-    fun logout() {
-        prefs.clearSession()
+    suspend fun logout() {
+        mutex.withLock { prefs.clearSession() }
     }
 
     suspend fun sendAiCommand(command: String): Result<String> = runCatching {
         require(isLoggedIn()) { "not_logged_in" }
-        val response = api.aiCommand(auth(), CloudAiRequest(command.trim()))
+        val response = mutex.withLock {
+            require(isLoggedIn()) { "not_logged_in" }
+            api.aiCommand(auth(), CloudAiRequest(command.trim()))
+        }
         syncNow(forceFull = false).getOrThrow()
         response.message ?: "done"
     }
@@ -96,6 +115,10 @@ class CloudSyncManager @Inject constructor(
     suspend fun syncNow(forceFull: Boolean = false): Result<Unit> = runCatching {
         mutex.withLock {
             if (!isLoggedIn()) return@withLock
+
+            val settingsResult = runCatching { syncSettings() }.onFailure {
+                if (it is CancellationException) throw it
+            }
 
             val mapping = prefs.getMapping().toMutableMap()
             val snapshots = prefs.getSnapshots().toMutableMap()
@@ -138,7 +161,10 @@ class CloudSyncManager @Inject constructor(
                     if (item.deletedAt != null) {
                         // A cloud tombstone always wins over a stale Android
                         // copy. Never resurrect a remotely deleted alarm.
-                        if (local != null) repository.deleteById(local.id)
+                        if (local != null) {
+                            if(!repository.deleteExactAlarmIfUnchanged(local))continue
+                            scheduler.cancel(local.id)
+                        }
                         mapping.remove(item.id)
                         snapshots.remove(item.id)
                         versions.remove(item.id)
@@ -172,8 +198,9 @@ class CloudSyncManager @Inject constructor(
                         id = local.id,
                         nextTriggerTime = 0L
                     )
-                    repository.update(updated)
-                    applySchedule(updated)
+                    if(!repository.updateExactAlarmIfUnchanged(local,updated))continue
+                    val latest=repository.getById(local.id)
+                    if(latest==null)scheduler.cancel(local.id) else applySchedule(latest)
                     snapshots[item.id] = canonical(updated)
                     versions[item.id] = item.version
                 }
@@ -183,6 +210,9 @@ class CloudSyncManager @Inject constructor(
 
             persistMetadata(mapping, snapshots, versions)
             prefs.setCursor(cursor)
+            settingsResult.getOrThrow()
+            syncUtilities()
+            syncDashboard()
         }
     }
 
@@ -193,14 +223,145 @@ class CloudSyncManager @Inject constructor(
      * rapid editor writes without a polling loop or wake lock.
      */
     suspend fun observeLocalChanges() {
-        repository.observeAll()
-            .distinctUntilChanged()
+        merge(repository.observeAll().distinctUntilChanged().map { Unit }, preferencesManager.settings.distinctUntilChanged().map { Unit }, observeUtilityChanges(), eventRepository.observeRecent(50).map { Unit })
             .debounce(300L)
-            .collectLatest {
+            .conflate()
+            .collect {
                 if (!applyingRemote && isLoggedIn()) {
-                    runCatching { syncNow() }
+                    val result = syncNow()
+                    if (result.isFailure) CloudSyncWorker.enqueueImmediate(context)
                 }
             }
+    }
+
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    private fun observeUtilityChanges(): kotlinx.coroutines.flow.Flow<Unit> = kotlinx.coroutines.flow.callbackFlow {
+        val stores = listOf("timer_state", "stopwatch_state").map { context.getSharedPreferences(it, Context.MODE_PRIVATE) }
+        val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, _ -> trySend(Unit) }
+        stores.forEach { it.registerOnSharedPreferenceChangeListener(listener) }
+        awaitClose { stores.forEach { it.unregisterOnSharedPreferenceChangeListener(listener) } }
+    }
+
+    private suspend fun syncSettings() {
+        // Server-first on a fresh login. Never upload guessed defaults over
+        // existing remote preferences when there is no base snapshot.
+        val remote = try { api.getSettings(auth()) } catch (error: HttpException) {
+            // Rolling deployment: an older cloud must not break existing alarm sync.
+            if (error.code() == 404) return
+            throw error
+        }
+        val local = preferencesManager.cloudSettings()
+        val base = prefs.getSettingsSnapshot()?.let { mapAdapter.fromJson(it) }
+        var chosen = remote
+        if (remote.version == 0L || (base != null && mapAdapter.toJson(local) != mapAdapter.toJson(base))) {
+            val merged = remote.payload.toMutableMap()
+            for ((key,value) in local) {
+                if (base == null || (sameValue(remote.payload[key], base[key]) && !sameValue(value, base[key]))) {
+                    merged[key] = value
+                }
+            }
+            chosen = try {
+                api.putSettings(auth(), CloudAlarmWriteRequest(merged, remote.version))
+            } catch (error: HttpException) {
+                if (error.code() != 409) throw error
+                api.getSettings(auth()) // concurrent cloud state wins, no stale retry
+            }
+        }
+        applyingRemote = true
+        try {
+            if (chosen.payload.any { (key,value) -> !sameValue(local[key], value) }) {
+                preferencesManager.applyCloudSettings(chosen.payload)
+            }
+            val applied = preferencesManager.cloudSettings()
+            if (CloudSettingsEffects.alarmsChanged(local, applied)) {
+                scheduler.rescheduleAll(forceRecalculate = true)
+            }
+            if (CloudSettingsEffects.bedtimeChanged(local, applied)) {
+                val settings = preferencesManager.getCurrentSettings()
+                context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE).edit()
+                    .putBoolean("bedtime_reschedule", settings.bedtimeEnabled).apply()
+                if (settings.bedtimeEnabled) {
+                    val now = ZonedDateTime.now()
+                    var reminder = now.with(LocalTime.of(settings.bedtimeHour, settings.bedtimeMinute))
+                        .minusMinutes(settings.bedtimeReminderMinutes.toLong())
+                    if (!reminder.isAfter(now)) reminder = reminder.plusDays(1)
+                    val at = maxOf(reminder.toInstant().toEpochMilli(), settings.bedtimeStayUpLateUntilMillis)
+                    BedtimeReceiver.schedule(context, at)
+                } else BedtimeReceiver.cancelScheduled(context)
+            }
+            prefs.saveSettingsMetadata(mapAdapter.toJson(applied), chosen.version)
+        } finally { applyingRemote = false }
+    }
+
+    private var lastDashboardSuccessElapsed = -1L
+    private var dashboardAccount = ""
+    private var dashboardSignature = ""
+    private suspend fun syncDashboard() {
+        val now = android.os.SystemClock.elapsedRealtime()
+        val account = prefs.getEmail()
+        val snapshotAuth = auth()
+        if (dashboardAccount == account && lastDashboardSuccessElapsed >= 0 && now - lastDashboardSuccessElapsed in 0..59_999) return
+        val settings = preferencesManager.getCurrentSettings()
+        val payload = CloudDashboardSnapshot.build(context, settings, repository, eventRepository, prefs.getMapping()) + ("sleep" to sleepSnapshot.build(settings))
+        if (!isLoggedIn() || account != prefs.getEmail() || snapshotAuth != auth()) return
+        val signature = mapAdapter.toJson(payload - "phoneObservedMillis")
+        if (dashboardAccount != account || signature != dashboardSignature || lastDashboardSuccessElapsed < 0 || now - lastDashboardSuccessElapsed >= 900_000) {
+            try {
+                api.putDashboardSnapshot(snapshotAuth, prefs.getDeviceId(), payload)
+            } catch (error: HttpException) {
+                if (error.code() != 404) throw error
+                registerDevice()
+                api.putDashboardSnapshot(snapshotAuth, prefs.getDeviceId(), payload)
+            }
+            dashboardSignature = signature
+        }
+        dashboardAccount = account
+        lastDashboardSuccessElapsed = now
+    }
+
+    /** Only called while an activity is resumed. No background wake lock. */
+    suspend fun receiveForegroundUtilities(): Result<Unit> = runCatching {
+        mutex.withLock { if (isLoggedIn()) syncUtilities() }
+    }
+
+    private suspend fun syncUtilities() {
+        val device = prefs.getDeviceId()
+        val remote = try { api.getUtilities(auth(), device) } catch (error: HttpException) {
+            if (error.code() == 404) return
+            throw error
+        }
+        // Prune only timestamped IDs beyond server replay rejection window.
+        // Use authenticated server time, never a possibly shifted phone clock.
+        for(name in listOf("cloud_utility_journal","cloud_alarm_command_journal")) {
+            val journal=context.getSharedPreferences(name,Context.MODE_PRIVATE)
+            val stale=journal.all.keys.filter { key -> key.matches(Regex("v2-\\d{13}-[a-f0-9]{32}")) && (key.split("-")[1].toLongOrNull() ?: Long.MAX_VALUE) < remote.serverNowMillis-86400000 }
+            if(stale.isNotEmpty()) { val edit=journal.edit();stale.forEach { edit.remove(it) };check(edit.commit()) }
+        }
+        val fetchedAtElapsed = android.os.SystemClock.elapsedRealtime()
+        val controller = CloudUtilityController(context)
+        for (row in remote.items.filter { it.status == "pending" }.sortedWith(compareBy<CloudUtilityRow> { it.createdMillis }.thenBy { it.id })) {
+            val command = row.command ?: continue
+            if (command.deviceId != device) continue
+            val result = if (row.expiresMillis <= remote.serverNowMillis + (android.os.SystemClock.elapsedRealtime() - fetchedAtElapsed)) {
+                "expired" to "phone_was_unavailable"
+            } else if(command.kind == "alarm") CloudAlarmCommandController(context,repository,eventRepository,scheduler,calculator).apply(command,prefs.getMapping()) else controller.apply(command)
+            api.acknowledgeUtility(auth(), device, mapOf("commandId" to command.commandId, "status" to result.first, "result" to result.second))
+        }
+        val snapshot = synchronized(NativeUtilityLock.monitor) {
+        val timers = com.sysadmindoc.alarmclock.ui.timer.TimerStore(context).loadRecords().map { timer ->
+            mapOf("id" to timer.id, "label" to timer.label, "state" to timer.state.name,
+                "remainingMillis" to timer.remainingMillis, "totalSeconds" to timer.totalSeconds)
+        }
+        val stopwatch = CloudUtilityController.stopwatchSnapshot(context)
+        timers to stopwatch
+        }
+        val (timers, stopwatch) = snapshot
+        val journal = context.getSharedPreferences("cloud_utility_journal", Context.MODE_PRIVATE)
+        val signature = mapAdapter.toJson(mapOf("timers" to timers.map { it - "remainingMillis" }, "stopwatch" to (stopwatch - "elapsedMillis")))
+        if (journal.getString("snapshotSignature", null) != signature || remote.items.any { it.status == "pending" }) {
+            api.putUtilitySnapshot(auth(), device, mapOf("timers" to timers,"stopwatch" to stopwatch))
+            check(journal.edit().putString("snapshotSignature", signature).commit())
+        }
     }
 
     private suspend fun registerDevice() {
@@ -319,7 +480,8 @@ class CloudSyncManager @Inject constructor(
                     remoteId = match.id
                     claimedBootstrapRemoteIds += match.id
                     mapping[remoteId] = alarm.id
-                    snapshots[remoteId] = localCanonical
+                    val restored = saveRemoteCopy(alarm.id, match, alarm)
+                    snapshots[remoteId] = canonical(restored)
                     versions[remoteId] = match.version
                     onUpdatedAt(match.updatedAt)
                     continue
@@ -375,7 +537,8 @@ class CloudSyncManager @Inject constructor(
                 } else if (latest.deletedAt != null) {
                     // Remote deletion wins. Remove the stale Android copy so it
                     // cannot be resurrected by the next watchdog pass.
-                    repository.deleteById(alarm.id)
+                    check(repository.deleteExactAlarmIfUnchanged(alarm)) { "native_alarm_changed_retry_sync" }
+                    scheduler.cancel(alarm.id)
                     mapping.remove(remoteId)
                     snapshots.remove(remoteId)
                     versions.remove(remoteId)
@@ -405,7 +568,8 @@ class CloudSyncManager @Inject constructor(
                             ?: throw IllegalStateException("remote_alarm_missing")
 
                         if (newest.deletedAt != null) {
-                            repository.deleteById(alarm.id)
+                            check(repository.deleteExactAlarmIfUnchanged(alarm)) { "native_alarm_changed_retry_sync" }
+                            scheduler.cancel(alarm.id)
                             mapping.remove(remoteId)
                             snapshots.remove(remoteId)
                             versions.remove(remoteId)
@@ -414,7 +578,7 @@ class CloudSyncManager @Inject constructor(
 
                         // A second concurrent writer won. Preserve that newest
                         // cloud state rather than retrying stale Android data.
-                        val restored = saveRemoteCopy(alarm.id, newest)
+                        val restored = saveRemoteCopy(alarm.id, newest, alarm)
                         mapping[remoteId] = restored.id
                         snapshots[remoteId] = canonical(restored)
                         versions[remoteId] = newest.version
@@ -439,8 +603,10 @@ class CloudSyncManager @Inject constructor(
                 nextTriggerTime = 0L
             )
             if (canonical(localCommitted) != localCanonical) {
-                repository.update(localCommitted)
-                applySchedule(localCommitted)
+                if(repository.updateExactAlarmIfUnchanged(alarm,localCommitted)) {
+                    val latest=repository.getById(alarm.id)
+                    if(latest==null)scheduler.cancel(alarm.id) else applySchedule(latest)
+                }
             }
 
             mapping[remoteId] = alarm.id
@@ -451,13 +617,14 @@ class CloudSyncManager @Inject constructor(
         }
     }
 
-    private suspend fun saveRemoteCopy(localId: Long, item: CloudAlarmDto): Alarm {
+    private suspend fun saveRemoteCopy(localId: Long, item: CloudAlarmDto, expected: Alarm? = null): Alarm {
         val remoteAlarm = decodeAlarm(item)
             ?: throw IllegalStateException("remote_alarm_invalid")
 
         val existing = repository.getById(localId)
+        if(expected!=null)check(existing==expected) { "native_alarm_changed_retry_sync" }
         val restoredId = if (existing != null) {
-            repository.update(remoteAlarm.copy(id = localId, nextTriggerTime = 0L))
+            check(repository.updateExactAlarmIfUnchanged(existing,remoteAlarm.copy(id = localId, nextTriggerTime = 0L))) { "native_alarm_changed_retry_sync" }
             localId
         } else {
             repository.save(remoteAlarm.copy(id = 0L, nextTriggerTime = 0L))
@@ -598,9 +765,7 @@ class CloudSyncManager @Inject constructor(
         snapshots: Map<String, String>,
         versions: Map<String, Long>
     ) {
-        prefs.setMapping(mapping)
-        prefs.setSnapshots(snapshots)
-        prefs.setVersions(versions)
+        prefs.saveAlarmMetadata(mapping, snapshots, versions)
     }
 
     private fun mapToJson(payload: Map<String, Any?>): String =

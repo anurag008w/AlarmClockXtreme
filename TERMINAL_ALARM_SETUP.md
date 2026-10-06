@@ -400,3 +400,32 @@ For CI or shell automation, use:
 rather than placing a token directly in command history.
 
 The CLI never stores the account password.
+
+
+## Typed inspection and sound control (staged changes)
+
+- `python3 scripts/alarmctl.py fields`: the 70 editable Android alarm fields and types.
+- `get ID` and `export`: full payload inspection (exports can contain personal information).
+- `sounds`: ringtone references already in active alarms; no phone filesystem enumeration.
+- `sound ID --uri content://...`, `--default`, `--silent`, `--radio https://...`, `--spotify ...` or `--pool ...`: change the source and clear competing source fields.
+- `settings`, `settings-fields`, `settings-update --set bedtimeHour=22`: allowlisted global settings with CAS and cloud readback. Requires an updated Android app to sync existing settings first. Secrets/health/permissions are excluded.
+
+Writes perform cloud readback, not a phone delivery guarantee. If the command reports an error after a write, inspect current state before retrying. Device-managed fields and unknown keys are rejected. String reference fields preserve leading zeros.
+
+Local regression commands: `python3 -m unittest discover -s scripts/tests -p 'test_*.py'`; cloud tests run from `cloud/`. Optional browser QA uses Playwright, separate from runtime dependencies, and routes every request to isolated test fixtures.
+
+## Phone utilities and section readouts
+
+Use `utility-devices` to find the exact registered device ID, then `utilities DEVICE` for snapshots and command acknowledgements. `timer-command DEVICE start --seconds 60` and `stopwatch-command DEVICE start` queue commands, not proof of execution. Keep the updated Android app visible for remote controls; foreground reception checks every 30 seconds. Background WorkManager can take 15 minutes or longer, while commands expire after 2 minutes. There is no verified push channel for killed-app immediate receipt.
+
+Reuse `--command-id` only with the identical request after uncertain transport. Do not blindly retry with a new ID. The phone keeps an at-most-once journal: an interrupted claim asks you to check the phone rather than replaying a possibly started timer. Histories have a 10,000-row safety cap and reject new commands when full rather than evicting deduplication evidence unsafely. A future retention migration is still needed for long-term operation beyond the cap.
+
+`news-feeds` lists the Android preset public feeds. `news --feed bbc` reads one with an explicit stale flag when last-good data is used. Arbitrary custom feed URLs are settings only, not server fetch targets.
+
+`weather-cities Pune` finds explicit public city choices. `weather 18.51957 73.85535 --unit celsius` reads weather for coordinates you supply. This does not access phone GPS or calendar. `bedtime` reads synced bedtime configuration; `settings-update` edits it with conflict checks. Health Connect, sonar/microphone data and private sleep records are not uploaded.
+
+## Phone dashboard and sleep snapshots
+
+`dashboard DEVICE` reads the same device-selected Today, Stats and Bedtime snapshot as web. It includes phone timezone/date, next scheduled trigger, today's available calendar, saved weather coordinates (not live GPS), alarm totals and up to 50 recent events. Existing sleep records include up to 50 Health Connect sessions, 10 actigraphy sessions, 50 snore measurements, today's pre-sleep tags, correlations and stored noise/sonar summaries. Those limits match a bounded readout, not a full archival export. Phone collection never starts a sensor or grants a permission. Unavailable providers and permission-required calendar states remain explicit.
+
+Snapshot writes require authenticated access and a verified PRIVATE GitHub data repository. Raw audio, photos, credentials and auth tokens are not included. GitHub storage retains version history: replacing a snapshot does not erase previous commits. These are read-only phone records, not editable web health records.

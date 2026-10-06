@@ -1,5 +1,5 @@
-const CACHE = "acx-cloud-v5";
-const ASSETS = ["/","/index.html","/styles.css","/app.js","/manifest.webmanifest"];
+const CACHE = "acx-cloud-v10";
+const ASSETS = ["/","/index.html","/styles.css","/app.js","/settings.js","/utilities.js","/sections.js","/practice.js","/practice-data.js","/manifest.webmanifest"];
 self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE)

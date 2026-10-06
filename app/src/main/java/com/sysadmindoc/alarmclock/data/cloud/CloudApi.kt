@@ -47,6 +47,27 @@ interface CloudApi {
         @Query("expectedVersion") expectedVersion: Long = 0
     ): CloudDeleteResponse
 
+    @GET("api/settings")
+    suspend fun getSettings(@Header("Authorization") authorization: String): CloudSettingsResponse
+
+    @PUT("api/settings")
+    suspend fun putSettings(
+        @Header("Authorization") authorization: String,
+        @Body request: CloudAlarmWriteRequest
+    ): CloudSettingsResponse
+
+    @GET("api/utilities/{deviceId}")
+    suspend fun getUtilities(@Header("Authorization") authorization: String, @Path("deviceId") deviceId: String): CloudUtilitiesResponse
+
+    @PUT("api/utilities/{deviceId}/snapshot")
+    suspend fun putUtilitySnapshot(@Header("Authorization") authorization: String, @Path("deviceId") deviceId: String, @Body body: Map<String, Any?>): Map<String, Any?>
+
+    @POST("api/utilities/{deviceId}/ack")
+    suspend fun acknowledgeUtility(@Header("Authorization") authorization: String, @Path("deviceId") deviceId: String, @Body body: Map<String, Any?>): Map<String, Any?>
+
+    @PUT("api/dashboard/{deviceId}")
+    suspend fun putDashboardSnapshot(@Header("Authorization") authorization: String, @Path("deviceId") deviceId: String, @Body body: Map<String, Any?>): Map<String, Any?>
+
     @POST("api/ai/command")
     suspend fun aiCommand(
         @Header("Authorization") authorization: String,

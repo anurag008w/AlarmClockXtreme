@@ -67,19 +67,7 @@ class WorldClockViewModel @Inject constructor(
      * adding/removing zones survives app restarts. Without this the user-curated
      * world-clock list reset to defaults every cold-start.
      */
-    private val prefs = application.getSharedPreferences("world_clock_prefs", Context.MODE_PRIVATE)
-    private val savedZones = mutableListOf<String>().apply {
-        val stored = prefs.getString("zones", null)
-        if (stored.isNullOrBlank()) {
-            addAll(DEFAULT_ZONES)
-        } else {
-            // Filter out any zones the JVM no longer knows about so a stale value
-            // can't crash ZoneId.of() during updateTimes().
-            val available = ZoneId.getAvailableZoneIds()
-            addAll(stored.split('|').filter { it in available })
-            if (isEmpty()) addAll(DEFAULT_ZONES)
-        }
-    }
+    private val savedZones = mutableListOf<String>()
 
     private val allZones: List<Pair<String, String>> by lazy {
         ZoneId.getAvailableZoneIds()
@@ -95,6 +83,8 @@ class WorldClockViewModel @Inject constructor(
         viewModelScope.launch {
             preferencesManager.settings.collectLatest { settings ->
                 is24Hour = settings.is24HourFormat
+                savedZones.clear()
+                savedZones.addAll(settings.worldClockZones.split('|').filter { it in ZoneId.getAvailableZoneIds() })
                 updateTimes()
             }
         }
@@ -182,7 +172,8 @@ class WorldClockViewModel @Inject constructor(
     }
 
     private fun persistZones() {
-        prefs.edit().putString("zones", savedZones.joinToString("|")).apply()
+        val zones = savedZones.joinToString("|")
+        viewModelScope.launch { preferencesManager.update { it.copy(worldClockZones = zones) } }
     }
 
     private fun buildWorldClockEntry(

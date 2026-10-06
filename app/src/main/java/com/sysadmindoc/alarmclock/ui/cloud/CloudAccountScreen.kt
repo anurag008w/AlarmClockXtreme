@@ -100,8 +100,10 @@ class CloudAccountViewModel @Inject constructor(
     }
 
     fun logout() {
-        syncManager.logout()
-        _ui.value = CloudAccountUiState()
+        viewModelScope.launch(Dispatchers.IO) {
+            syncManager.logout()
+            _ui.value = CloudAccountUiState()
+        }
     }
 
     private fun submit(block: suspend () -> Result<String>) {

@@ -33,6 +33,7 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 const val DEFAULT_NEWS_FEED_URL = "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en"
 
 data class AppSettings(
+    val worldClockZones: String = "America/New_York|America/Los_Angeles|Europe/London|Asia/Tokyo",
     val is24HourFormat: Boolean = false,
     val defaultSnoozeDuration: Int = 10,
     val defaultGradualVolume: Int = 60,
@@ -295,6 +296,7 @@ class PreferencesManager @Inject constructor(
     private var hasLoadedSettings = false
 
     private object Keys {
+        val WORLD_CLOCK_ZONES = stringPreferencesKey("world_clock_zones")
         val IS_24_HOUR = booleanPreferencesKey("is_24_hour")
         val DEFAULT_SNOOZE = intPreferencesKey("default_snooze")
         val DEFAULT_GRADUAL_VOLUME = intPreferencesKey("default_gradual_volume")
@@ -405,6 +407,136 @@ class PreferencesManager @Inject constructor(
             hasLoadedSettings = true
         }
 
+    suspend fun cloudSettings(): Map<String, Any?> {
+        val current = getCurrentSettings()
+        return mapOf(
+            "worldClockZones" to current.worldClockZones,
+            "is24HourFormat" to current.is24HourFormat,
+            "defaultSnoozeDuration" to current.defaultSnoozeDuration,
+            "defaultGradualVolume" to current.defaultGradualVolume,
+            "usePhoneSpeakers" to current.usePhoneSpeakers,
+            "showAlarmClockIcon" to current.showAlarmClockIcon,
+            "hideAlarmLabelsOnPublicSurfaces" to current.hideAlarmLabelsOnPublicSurfaces,
+            "vacationModeEnabled" to current.vacationModeEnabled,
+            "vacationStartMillis" to current.vacationStartMillis,
+            "vacationEndMillis" to current.vacationEndMillis,
+            "showWeatherOnDashboard" to current.showWeatherOnDashboard,
+            "showCalendarOnDashboard" to current.showCalendarOnDashboard,
+            "postDismissSummaryEnabled" to current.postDismissSummaryEnabled,
+            "autoSilenceMinutes" to current.autoSilenceMinutes,
+            "temperatureUnit" to current.temperatureUnit,
+            "locationName" to current.locationName,
+            "useManualLocation" to current.useManualLocation,
+            "bedtimeEnabled" to current.bedtimeEnabled,
+            "bedtimeHour" to current.bedtimeHour,
+            "bedtimeMinute" to current.bedtimeMinute,
+            "sleepGoalHours" to current.sleepGoalHours,
+            "sleepGoalMinutes" to current.sleepGoalMinutes,
+            "bedtimeReminderMinutes" to current.bedtimeReminderMinutes,
+            "bedtimeStayUpLateUntilMillis" to current.bedtimeStayUpLateUntilMillis,
+            "flipToSnoozeEnabled" to current.flipToSnoozeEnabled,
+            "webhookEnabled" to current.webhookEnabled,
+            "webhookUrl" to current.webhookUrl,
+            "webhookIncludeLabel" to current.webhookIncludeLabel,
+            "holidayAutoSkipEnabled" to current.holidayAutoSkipEnabled,
+            "holidayCountryCode" to current.holidayCountryCode,
+            "accentColor" to current.accentColor,
+            "adaptiveDifficultyEnabled" to current.adaptiveDifficultyEnabled,
+            "customTypingPhrases" to current.customTypingPhrases,
+            "showMotivationalQuotes" to current.showMotivationalQuotes,
+            "dynamicColorEnabled" to current.dynamicColorEnabled,
+            "expressiveModeEnabled" to current.expressiveModeEnabled,
+            "reduceMotionAndFlashing" to current.reduceMotionAndFlashing,
+            "coverToSnoozeEnabled" to current.coverToSnoozeEnabled,
+            "bedtimeChecklist" to current.bedtimeChecklist,
+            "sleepSoundTimerMinutes" to current.sleepSoundTimerMinutes,
+            "sleepSoundFadeSeconds" to current.sleepSoundFadeSeconds,
+            "repeatMissedAlarms" to current.repeatMissedAlarms,
+            "napDefaultMinutes" to current.napDefaultMinutes,
+            "showDashboardTab" to current.showDashboardTab,
+            "showTimerTab" to current.showTimerTab,
+            "showWorldClockTab" to current.showWorldClockTab,
+            "showNewsTab" to current.showNewsTab,
+            "showRadarEmbed" to current.showRadarEmbed,
+            "newsFeedUrl" to current.newsFeedUrl,
+            "pauseUntilMillis" to current.pauseUntilMillis,
+            "cancellationLockMinutes" to current.cancellationLockMinutes,
+            "holdToDismissMillis" to current.holdToDismissMillis,
+            "firingControlMode" to current.firingControlMode,
+            "challengeBypassEnabled" to current.challengeBypassEnabled,
+            "challengeBypassDelaySeconds" to current.challengeBypassDelaySeconds,
+            "challengeAudioDuckingEnabled" to current.challengeAudioDuckingEnabled,
+            "challengeAudioDuckPercent" to current.challengeAudioDuckPercent
+        )
+    }
+
+    suspend fun applyCloudSettings(payload: Map<String, Any?>) {
+        update { old ->
+            old.copy(
+                worldClockZones = (payload["worldClockZones"] as? String)?.takeIf { raw ->
+                    val zones = if (raw.isEmpty()) emptyList() else raw.split("|")
+                    zones.size <= 40 && zones.distinct().size == zones.size && zones.all { runCatching { java.time.ZoneId.of(it) }.isSuccess }
+                } ?: old.worldClockZones,
+                is24HourFormat = (payload["is24HourFormat"] as? Boolean) ?: old.is24HourFormat,
+                defaultSnoozeDuration = (payload["defaultSnoozeDuration"] as? Number)?.toInt() ?: old.defaultSnoozeDuration,
+                defaultGradualVolume = (payload["defaultGradualVolume"] as? Number)?.toInt() ?: old.defaultGradualVolume,
+                usePhoneSpeakers = (payload["usePhoneSpeakers"] as? Boolean) ?: old.usePhoneSpeakers,
+                showAlarmClockIcon = (payload["showAlarmClockIcon"] as? Boolean) ?: old.showAlarmClockIcon,
+                hideAlarmLabelsOnPublicSurfaces = (payload["hideAlarmLabelsOnPublicSurfaces"] as? Boolean) ?: old.hideAlarmLabelsOnPublicSurfaces,
+                vacationModeEnabled = (payload["vacationModeEnabled"] as? Boolean) ?: old.vacationModeEnabled,
+                vacationStartMillis = (payload["vacationStartMillis"] as? Number)?.toLong() ?: old.vacationStartMillis,
+                vacationEndMillis = (payload["vacationEndMillis"] as? Number)?.toLong() ?: old.vacationEndMillis,
+                showWeatherOnDashboard = (payload["showWeatherOnDashboard"] as? Boolean) ?: old.showWeatherOnDashboard,
+                showCalendarOnDashboard = (payload["showCalendarOnDashboard"] as? Boolean) ?: old.showCalendarOnDashboard,
+                postDismissSummaryEnabled = (payload["postDismissSummaryEnabled"] as? Boolean) ?: old.postDismissSummaryEnabled,
+                autoSilenceMinutes = (payload["autoSilenceMinutes"] as? Number)?.toInt() ?: old.autoSilenceMinutes,
+                temperatureUnit = (payload["temperatureUnit"] as? String) ?: old.temperatureUnit,
+                locationName = (payload["locationName"] as? String) ?: old.locationName,
+                useManualLocation = (payload["useManualLocation"] as? Boolean) ?: old.useManualLocation,
+                bedtimeEnabled = (payload["bedtimeEnabled"] as? Boolean) ?: old.bedtimeEnabled,
+                bedtimeHour = (payload["bedtimeHour"] as? Number)?.toInt() ?: old.bedtimeHour,
+                bedtimeMinute = (payload["bedtimeMinute"] as? Number)?.toInt() ?: old.bedtimeMinute,
+                sleepGoalHours = (payload["sleepGoalHours"] as? Number)?.toInt() ?: old.sleepGoalHours,
+                sleepGoalMinutes = (payload["sleepGoalMinutes"] as? Number)?.toInt() ?: old.sleepGoalMinutes,
+                bedtimeReminderMinutes = (payload["bedtimeReminderMinutes"] as? Number)?.toInt() ?: old.bedtimeReminderMinutes,
+                bedtimeStayUpLateUntilMillis = (payload["bedtimeStayUpLateUntilMillis"] as? Number)?.toLong() ?: old.bedtimeStayUpLateUntilMillis,
+                flipToSnoozeEnabled = (payload["flipToSnoozeEnabled"] as? Boolean) ?: old.flipToSnoozeEnabled,
+                webhookEnabled = (payload["webhookEnabled"] as? Boolean) ?: old.webhookEnabled,
+                webhookUrl = (payload["webhookUrl"] as? String) ?: old.webhookUrl,
+                webhookIncludeLabel = (payload["webhookIncludeLabel"] as? Boolean) ?: old.webhookIncludeLabel,
+                holidayAutoSkipEnabled = (payload["holidayAutoSkipEnabled"] as? Boolean) ?: old.holidayAutoSkipEnabled,
+                holidayCountryCode = (payload["holidayCountryCode"] as? String) ?: old.holidayCountryCode,
+                accentColor = (payload["accentColor"] as? String) ?: old.accentColor,
+                adaptiveDifficultyEnabled = (payload["adaptiveDifficultyEnabled"] as? Boolean) ?: old.adaptiveDifficultyEnabled,
+                customTypingPhrases = (payload["customTypingPhrases"] as? String) ?: old.customTypingPhrases,
+                showMotivationalQuotes = (payload["showMotivationalQuotes"] as? Boolean) ?: old.showMotivationalQuotes,
+                dynamicColorEnabled = (payload["dynamicColorEnabled"] as? Boolean) ?: old.dynamicColorEnabled,
+                expressiveModeEnabled = (payload["expressiveModeEnabled"] as? Boolean) ?: old.expressiveModeEnabled,
+                reduceMotionAndFlashing = (payload["reduceMotionAndFlashing"] as? Boolean) ?: old.reduceMotionAndFlashing,
+                coverToSnoozeEnabled = (payload["coverToSnoozeEnabled"] as? Boolean) ?: old.coverToSnoozeEnabled,
+                bedtimeChecklist = (payload["bedtimeChecklist"] as? String) ?: old.bedtimeChecklist,
+                sleepSoundTimerMinutes = (payload["sleepSoundTimerMinutes"] as? Number)?.toInt() ?: old.sleepSoundTimerMinutes,
+                sleepSoundFadeSeconds = (payload["sleepSoundFadeSeconds"] as? Number)?.toInt() ?: old.sleepSoundFadeSeconds,
+                repeatMissedAlarms = (payload["repeatMissedAlarms"] as? Boolean) ?: old.repeatMissedAlarms,
+                napDefaultMinutes = (payload["napDefaultMinutes"] as? Number)?.toInt() ?: old.napDefaultMinutes,
+                showDashboardTab = (payload["showDashboardTab"] as? Boolean) ?: old.showDashboardTab,
+                showTimerTab = (payload["showTimerTab"] as? Boolean) ?: old.showTimerTab,
+                showWorldClockTab = (payload["showWorldClockTab"] as? Boolean) ?: old.showWorldClockTab,
+                showNewsTab = (payload["showNewsTab"] as? Boolean) ?: old.showNewsTab,
+                showRadarEmbed = (payload["showRadarEmbed"] as? Boolean) ?: old.showRadarEmbed,
+                newsFeedUrl = (payload["newsFeedUrl"] as? String) ?: old.newsFeedUrl,
+                pauseUntilMillis = (payload["pauseUntilMillis"] as? Number)?.toLong() ?: old.pauseUntilMillis,
+                cancellationLockMinutes = (payload["cancellationLockMinutes"] as? Number)?.toInt() ?: old.cancellationLockMinutes,
+                holdToDismissMillis = (payload["holdToDismissMillis"] as? Number)?.toInt() ?: old.holdToDismissMillis,
+                firingControlMode = (payload["firingControlMode"] as? String) ?: old.firingControlMode,
+                challengeBypassEnabled = (payload["challengeBypassEnabled"] as? Boolean) ?: old.challengeBypassEnabled,
+                challengeBypassDelaySeconds = (payload["challengeBypassDelaySeconds"] as? Number)?.toInt() ?: old.challengeBypassDelaySeconds,
+                challengeAudioDuckingEnabled = (payload["challengeAudioDuckingEnabled"] as? Boolean) ?: old.challengeAudioDuckingEnabled,
+                challengeAudioDuckPercent = (payload["challengeAudioDuckPercent"] as? Number)?.toInt() ?: old.challengeAudioDuckPercent
+            )
+        }
+    }
+
     suspend fun getCurrentSettings(): AppSettings = settings.first()
 
     /**
@@ -437,6 +569,7 @@ class PreferencesManager @Inject constructor(
      *  drift from each other (a previous source of bugs where new fields would
      *  reset to default during update because only [settings] knew about them). */
     private fun Preferences.toSettings(): AppSettings = AppSettings(
+        worldClockZones = this[Keys.WORLD_CLOCK_ZONES] ?: context.getSharedPreferences("world_clock_prefs", Context.MODE_PRIVATE).getString("zones", null) ?: "America/New_York|America/Los_Angeles|Europe/London|Asia/Tokyo",
         is24HourFormat = this[Keys.IS_24_HOUR] ?: false,
         defaultSnoozeDuration = this[Keys.DEFAULT_SNOOZE] ?: 10,
         defaultGradualVolume = this[Keys.DEFAULT_GRADUAL_VOLUME] ?: 60,
@@ -525,6 +658,7 @@ class PreferencesManager @Inject constructor(
     )
 
     private fun MutablePreferences.applySettings(s: AppSettings) {
+        this[Keys.WORLD_CLOCK_ZONES] = s.worldClockZones
         this[Keys.IS_24_HOUR] = s.is24HourFormat
         this[Keys.DEFAULT_SNOOZE] = s.defaultSnoozeDuration
         this[Keys.DEFAULT_GRADUAL_VOLUME] = s.defaultGradualVolume

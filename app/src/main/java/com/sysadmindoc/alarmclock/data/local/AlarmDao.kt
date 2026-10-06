@@ -52,6 +52,29 @@ interface AlarmDao {
     @Query("UPDATE alarms SET nextTriggerTime = :nextTrigger WHERE id = :id")
     suspend fun updateNextTrigger(id: Long, nextTrigger: Long)
 
+    @Query("UPDATE alarms SET nextTriggerTime = :nextTrigger WHERE id = :id AND nextTriggerTime = :expected AND isEnabled = 1")
+    suspend fun advanceNextTriggerIfUnchanged(id: Long, expected: Long, nextTrigger: Long): Int
+
+    @Transaction
+    suspend fun updateExactAlarmIfUnchanged(expectedAlarm: Alarm, updated: Alarm): Boolean {
+        if(getById(expectedAlarm.id)!=expectedAlarm)return false
+        update(updated)
+        return true
+    }
+
+    @Transaction
+    suspend fun deleteExactAlarmIfUnchanged(expectedAlarm: Alarm): Boolean {
+        if(getById(expectedAlarm.id)!=expectedAlarm)return false
+        delete(expectedAlarm)
+        return true
+    }
+
+    @Transaction
+    suspend fun advanceExactAlarmIfUnchanged(expectedAlarm: Alarm, nextTrigger: Long): Boolean {
+        if(getById(expectedAlarm.id) != expectedAlarm)return false
+        return advanceNextTriggerIfUnchanged(expectedAlarm.id,expectedAlarm.nextTriggerTime,nextTrigger) == 1
+    }
+
     @Query("SELECT COALESCE(MAX(sortOrder), 0) FROM alarms")
     suspend fun maxSortOrder(): Int
 

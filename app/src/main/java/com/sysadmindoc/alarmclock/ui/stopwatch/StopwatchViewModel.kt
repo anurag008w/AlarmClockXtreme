@@ -47,7 +47,11 @@ class StopwatchViewModel @Inject constructor(
     private var startTime: Long = 0
     private var accumulatedTime: Long = 0
 
+    private val prefsListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == "remoteRevision") viewModelScope.launch { synchronized(com.sysadmindoc.alarmclock.data.cloud.NativeUtilityLock.monitor) { undoSnapshot=null;restore() } }
+    }
     init {
+        prefs.registerOnSharedPreferenceChangeListener(prefsListener)
         restore()
         viewModelScope.launch {
             _uiState.subscriptionCount.collect { count ->
@@ -61,6 +65,10 @@ class StopwatchViewModel @Inject constructor(
     }
 
     fun start() {
+        synchronized(com.sysadmindoc.alarmclock.data.cloud.NativeUtilityLock.monitor) {
+            restore()
+            if (!(_uiState.value.state == StopwatchState.IDLE)) return@synchronized
+
         // SystemClock.elapsedRealtime() is monotonic and unaffected by NTP, DST,
         // or user clock-set actions — wall time would let the stopwatch jump
         // backwards or forwards mid-run.
@@ -68,9 +76,15 @@ class StopwatchViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(state = StopwatchState.RUNNING)
         startTicker()
         persist()
+
+        }
     }
 
     fun pause() {
+        synchronized(com.sysadmindoc.alarmclock.data.cloud.NativeUtilityLock.monitor) {
+            restore()
+            if (!(_uiState.value.state == StopwatchState.RUNNING)) return@synchronized
+
         tickerJob?.cancel()
         accumulatedTime += SystemClock.elapsedRealtime() - startTime
         _uiState.value = _uiState.value.copy(
@@ -78,13 +92,21 @@ class StopwatchViewModel @Inject constructor(
             elapsedMillis = accumulatedTime
         )
         persist()
+
+        }
     }
 
     fun resume() {
+        synchronized(com.sysadmindoc.alarmclock.data.cloud.NativeUtilityLock.monitor) {
+            restore()
+            if (!(_uiState.value.state == StopwatchState.PAUSED)) return@synchronized
+
         startTime = SystemClock.elapsedRealtime()
         _uiState.value = _uiState.value.copy(state = StopwatchState.RUNNING)
         startTicker()
         persist()
+
+        }
     }
 
     /**
@@ -93,16 +115,22 @@ class StopwatchViewModel @Inject constructor(
      * cannot be the end of a session someone was timing.
      */
     fun reset() {
+        synchronized(com.sysadmindoc.alarmclock.data.cloud.NativeUtilityLock.monitor) {
+            restore()
+
         val discarded = _uiState.value
         val discardedAccumulated = accumulatedTime
         tickerJob?.cancel()
         accumulatedTime = 0
         _uiState.value = StopwatchUiState()
         persist()
+        undoRemoteRevision = prefs.getLong("remoteRevision",0)
         undoSnapshot = if (discarded.elapsedMillis > 0L || discarded.laps.isNotEmpty()) {
             UndoSnapshot(discarded, discardedAccumulated)
         } else {
             null
+        }
+
         }
     }
 
@@ -111,11 +139,17 @@ class StopwatchViewModel @Inject constructor(
 
     /** Restores the run [reset] discarded, paused so nothing keeps counting. */
     fun undoReset() {
-        val snapshot = undoSnapshot ?: return
+        synchronized(com.sysadmindoc.alarmclock.data.cloud.NativeUtilityLock.monitor) {
+            restore()
+
+        if (prefs.getLong("remoteRevision",0) != undoRemoteRevision) { undoSnapshot=null;return@synchronized }
+        val snapshot = undoSnapshot ?: return@synchronized
         undoSnapshot = null
         accumulatedTime = snapshot.accumulatedTime
         _uiState.value = snapshot.state.copy(state = StopwatchState.PAUSED)
         persist()
+
+        }
     }
 
     fun clearUndo() {
@@ -123,6 +157,7 @@ class StopwatchViewModel @Inject constructor(
     }
 
     private var undoSnapshot: UndoSnapshot? = null
+    private var undoRemoteRevision: Long = -1
 
     private data class UndoSnapshot(
         val state: StopwatchUiState,
@@ -130,10 +165,13 @@ class StopwatchViewModel @Inject constructor(
     )
 
     fun lap() {
-        val current = _uiState.value
-        if (current.state != StopwatchState.RUNNING) return
+        synchronized(com.sysadmindoc.alarmclock.data.cloud.NativeUtilityLock.monitor) {
+            restore()
 
-        val totalAtLap = current.elapsedMillis
+        val current = _uiState.value
+        if (current.state != StopwatchState.RUNNING || current.laps.size >= 1000) return@synchronized
+
+        val totalAtLap = accumulatedTime + (SystemClock.elapsedRealtime() - startTime)
         val previousTotal = current.laps.maxByOrNull { it.number }?.totalMillis ?: 0
         val splitTime = totalAtLap - previousTotal
 
@@ -148,6 +186,8 @@ class StopwatchViewModel @Inject constructor(
 
         _uiState.value = current.copy(laps = markedLaps)
         persist()
+
+        }
     }
 
     private fun markBestWorst(laps: List<Lap>): List<Lap> {
@@ -213,7 +253,10 @@ class StopwatchViewModel @Inject constructor(
             val stateName = prefs.getString("state", null) ?: return
             val restoredState = runCatching { StopwatchState.valueOf(stateName) }
                 .getOrDefault(StopwatchState.IDLE)
-            if (restoredState == StopwatchState.IDLE) return
+            tickerJob?.cancel()
+            if (restoredState == StopwatchState.IDLE) {
+                accumulatedTime=0;startTime=0;_uiState.value=StopwatchUiState();return
+            }
             accumulatedTime = prefs.getLong("accumulated", 0L).coerceAtLeast(0L)
             startTime = prefs.getLong("startTime", 0L)
             val laps = parseLaps(prefs.getString("laps", null))
@@ -283,6 +326,7 @@ class StopwatchViewModel @Inject constructor(
     }.getOrDefault(-1L)
 
     override fun onCleared() {
+        prefs.unregisterOnSharedPreferenceChangeListener(prefsListener)
         tickerJob?.cancel()
         super.onCleared()
     }

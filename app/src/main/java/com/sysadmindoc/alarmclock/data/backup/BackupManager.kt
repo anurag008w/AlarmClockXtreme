@@ -118,7 +118,7 @@ data class AlarmBackup(
 
 @JsonClass(generateAdapter = true)
 data class BackupData(
-    val version: Int = 19,
+    val version: Int = 20,
     val appVersion: String = BuildConfig.VERSION_NAME,
     val exportedAt: Long = System.currentTimeMillis(),
     val alarms: List<AlarmBackup>,
@@ -127,6 +127,7 @@ data class BackupData(
 
 @JsonClass(generateAdapter = true)
 data class SettingsBackup(
+    val worldClockZones: String = "America/New_York|America/Los_Angeles|Europe/London|Asia/Tokyo",
     val is24HourFormat: Boolean,
     val defaultSnoozeDuration: Int,
     val defaultGradualVolume: Int,
@@ -290,7 +291,7 @@ class BackupManager @Inject constructor(
 
     companion object {
         /** Highest backup format version we know how to read end-to-end. */
-        const val MAX_SUPPORTED_BACKUP_VERSION = 19
+        const val MAX_SUPPORTED_BACKUP_VERSION = 20
 
         /**
          * Ceiling on an imported file. A full export of the maximum alarm count
@@ -535,6 +536,7 @@ class BackupManager @Inject constructor(
         val backup = BackupData(
             alarms = alarms.map { alarm -> alarm.toAlarmBackup() },
             settings = SettingsBackup(
+                worldClockZones = settings.worldClockZones,
                 is24HourFormat = settings.is24HourFormat,
                 defaultSnoozeDuration = settings.defaultSnoozeDuration,
                 defaultGradualVolume = settings.defaultGradualVolume,
@@ -776,6 +778,7 @@ class BackupManager @Inject constructor(
     }
 
     private fun AppSettings.applyBackup(s: SettingsBackup): AppSettings = copy(
+        worldClockZones = s.worldClockZones,
         is24HourFormat = s.is24HourFormat,
         defaultSnoozeDuration = s.defaultSnoozeDuration,
         defaultGradualVolume = s.defaultGradualVolume,

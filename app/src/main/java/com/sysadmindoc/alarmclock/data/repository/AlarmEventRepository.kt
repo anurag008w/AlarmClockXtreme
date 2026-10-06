@@ -106,6 +106,8 @@ class AlarmEventRepository @Inject constructor(
         }
     }
 
+    suspend fun getRecent(limit: Int = 50): List<AlarmEvent> = dao.getRecent(limit.coerceIn(1, 50))
+
     suspend fun getSince(sinceMs: Long): List<AlarmEvent> = dao.getSince(sinceMs)
 
     suspend fun getStats(): AlarmStats {

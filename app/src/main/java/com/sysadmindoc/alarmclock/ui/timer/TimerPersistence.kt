@@ -298,7 +298,7 @@ class TimerStore @Inject constructor(@ApplicationContext context: Context) {
 
         // Process-wide: guards the read-modify-write of the shared prefs across
         // all TimerStore instances.
-        private val WRITE_LOCK = Any()
+        private val WRITE_LOCK = com.sysadmindoc.alarmclock.data.cloud.NativeUtilityLock.monitor
     }
 }
 

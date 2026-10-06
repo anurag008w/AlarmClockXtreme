@@ -45,6 +45,14 @@ class AlarmRepository @Inject constructor(
     suspend fun updateNextTrigger(id: Long, nextTrigger: Long) =
         dao.updateNextTrigger(id, nextTrigger)
 
+    suspend fun updateExactAlarmIfUnchanged(expectedAlarm: Alarm, updated: Alarm): Boolean =
+        dao.updateExactAlarmIfUnchanged(expectedAlarm,updated.sanitized())
+    suspend fun deleteExactAlarmIfUnchanged(expectedAlarm: Alarm): Boolean =
+        dao.deleteExactAlarmIfUnchanged(expectedAlarm)
+
+    suspend fun advanceExactAlarmIfUnchanged(expectedAlarm: Alarm, nextTrigger: Long): Boolean =
+        dao.advanceExactAlarmIfUnchanged(expectedAlarm,nextTrigger)
+
     suspend fun nextSortOrder(): Int = dao.maxSortOrder() + AlarmDao.SORT_ORDER_STEP
 
     suspend fun updateSortOrders(idsInOrder: List<Long>) =

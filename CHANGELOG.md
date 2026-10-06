@@ -2,6 +2,11 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.15.47]
+
+- Web and CLI controls, phone-owned sync and bounded existing-record readouts. Software tests passed; physical-device verification remains pending.
+- Release: v1.15.47 (versionCode 149).
+
 ## [1.15.46]
 
 - Fix WorkManager release lint error and ensure safe background reschedule on all Android devices

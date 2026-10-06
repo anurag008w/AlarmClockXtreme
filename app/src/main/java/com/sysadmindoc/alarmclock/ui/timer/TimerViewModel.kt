@@ -97,7 +97,12 @@ class TimerViewModel @Inject constructor(
     private val countdownJobs = mutableMapOf<Int, Job>()
     private val runningEndTimes = mutableMapOf<Int, Long>()
 
+    private val storePreferences = appContext.getSharedPreferences("timer_state", android.content.Context.MODE_PRIVATE)
+    private val storeListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == "timers_json") viewModelScope.launch { resyncFromStore() }
+    }
     init {
+        storePreferences.registerOnSharedPreferenceChangeListener(storeListener)
         restorePersistedTimers()
     }
 
@@ -135,13 +140,16 @@ class TimerViewModel @Inject constructor(
     }
 
     fun start() {
+        synchronized(com.sysadmindoc.alarmclock.data.cloud.NativeUtilityLock.monitor) {
+            resyncFromStore()
+
         val current = _uiState.value
-        if (current.inputDigits.isEmpty()) return
+        if (current.inputDigits.isEmpty()) return@synchronized
 
         val totalSecs = current.inputHours * 3600L +
                 current.inputMinutes * 60L +
                 current.inputSeconds
-        if (totalSecs <= 0) return
+        if (totalSecs <= 0) return@synchronized
 
         // Allocate under the store's write lock: external writers (notification
         // Restart, Assistant SET_TIMER) also insert records, and a cached
@@ -171,10 +179,15 @@ class TimerViewModel @Inject constructor(
         TimerAlarmScheduler.schedule(appContext, id, endElapsedRealtime)
         TimerNotifications.postRunning(appContext, persisted)
         startCountdownUntil(id, endElapsedRealtime)
+
+        }
     }
 
     fun pause(timerId: Int? = null) {
-        val id = timerId ?: _uiState.value.activeTimers.firstOrNull { it.state == TimerState.RUNNING }?.id ?: return
+        synchronized(com.sysadmindoc.alarmclock.data.cloud.NativeUtilityLock.monitor) {
+            resyncFromStore()
+
+        val id = timerId ?: _uiState.value.activeTimers.firstOrNull { it.state == TimerState.RUNNING }?.id ?: return@synchronized
         countdownJobs.remove(id)?.cancel()
         runningEndTimes.remove(id)
         TimerAlarmScheduler.cancel(appContext, id)
@@ -182,11 +195,16 @@ class TimerViewModel @Inject constructor(
         updateTimer(id) { timer ->
             timer.copy(state = TimerState.PAUSED).also { timerStore.upsert(it.toPersistedRecord()) }
         }
+
+        }
     }
 
     fun resume(timerId: Int? = null) {
-        val id = timerId ?: _uiState.value.activeTimers.firstOrNull { it.state == TimerState.PAUSED }?.id ?: return
-        val timer = _uiState.value.activeTimers.find { it.id == id } ?: return
+        synchronized(com.sysadmindoc.alarmclock.data.cloud.NativeUtilityLock.monitor) {
+            resyncFromStore()
+
+        val id = timerId ?: _uiState.value.activeTimers.firstOrNull { it.state == TimerState.PAUSED }?.id ?: return@synchronized
+        val timer = _uiState.value.activeTimers.find { it.id == id } ?: return@synchronized
         val endElapsedRealtime = SystemClock.elapsedRealtime() + timer.remainingMillis
         val resumed = timer.copy(state = TimerState.RUNNING)
         val persisted = resumed.toPersistedRecord(endElapsedRealtime)
@@ -196,6 +214,8 @@ class TimerViewModel @Inject constructor(
         TimerAlarmScheduler.schedule(appContext, id, endElapsedRealtime)
         TimerNotifications.postRunning(appContext, persisted)
         startCountdownUntil(id, endElapsedRealtime)
+
+        }
     }
 
     /**
@@ -205,7 +225,10 @@ class TimerViewModel @Inject constructor(
      * an undo instead.
      */
     fun stop(timerId: Int? = null) {
-        val id = timerId ?: _uiState.value.activeTimers.firstOrNull()?.id ?: return
+        synchronized(com.sysadmindoc.alarmclock.data.cloud.NativeUtilityLock.monitor) {
+            resyncFromStore()
+
+        val id = timerId ?: _uiState.value.activeTimers.firstOrNull()?.id ?: return@synchronized
         _uiState.value.activeTimers.firstOrNull { it.id == id }?.let { stopped ->
             undoStopSnapshot = stopped
         }
@@ -219,6 +242,8 @@ class TimerViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(
             activeTimers = _uiState.value.activeTimers.filter { it.id != id }
         )
+
+        }
     }
 
     /** True when [stop] removed a timer that can still be put back. */
@@ -390,6 +415,7 @@ class TimerViewModel @Inject constructor(
     }
 
     override fun onCleared() {
+        storePreferences.unregisterOnSharedPreferenceChangeListener(storeListener)
         countdownJobs.values.forEach { it.cancel() }
         super.onCleared()
     }

@@ -1,0 +1,123 @@
+[
+  {
+    "key": "early_bird",
+    "label": "Early bird",
+    "payload": {
+      "hour": 5,
+      "minute": 30,
+      "repeatDays": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY"
+      ],
+      "gradualVolumeSeconds": 120,
+      "vibrationEnabled": true,
+      "vibrationIntensity": 1,
+      "snoozeDurationMinutes": 10,
+      "challengeType": "NONE"
+    },
+    "relativeMinutes": null
+  },
+  {
+    "key": "work_alarm",
+    "label": "Work alarm",
+    "payload": {
+      "hour": 7,
+      "minute": 0,
+      "repeatDays": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY"
+      ],
+      "gradualVolumeSeconds": 60,
+      "vibrationEnabled": true,
+      "vibrationIntensity": 2,
+      "snoozeDurationMinutes": 10,
+      "challengeType": "MATH_EASY"
+    },
+    "relativeMinutes": null
+  },
+  {
+    "key": "weekend_sleep_in",
+    "label": "Weekend sleep-in",
+    "payload": {
+      "hour": 9,
+      "minute": 0,
+      "repeatDays": [
+        "SATURDAY",
+        "SUNDAY"
+      ],
+      "gradualVolumeSeconds": 180,
+      "vibrationEnabled": true,
+      "vibrationIntensity": 1,
+      "snoozeDurationMinutes": 15,
+      "challengeType": "NONE"
+    },
+    "relativeMinutes": null
+  },
+  {
+    "key": "power_nap",
+    "label": "Power nap",
+    "payload": {
+      "hour": 0,
+      "minute": 20,
+      "repeatDays": [],
+      "gradualVolumeSeconds": 0,
+      "vibrationEnabled": true,
+      "vibrationIntensity": 2,
+      "snoozeDurationMinutes": 5,
+      "challengeType": "SHAKE"
+    },
+    "relativeMinutes": 20
+  },
+  {
+    "key": "heavy_sleeper",
+    "label": "Heavy sleeper",
+    "payload": {
+      "hour": 6,
+      "minute": 0,
+      "repeatDays": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY",
+        "SATURDAY",
+        "SUNDAY"
+      ],
+      "gradualVolumeSeconds": 0,
+      "vibrationEnabled": true,
+      "vibrationIntensity": 2,
+      "snoozeDurationMinutes": 5,
+      "challengeType": "MATH_HARD"
+    },
+    "relativeMinutes": null
+  },
+  {
+    "key": "medication_reminder",
+    "label": "Medication reminder",
+    "payload": {
+      "hour": 8,
+      "minute": 0,
+      "repeatDays": [
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY",
+        "SATURDAY",
+        "SUNDAY"
+      ],
+      "gradualVolumeSeconds": 90,
+      "vibrationEnabled": true,
+      "vibrationIntensity": 1,
+      "snoozeDurationMinutes": 10,
+      "challengeType": "NONE"
+    },
+    "relativeMinutes": null
+  }
+]

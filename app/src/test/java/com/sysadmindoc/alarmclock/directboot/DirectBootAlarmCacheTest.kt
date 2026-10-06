@@ -19,7 +19,7 @@ import org.robolectric.annotation.Config
  * upcoming alarm" and one-shot fired-marker logic must hold.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [30])
+@Config(sdk = [30], application = android.app.Application::class)
 class DirectBootAlarmCacheTest {
 
     private lateinit var context: Context

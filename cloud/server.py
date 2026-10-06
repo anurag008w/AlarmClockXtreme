@@ -5,6 +5,8 @@ import copy
 import json
 import os
 import secrets
+import re
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -19,6 +21,11 @@ from pydantic import BaseModel, Field
 
 import github_sync
 import usersync
+import utility_control
+import news
+import today
+import dashboard
+import challenge_rules
 
 BASE = Path(__file__).resolve().parent
 PUBLIC = (BASE / "public").resolve()
@@ -26,7 +33,7 @@ JWT_SECRET = os.environ.get("JWT_SECRET", "").strip()
 AI_API_KEY = os.environ.get("AI_API_KEY", "").strip()
 AI_BASE_URL = os.environ.get("AI_BASE_URL", "https://api.openai.com/v1").rstrip("/")
 AI_MODEL = os.environ.get("AI_MODEL", "gpt-4o-mini")
-APP_VERSION = "1.15.44"
+APP_VERSION = "1.15.47"
 try:
     DUPLICATE_CREATE_WINDOW_SECONDS = max(
         0, int(os.environ.get("DUPLICATE_CREATE_WINDOW_SECONDS", "120"))
@@ -48,6 +55,15 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def private_api_cache_policy(request: Request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-store, private"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Vary"] = "Authorization"
+    return response
 
 _sync_task: asyncio.Task | None = None
 _sync_lock = asyncio.Lock()
@@ -566,6 +582,241 @@ async def refresh_sync(user=Depends(current_user)):
     return {"ok": True, "sync": github_sync.status()}
 
 
+@app.get("/api/dashboard/{device_id}")
+async def get_dashboard(device_id: str, user=Depends(current_user)):
+    async with _sync_lock:
+        if not await asyncio.to_thread(github_sync.ensure_current, 2.0):
+            raise HTTPException(503, "github_refresh_failed_retry")
+        record = await usersync.get_scope(user["id"], "dashboard")
+        row = record.get("items", {}).get("snapshot-"+device_id)
+    return {"serverNowMillis": int(time.time()*1000), "snapshot": row}
+
+@app.put("/api/dashboard/{device_id}")
+async def put_dashboard(device_id: str, body: dict, user=Depends(current_user)):
+    payload = dashboard.validate(body)
+    await asyncio.to_thread(dashboard.require_private_data_repo)
+    async with _sync_lock:
+        if not await asyncio.to_thread(github_sync.pull_data):
+            raise HTTPException(503, "github_pull_failed_retry")
+        devices = await usersync.get_scope(user["id"], "devices")
+        if device_id not in devices.get("devices", {}):
+            raise HTTPException(404, "device_not_registered")
+        record = await usersync.get_scope(user["id"], "dashboard")
+        items = record.setdefault("items", {})
+        key = "snapshot-"+device_id
+        previous = items.get(key,{})
+        now = int(time.time()*1000)
+        row = {"id":key,"deviceId":device_id,"payload":payload,"observedServerMillis":now,"version":previous.get("version",0)+1,"updated_at":usersync.now_utc()}
+        items[key]=row
+        await usersync.save_scope(user["id"],"dashboard",record)
+        if not await asyncio.to_thread(github_sync.push_data):
+            raise HTTPException(503,"github_sync_failed_retry")
+    return row
+
+@app.get("/api/today/cities")
+async def find_weather_cities(name: str, user=Depends(current_user)):
+    return await today.cities(name)
+
+@app.get("/api/today/weather")
+async def read_weather(latitude: float, longitude: float, unit: str = "celsius", user=Depends(current_user)):
+    return await today.forecast(latitude, longitude, unit)
+
+@app.get("/api/alarm-templates")
+async def alarm_templates(user=Depends(current_user)):
+    return {"templates": json.loads((BASE / "alarm-templates.json").read_text())}
+
+@app.get("/api/news/feeds")
+async def news_feeds(user=Depends(current_user)):
+    return {"feeds": [{"id":key,"label":value[0],"url":value[1]} for key,value in news.FEEDS.items()]}
+
+@app.get("/api/news")
+async def read_news(feed: str = "bbc", user=Depends(current_user)):
+    return await news.read_feed(feed)
+
+SETTINGS_FIELDS = json.loads((BASE / "settings-fields.json").read_text())
+
+
+@app.get("/api/utilities/devices")
+async def utility_devices(user=Depends(current_user)):
+    async with _sync_lock:
+        if not await asyncio.to_thread(github_sync.ensure_current, 2.0):
+            raise HTTPException(503, "github_refresh_failed_retry")
+        record = await usersync.get_scope(user["id"], "devices")
+    return {"devices": [{"id": key, **value} for key, value in record.get("devices", {}).items()]}
+
+
+@app.get("/api/utilities/{device_id}")
+async def get_utilities(device_id: str, user=Depends(current_user)):
+    async with _sync_lock:
+        if not await asyncio.to_thread(github_sync.ensure_current, 2.0):
+            raise HTTPException(503, "github_refresh_failed_retry")
+        record = await usersync.get_scope(user["id"], "utilities")
+    return {"serverNowMillis": int(time.time()*1000), "items": [row for row in record.get("items", {}).values() if row.get("deviceId") == device_id]}
+
+
+@app.put("/api/utilities/{device_id}/snapshot")
+async def utility_snapshot(device_id: str, body: dict, user=Depends(current_user)):
+    timers = body.get("timers", [])
+    if not isinstance(timers, list) or len(timers) > 100:
+        raise HTTPException(400, "invalid_timer_snapshot")
+    clean = []
+    for timer in timers:
+        if not isinstance(timer, dict) or type(timer.get("id")) is not int or timer["id"] <= 0:
+            raise HTTPException(400, "invalid_timer_snapshot")
+        if timer.get("state") not in {"RUNNING", "PAUSED", "FINISHED"}:
+            raise HTTPException(400, "invalid_timer_state")
+        remaining = timer.get("remainingMillis")
+        total = timer.get("totalSeconds")
+        if type(remaining) is not int or type(total) is not int or not 0 <= remaining <= 86400000 or not 1 <= total <= 86400:
+            raise HTTPException(400, "invalid_timer_snapshot")
+        clean.append({"id":timer["id"], "state":timer["state"], "remainingMillis":remaining,
+                      "totalSeconds":total, "label":str(timer.get("label", ""))[:120]})
+    stopwatch = body.get("stopwatch", {})
+    if not isinstance(stopwatch, dict) or stopwatch.get("state", "IDLE") not in {"IDLE", "PAUSED", "RUNNING"}:
+        raise HTTPException(400, "invalid_stopwatch_snapshot")
+    elapsed = stopwatch.get("elapsedMillis", 0)
+    laps = stopwatch.get("laps", [])
+    if type(elapsed) is not int or not 0 <= elapsed <= 315360000000 or not isinstance(laps, list) or len(laps) > 1000:
+        raise HTTPException(400, "invalid_stopwatch_snapshot")
+    clean_laps = []
+    for lap in laps:
+        if not isinstance(lap, dict) or any(type(lap.get(k)) is not int or lap[k] < 0 for k in ("number", "splitMillis", "totalMillis")):
+            raise HTTPException(400, "invalid_stopwatch_lap")
+        clean_laps.append({k: lap[k] for k in ("number", "splitMillis", "totalMillis")})
+    clean_stopwatch = {"state": stopwatch.get("state", "IDLE"), "elapsedMillis": elapsed, "laps": clean_laps}
+    async with _sync_lock:
+        if not await asyncio.to_thread(github_sync.pull_data):
+            raise HTTPException(503, "github_pull_failed_retry")
+        devices = await usersync.get_scope(user["id"], "devices")
+        if device_id not in devices.get("devices", {}):
+            raise HTTPException(404, "device_not_registered")
+        record = await usersync.get_scope(user["id"], "utilities")
+        items = record.setdefault("items", {})
+        key = "snapshot-" + device_id
+        prior = items.get(key, {})
+        now = int(time.time()*1000)
+        row = {"id":key, "deviceId":device_id, "payload":{"timers":clean, "stopwatch":clean_stopwatch, "observedServerMillis":now},
+               "version":prior.get("version",0)+1, "updated_at":usersync.now_utc()}
+        items[key] = row
+        await usersync.save_scope(user["id"], "utilities", record)
+        if not await asyncio.to_thread(github_sync.push_data):
+            raise HTTPException(503, "github_sync_failed_retry")
+    return row
+
+
+@app.post("/api/utilities/commands")
+async def utility_command(body: dict, user=Depends(current_user)):
+    command = utility_control.validate(body)
+    async with _sync_lock:
+        if not await asyncio.to_thread(github_sync.pull_data):
+            raise HTTPException(503, "github_pull_failed_retry")
+        devices = await usersync.get_scope(user["id"], "devices")
+        if command["deviceId"] not in devices.get("devices", {}):
+            raise HTTPException(404, "device_not_registered")
+        record = await usersync.get_scope(user["id"], "utilities")
+        items = record.setdefault("items", {})
+        key = "command-" + command["commandId"]
+        existing = items.get(key)
+        if existing:
+            if existing.get("command") != command:
+                raise HTTPException(409, "command_id_reused")
+            return existing
+        # Only versioned IDs encode an immutable issuance time. Legacy UUIDs
+        # keep their tombstones: evicting those would allow replay as new.
+        cutoff=int(time.time()*1000)-86400000
+        for old_key,old_row in list(items.items()):
+            old_id=old_row.get('command',{}).get('commandId','')
+            if re.fullmatch(r'v2-\d{13}-[a-f0-9]{32}',old_id) and int(old_id.split('-')[1])<cutoff:
+                del items[old_key]
+        if len(items) >= 10000:
+            raise HTTPException(409, "utility_history_full")
+        if sum(row.get("status") == "pending" and row.get("expiresMillis",0)>int(time.time()*1000) for row in items.values()) >= 100:
+            raise HTTPException(409, "too_many_pending_commands")
+        row = {"id":key, "deviceId":command["deviceId"], "command":command,
+               "status":"pending", "createdMillis":int(time.time()*1000),
+               "expiresMillis":min(int(time.time()*1000)+120000, int(command["commandId"].split("-")[1])+120000) if command["commandId"].startswith("v2-") else int(time.time()*1000)+120000,
+               "version":1, "updated_at":usersync.now_utc()}
+        items[key] = row
+        await usersync.save_scope(user["id"], "utilities", record)
+        if not await asyncio.to_thread(github_sync.push_data):
+            raise HTTPException(503, "github_sync_failed_retry")
+    return row
+
+
+@app.post("/api/utilities/{device_id}/ack")
+async def utility_ack(device_id: str, body: dict, user=Depends(current_user)):
+    if body.get("status") not in {"applied", "rejected", "expired"}:
+        raise HTTPException(400, "invalid_command_status")
+    async with _sync_lock:
+        if not await asyncio.to_thread(github_sync.pull_data):
+            raise HTTPException(503, "github_pull_failed_retry")
+        record = await usersync.get_scope(user["id"], "utilities")
+        key = "command-" + str(body.get("commandId", ""))
+        row = record.get("items", {}).get(key)
+        if not row or row.get("deviceId") != device_id:
+            raise HTTPException(404, "command_not_found")
+        if row.get("status") == "pending":
+            row.update(status=body["status"], version=row["version"]+1, updated_at=usersync.now_utc(), result=str(body.get("result", ""))[:200])
+            await usersync.save_scope(user["id"], "utilities", record)
+            if not await asyncio.to_thread(github_sync.push_data):
+                raise HTTPException(503, "github_sync_failed_retry")
+    return row
+
+
+@app.get("/api/settings")
+async def get_settings(user=Depends(current_user)):
+    async with _sync_lock:
+        if not await asyncio.to_thread(github_sync.ensure_current, 2.0):
+            raise HTTPException(503, "github_refresh_failed_retry")
+        record = await usersync.get_scope(user["id"], "settings")
+    row = record.get("items", {}).get("preferences", {})
+    return {"payload": row.get("payload", {}), "version": row.get("version", 0), "updatedAt": row.get("updated_at", "")}
+
+
+@app.put("/api/settings")
+async def put_settings(body: AlarmWrite, user=Depends(current_user)):
+    payload = copy.deepcopy(body.payload)
+    for key, value in payload.items():
+        kind = SETTINGS_FIELDS.get(key)
+        if kind is None:
+            raise HTTPException(400, "unsupported_settings_field:" + key)
+        valid = (kind == "Boolean" and isinstance(value, bool)) or (kind == "String" and isinstance(value, str) and len(value) <= 4096) or (kind in {"Int", "Long"} and isinstance(value, int) and not isinstance(value, bool)) or (kind == "Double" and isinstance(value, (float, int)) and not isinstance(value, bool))
+        if not valid:
+            raise HTTPException(400, "invalid_settings_type:" + key)
+    if "worldClockZones" in payload:
+        zones = payload["worldClockZones"].split("|") if payload["worldClockZones"] else []
+        if len(zones) > 40 or len(zones) != len(set(zones)):
+            raise HTTPException(400, "invalid_world_clock_zones")
+        try:
+            for zone in zones:
+                ZoneInfo(zone)
+        except (ZoneInfoNotFoundError, ValueError):
+            raise HTTPException(400, "invalid_world_clock_zone")
+    ranges = {'defaultSnoozeDuration': [1, 180], 'defaultGradualVolume': [0, 300], 'autoSilenceMinutes': [0, 240], 'bedtimeHour': [0, 23], 'bedtimeMinute': [0, 59], 'sleepGoalHours': [1, 16], 'sleepGoalMinutes': [0, 59], 'bedtimeReminderMinutes': [0, 180], 'sleepSoundTimerMinutes': [0, 240], 'sleepSoundFadeSeconds': [5, 600], 'napDefaultMinutes': [1, 180], 'cancellationLockMinutes': [0, 120], 'holdToDismissMillis': [500, 5000], 'challengeBypassDelaySeconds': [10, 120], 'challengeAudioDuckPercent': [10, 80], 'pauseUntilMillis': [0, 9223372036854775807], 'vacationStartMillis': [0, 9223372036854775807], 'vacationEndMillis': [0, 9223372036854775807], 'bedtimeStayUpLateUntilMillis': [0, 9223372036854775807]}
+    for key, (low, high) in ranges.items():
+        if key in payload and not low <= payload[key] <= high:
+            raise HTTPException(400, "invalid_settings_range:" + key)
+    for key, values in {"temperatureUnit":{"fahrenheit","celsius"}, "firingControlMode":{"hybrid","swipe","buttons"}}.items():
+        if key in payload and payload[key] not in values:
+            raise HTTPException(400, "invalid_settings_choice:" + key)
+    if payload.get("vacationModeEnabled") and not 0 < payload.get("vacationStartMillis",0) < payload.get("vacationEndMillis",0):
+        raise HTTPException(400, "invalid_vacation_window")
+    async with _sync_lock:
+        if not await asyncio.to_thread(github_sync.pull_data):
+            raise HTTPException(503, "github_pull_failed_retry")
+        record = await usersync.get_scope(user["id"], "settings")
+        current = record.get("items", {}).get("preferences", {})
+        version = int(current.get("version", 0))
+        if body.expectedVersion != version:
+            raise HTTPException(409, "version_conflict")
+        row = {"id":"preferences", "payload":payload, "version":version+1, "updated_at":usersync.now_utc(), "deleted_at":None}
+        record["items"] = {"preferences":row}
+        await usersync.save_scope(user["id"], "settings", record)
+        if not await asyncio.to_thread(github_sync.push_data):
+            raise HTTPException(503, "github_sync_failed_retry")
+    return {"payload":payload, "version":row["version"], "updatedAt":row["updated_at"]}
+
+
 @app.get("/api/alarms")
 async def get_alarms(
     since: str = "1970-01-01T00:00:00Z",
@@ -595,6 +846,7 @@ async def put_alarm(
     body: AlarmWrite,
     user=Depends(current_user),
 ):
+    challenge_rules.validate(body.payload)
     return await mutate_alarm(
         user["id"],
         alarm_id,

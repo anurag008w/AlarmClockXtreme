@@ -165,7 +165,7 @@ def _merge_alarm_scope(local: Any, remote: Any) -> dict:
 
 def _is_alarm_scope(relative: Path) -> bool:
     parts = relative.parts
-    return len(parts) >= 3 and parts[-1] == "alarms.json" and parts[-3] == "sync"
+    return len(parts) >= 3 and parts[-1] in {"alarms.json", "settings.json", "utilities.json", "dashboard.json"} and parts[-3] == "sync"
 
 
 def _overlay_local_data(local_root: Path, remote_root: Path) -> None:

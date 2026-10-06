@@ -34,6 +34,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.android.HiltAndroidApp
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.util.concurrent.TimeUnit
@@ -135,6 +136,32 @@ class AlarmClockApp : Application(), Configuration.Provider {
         appScope.launch {
             runCatching { cloudSyncManager.observeLocalChanges() }
         }
+
+        // Remote commands cannot depend on a local edit. Check only while the
+        // app is visible; WorkManager remains the honest background fallback.
+        registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
+            private var resumed = 0
+            private var utilityReceiver: Job? = null
+            override fun onActivityResumed(activity: android.app.Activity) {
+                resumed++
+                if (utilityReceiver?.isActive == true) return
+                utilityReceiver = appScope.launch {
+                    while (kotlinx.coroutines.currentCoroutineContext().isActive) {
+                        cloudSyncManager.receiveForegroundUtilities()
+                        kotlinx.coroutines.delay(30_000L)
+                    }
+                }
+            }
+            override fun onActivityPaused(activity: android.app.Activity) {
+                resumed = (resumed - 1).coerceAtLeast(0)
+                if (resumed == 0) { utilityReceiver?.cancel(); utilityReceiver = null }
+            }
+            override fun onActivityCreated(a: android.app.Activity, b: android.os.Bundle?) = Unit
+            override fun onActivityStarted(a: android.app.Activity) = Unit
+            override fun onActivityStopped(a: android.app.Activity) = Unit
+            override fun onActivitySaveInstanceState(a: android.app.Activity, b: android.os.Bundle) = Unit
+            override fun onActivityDestroyed(a: android.app.Activity) = Unit
+        })
 
         // v1.10.6: Keep the first-meeting auto-alarm responsive without
         // running periodic calendar reads when the feature is disabled.

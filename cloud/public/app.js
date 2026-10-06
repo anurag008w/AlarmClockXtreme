@@ -6,9 +6,10 @@ const state = {
   loginMode: true,
   mutationInFlight: false,
   newAlarmId: "",
-  worldZones: ["Asia/Kolkata", "Europe/London", "America/New_York"]
+  worldZones: []
 };
 
+const selectedAlarmIds = new Set();
 let syncPromise = null;
 let syncController = null;
 let syncTimer = null;
@@ -78,6 +79,9 @@ async function api(path, optionsArg = {}) {
   if (response.status === 401) {
     state.token = "";
     localStorage.removeItem("acx_token");
+  if(typeof practiceCleanup==='function')practiceCleanup();
+  ['phoneUtilityStatus','phoneTimerList','phoneStopwatchDisplay','phoneStopwatchStatus','alarmCommandStatus'].forEach(id=>{if($(id))$(id).textContent='';});
+  if($('utilityDevice'))$('utilityDevice').innerHTML='';
     showAuth();
   }
   if (!response.ok) throw new Error(body.error || body.detail || `request_failed_${response.status}`);
@@ -85,6 +89,8 @@ async function api(path, optionsArg = {}) {
 }
 
 function showAuth() {
+  if(typeof clearPhoneDashboard === "function") clearPhoneDashboard();
+  selectedAlarmIds.clear();
   $("authView").classList.remove("hidden");
   $("appView").classList.add("hidden");
 }
@@ -121,6 +127,7 @@ async function authSubmit(event) {
     await syncNow({ forceFull: true });
     renderWorld();
     refreshActivity();
+    await loadSettings().catch(error => { $("settingsStatus").textContent = "Settings unavailable: " + error.message.replaceAll("_"," "); });
   } catch (error) {
     setAuthError(error.message.replaceAll("_", " "));
   }
@@ -142,7 +149,7 @@ async function syncNow({ forceFull = false, silent = false } = {}) {
     syncController = new AbortController();
     const timeout = setTimeout(() => syncController?.abort(), 12000);
     try {
-      if (forceFull) state.alarms = [];
+
       const mutationEpoch = localMutationEpoch;
       const cursorKey = cursorStorageKey();
       const cursor = forceFull ? new Date(0).toISOString() :
@@ -153,6 +160,7 @@ async function syncNow({ forceFull = false, silent = false } = {}) {
       // and the next watchdog pass will reconcile any other concurrent changes.
       if (mutationEpoch !== localMutationEpoch) return data;
 
+      if (forceFull) state.alarms = [];
       for (const remote of data.alarms) {
         const existing = state.alarms.findIndex(a => a.id === remote.id);
         if (remote.deletedAt) {
@@ -169,11 +177,15 @@ async function syncNow({ forceFull = false, silent = false } = {}) {
         const am = Number(a.payload?.minute ?? 0), bm = Number(b.payload?.minute ?? 0);
         return (ah * 60 + am) - (bh * 60 + bm);
       });
-      if (!silent) $("syncState").textContent = "synced";
+      $("syncState").textContent = "cloud saved";
+      $("syncState").title = "Cloud readback passed. Phone delivery waits for Android sync.";
       renderAlarms();
+      if (typeof phoneSettingsDirty !== "undefined" && !phoneSettingsDirty) {
+        await loadSettings().catch(error => { $("settingsStatus").textContent = "Settings sync error: " + error.message.replaceAll("_", " "); });
+      }
       return data;
     } catch (error) {
-      if (!silent) {
+      {
         $("syncState").textContent = error.name === "AbortError" ? "sync timeout" : "sync error";
       }
       if (error.message === "missing_token" || error.message === "invalid_token") showAuth();
@@ -241,22 +253,56 @@ function renderAlarms() {
     box.innerHTML = '<div class="card"><h2>no alarms yet</h2><p class="muted">create one here and it will appear in the Android app after sync</p></div>';
     return;
   }
-  box.innerHTML = state.alarms.map(remote => {
+  const query = ($("alarmSearch")?.value || "").trim().toLowerCase();
+  const sort = $("alarmSort")?.value || "time";
+  const displayed = state.alarms.filter(a => !query || `${a.payload?.label || ""} ${a.payload?.group || ""} ${a.payload?.profileName || ""}`.toLowerCase().includes(query));
+  displayed.sort((a,b) => sort === "label" ? String(a.payload?.label || "").localeCompare(String(b.payload?.label || "")) : sort === "manual" ? Number(a.payload?.sortOrder || 0)-Number(b.payload?.sortOrder || 0) : (Number(a.payload?.hour || 0)*60+Number(a.payload?.minute || 0))-(Number(b.payload?.hour || 0)*60+Number(b.payload?.minute || 0)));
+  const openMenus = new Set([...box.querySelectorAll("details[open]")].map(node=>node.dataset.alarmMenu));
+  box.innerHTML = displayed.length ? displayed.map(remote => {
     const p = remote.payload || {};
     const time = `${String(p.hour ?? 0).padStart(2,"0")}:${String(p.minute ?? 0).padStart(2,"0")}`;
     const next = nextFireLabel(p);
     const nextText = next ? `next ${next.toLocaleString([], {weekday:"short", month:"short", day:"numeric", hour:"2-digit", minute:"2-digit"})}` : "schedule unavailable";
     return `<article class="card alarm">
+      <label class="switch-field"><span>Select ${escapeHtml(p.label||'alarm')}</span><input type="checkbox" class="switch" data-select-alarm="${escapeAttr(remote.id)}" ${selectedAlarmIds.has(remote.id)?'checked':''}></label>
       <div class="alarm-time">${escapeHtml(time)}</div>
       <div class="alarm-label">${escapeHtml(p.label || "untitled alarm")}</div>
       <div class="alarm-meta">${escapeHtml(alarmSummary(p))}<br>${escapeHtml(nextText)} · volume ${escapeHtml(p.volume ?? 100)}</div>
       <span class="alarm-state ${p.isEnabled ? "enabled" : "disabled"}">${p.isEnabled ? "enabled" : "disabled"}</span>
       <div class="alarm-actions">
         <button class="secondary" data-edit="${escapeAttr(remote.id)}" type="button">edit</button>
-        <button class="ghost" data-toggle="${escapeAttr(remote.id)}" type="button">${p.isEnabled ? "disable" : "enable"}</button>
+        <button class="alarm-switch ${p.isEnabled ? "is-on" : ""}" role="switch" aria-checked="${!!p.isEnabled}" aria-label="${escapeAttr(`Enable ${p.label || "alarm"}`)}" data-toggle="${escapeAttr(remote.id)}" type="button"><span></span></button>
       </div>
+      <details class="alarm-more" data-alarm-menu="${escapeAttr(remote.id)}" ${openMenus.has(remote.id) ? "open" : ""}><summary>More</summary><div class="row">
+        <button class="ghost" data-copy="${escapeAttr(remote.id)}" type="button">Duplicate draft</button>
+        <button class="ghost" data-earlier="${escapeAttr(remote.id)}" type="button">Move first</button>
+      </div></details>
     </article>`;
-  }).join("");
+  }).join("") : '<p class="muted">No matching alarms.</p>';
+
+  box.querySelectorAll("[data-select-alarm]").forEach(input=>input.onchange=()=>{input.checked?selectedAlarmIds.add(input.dataset.selectAlarm):selectedAlarmIds.delete(input.dataset.selectAlarm);});
+  box.querySelectorAll("[data-copy]").forEach(btn => btn.addEventListener("click", () => {
+    const remote = state.alarms.find(x => x.id === btn.dataset.copy);
+    if (!remote) return;
+    openAlarm(null);
+    editorDraft = { ...clone(DEFAULT_ALARM), ...clone(remote.payload), id:0, nextTriggerTime:0, createdAt:Date.now(), isEnabled:false, label:`${remote.payload.label || "Alarm"} copy` };
+    renderEditor();
+  }));
+  box.querySelectorAll("[data-earlier]").forEach(btn => btn.addEventListener("click", async () => {
+    if (state.mutationInFlight) return;
+    const remote = state.alarms.find(x => x.id === btn.dataset.earlier);
+    if (!remote) return;
+    state.mutationInFlight = true;
+    localMutationEpoch++;
+    try {
+      const first = Math.min(...state.alarms.filter(x=>x.id!==remote.id).map(x=>Number(x.payload?.sortOrder || 0)));
+      if (!Number.isFinite(first) || first < 1000) throw new Error("Set manual sort values of 1000 or higher in Advanced before moving first");
+      await api(`/api/alarms/${remote.id}`, {method:"PUT",body:JSON.stringify({payload:{...remote.payload,sortOrder:Math.max(1,first-500)},expectedVersion:remote.version})});
+      $("alarmSort").value = "manual";
+      await syncNow({forceFull:true});
+    } catch(error) { alert(error.message.replaceAll("_"," ")); }
+    finally { state.mutationInFlight = false; }
+  }));
 
   box.querySelectorAll("[data-edit]").forEach(btn =>
     btn.addEventListener("click", () => openAlarm(state.alarms.find(x => x.id === btn.dataset.edit)))
@@ -327,6 +373,13 @@ function ringtoneField(value) {
   ];
   if (current && current !== "silent") {
     options.push([current, "Current Android ringtone (device-local)"]);
+  }
+  // Reuse existing device references without pretending the browser can enumerate Android storage.
+  for (const alarm of state.alarms) {
+    const uri = String(alarm.payload?.ringtoneUri || "");
+    if (uri && !options.some(([value]) => value === uri)) {
+      options.push([uri, `From ${alarm.payload?.label || "another alarm"} (device-local)`]);
+    }
   }
   const selected = current;
   return `
@@ -462,9 +515,9 @@ function renderSection(tab) {
       fieldNumber("backupSoundDelaySec","Backup sound delay",d.backupSoundDelaySec,5,900,1,"Seconds.") +
       fieldSelect("hardwareButtonAction","Hardware-button action",d.hardwareButtonAction,[["NONE","None"],["SNOOZE","Snooze"],["DISMISS","Dismiss"]])
     ) + sectionCard("Dismiss challenge","Pick the same challenge type available in Android.",
-      fieldSelect("challengeType","Challenge",d.challengeType,CHALLENGES,true) +
+      fieldSelect("challengeType","Challenge",d.challengeType,CHALLENGES,"",true) +
       fieldTextarea("challengeChain","Mission chain",d.challengeChain,"Comma-separated challenge names; Android runs them in sequence.",true) +
-      challengeFields()
+      challengeFields() + '<button type="button" class="secondary" data-practice-challenge>Practice challenge in browser</button><div id="challengePractice" class="wide"></div>'
     );
   }
 
@@ -509,7 +562,7 @@ function renderSection(tab) {
       fieldSwitch("guardianEnabled","Guardian Angel",d.guardianEnabled,"Android can escalate when the alarm is not dismissed.") +
       fieldText("guardianPhone","Guardian phone",d.guardianPhone,"Phone number used by Android escalation.",false) +
       fieldNumber("guardianDelaySec","Guardian delay",d.guardianDelaySec,30,3600,1,"Seconds.") +
-      fieldText("locationDismissSsid","Wi-Fi SSID",d.wifiDismissSsid,"Network used by the Wi-Fi dismiss challenge.",true) +
+      fieldText("wifiDismissSsid","Wi-Fi SSID",d.wifiDismissSsid,"Network used by the Wi-Fi dismiss challenge.",true) +
       fieldText("internetRadioUrl","Internet radio URL",d.internetRadioUrl,"HTTPS stream URL.",true)
     ) + sectionCard("Location unlock","Android-only location-based auto-dismiss.",
       fieldSwitch("locationDismissEnabled","Location dismiss enabled",d.locationDismissEnabled) +
@@ -566,6 +619,7 @@ function bindEditorEvents() {
 }
 
 function renderEditor() {
+  if(typeof practiceCleanup==="function")practiceCleanup();
   const tabs = EDITOR_TABS.map(([key,label]) => `<button class="editor-tab ${editorTab === key ? "active" : ""}" type="button" data-editor-tab="${key}">${label}</button>`).join("");
   $("alarmEditor").innerHTML = `
     <div class="editor-nav">${tabs}</div>
@@ -625,6 +679,9 @@ async function saveAlarm(event) {
     return;
   }
   const payload = applyNumericBoundsBeforeSave(clone(editorDraft));
+  const types = new Set([payload.challengeType,...String(payload.challengeChain||'').split(',').map(s=>s.trim())]);
+  const missing = Object.entries({NFC_SCAN:'nfcTagId',BARCODE_SCAN:'barcodeValue',PHOTO_MATCH:'photoMatchUri',WIFI_CONNECT:'wifiDismissSsid'}).filter(([kind,key])=>types.has(kind)&&!String(payload[key]||'').trim()).map(([kind])=>kind);
+  if(missing.length){alert('Register the required phone reference before saving: '+missing.join(', '));return;}
   const id = state.editing?.id || state.newAlarmId || crypto.randomUUID();
   state.mutationInFlight = true;
   const saveBtn = $("saveAlarmBtn");
@@ -644,7 +701,7 @@ async function saveAlarm(event) {
     state.newAlarmId = "";
     $("alarmDialog").close();
     renderAlarms();
-    $("syncState").textContent = "synced";
+    $("syncState").textContent = "cloud saved";
     // Reconfirm the persistent cloud dataset after every mutation.
     // This prevents a stale tab/device from making an acknowledged edit,
     // create, or delete appear to roll back on the next refresh.
@@ -771,18 +828,18 @@ $("swLap").onclick = () => {
 $("swReset").onclick = () => { sw = { running:false, started:0, elapsed:0 }; $("swStart").textContent = "start"; $("laps").innerHTML = ""; };
 
 function renderWorld() {
+  if (typeof worldZonesSynced !== "undefined" && !worldZonesSynced) { $("worldList").textContent="Waiting for an updated phone to sync its saved zones."; return; }
   $("worldList").innerHTML = state.worldZones.map(zone => {
     const now = new Intl.DateTimeFormat(undefined, {timeZone:zone,weekday:"short",month:"short",day:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit"}).format(new Date());
     return `<div class="card"><h2>${escapeHtml(zone)}</h2><div class="alarm-time">${escapeHtml(now)}</div><button class="danger" type="button" data-zone="${escapeAttr(zone)}">remove</button></div>`;
   }).join("");
   $("worldList").querySelectorAll("[data-zone]").forEach(btn => {
-    btn.onclick = () => { state.worldZones = state.worldZones.filter(z => z !== btn.dataset.zone); renderWorld(); };
+    btn.onclick = () => saveWorldZones(state.worldZones.filter(z => z !== btn.dataset.zone));
   });
 }
 $("timezonePicker").onchange = (event) => {
   const zone = event.target.value;
-  if (!state.worldZones.includes(zone)) state.worldZones.push(zone);
-  renderWorld();
+  if (!state.worldZones.includes(zone)) saveWorldZones([...state.worldZones, zone]);
 };
 setInterval(renderWorld, 1000);
 renderWorld();
@@ -792,7 +849,10 @@ $("loginTab").onclick = () => switchAuth("login");
 $("registerTab").onclick = () => switchAuth("register");
 $("logoutBtn").onclick = () => {
   state.token = ""; state.user = null; state.alarms = []; state.editing = null;
-  localStorage.removeItem("acx_token"); localStorage.removeItem(cursorStorageKey()); showAuth();
+  localStorage.removeItem("acx_token");
+  if(typeof practiceCleanup==='function')practiceCleanup();
+  ['phoneUtilityStatus','phoneTimerList','phoneStopwatchDisplay','phoneStopwatchStatus','alarmCommandStatus'].forEach(id=>{if($(id))$(id).textContent='';});
+  if($('utilityDevice'))$('utilityDevice').innerHTML=''; localStorage.removeItem(cursorStorageKey()); showAuth();
 };
 $("syncBtn").onclick = () => syncNow().catch(() => {});
 $("newAlarmBtn").onclick = () => openAlarm();
@@ -857,6 +917,19 @@ document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible" && state.token) syncNow({silent:true}).catch(() => {});
 });
 
+$("saveSettingsBtn").addEventListener("click",savePhoneSettings);
+$("reloadSettingsBtn").addEventListener("click",() => loadSettings().catch(error => $("settingsStatus").textContent=error.message));
+$("alarmSearch").addEventListener("input",renderAlarms);
+$("alarmSort").addEventListener("change",renderAlarms);
+document.querySelectorAll("[data-quick]").forEach(btn => btn.addEventListener("click", () => {
+  const when = new Date(Date.now() + Number(btn.dataset.quick)*60000);
+  openAlarm(null);
+  editorDraft.hour = when.getHours(); editorDraft.minute = when.getMinutes();
+  editorDraft.label = `${btn.dataset.quick} minute alarm`;
+  editorDraft.specificDate = `${when.getFullYear()}-${String(when.getMonth()+1).padStart(2,"0")}-${String(when.getDate()).padStart(2,"0")}`;
+  renderEditor();
+}));
+
 (async function boot() {
   startPolling();
   if (!state.token) return showAuth();
@@ -868,7 +941,35 @@ document.addEventListener("visibilitychange", () => {
     await syncNow({forceFull:true});
     renderWorld();
     refreshActivity();
+    await loadSettings().catch(error => { $("settingsStatus").textContent = "Settings unavailable: " + error.message.replaceAll("_"," "); });
   } catch {
     showAuth();
   }
 })();
+async function batchAlarms(action){
+ if(state.mutationInFlight)return;
+ const ids=[...selectedAlarmIds];if(!ids.length){$('batchStatus').textContent='Select alarms first.';return;}
+ if(ids.length>100){$('batchStatus').textContent='Choose at most 100 alarms per batch.';return;}
+ if(!confirm(`${action} ${ids.length} selected alarms on synced phones?`))return;
+ state.mutationInFlight=true;localMutationEpoch++;let completed=0;
+ try {
+  for(const id of ids){
+   const row=state.alarms.find(a=>a.id===id);if(!row)throw Error('Selected alarm no longer in loaded dataset');
+   if(action==='delete')await api('/api/alarms/'+encodeURIComponent(id)+'?expectedVersion='+row.version,{method:'DELETE'});
+   else await api('/api/alarms/'+encodeURIComponent(id),{method:'PUT',body:JSON.stringify({payload:{...row.payload,isEnabled:action==='enable'},expectedVersion:row.version})});
+   completed++;selectedAlarmIds.delete(id);
+  }
+  $('batchStatus').textContent=`${completed} cloud writes accepted. Phone delivery awaits sync.`;
+ }catch(e){$('batchStatus').textContent=`Stopped after ${completed} accepted writes: ${e.message}. Earlier writes are not rolled back. Inspect remaining alarms before retrying.`;}
+ finally{state.mutationInFlight=false;await syncNow({forceFull:true}).catch(()=>{});renderAlarms();}
+}
+$('batchEnable').onclick=()=>batchAlarms('enable');$('batchDisable').onclick=()=>batchAlarms('disable');$('batchDelete').onclick=()=>batchAlarms('delete');$('batchClear').onclick=()=>{selectedAlarmIds.clear();renderAlarms();};
+
+let alarmTemplates=[];
+$('loadAlarmTemplates').onclick=async()=>{try{const data=await api('/api/alarm-templates');alarmTemplates=data.templates;$('alarmTemplatePicker').innerHTML=alarmTemplates.map(row=>`<option value="${escapeAttr(row.key)}">${escapeHtml(row.label)}</option>`).join('');}catch(e){alert(e.message);}};
+$('draftAlarmTemplate').onclick=()=>{
+ const row=alarmTemplates.find(row=>row.key===$('alarmTemplatePicker').value);if(!row){alert('Load and choose a template first.');return;}
+ openAlarm(null);editorDraft={...clone(DEFAULT_ALARM),...clone(row.payload),label:row.label,isEnabled:false,createdAt:Date.now()};
+ if(row.relativeMinutes){const when=new Date(Date.now()+row.relativeMinutes*60000);editorDraft.hour=when.getHours();editorDraft.minute=when.getMinutes();editorDraft.specificDate=`${when.getFullYear()}-${String(when.getMonth()+1).padStart(2,'0')}-${String(when.getDate()).padStart(2,'0')}`;}
+ renderEditor();$('dialogSubtitle').textContent='Disabled template draft. Review time and phone timezone before enabling.';
+};

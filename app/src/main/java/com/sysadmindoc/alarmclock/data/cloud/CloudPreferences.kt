@@ -13,7 +13,9 @@ class CloudPreferences(private val context: Context) {
     fun isLoggedIn(): Boolean = getToken().isNotBlank()
 
     fun saveSession(token: String, email: String) {
-        prefs.edit().putString("token", token).putString("email", email).apply()
+        val owner=prefs.getString("bound_email",prefs.getString("email","")) ?: ""
+        require(owner.isBlank() || owner.equals(email,ignoreCase=true)) { "device_cloud_account_mismatch_use_separate_android_profile" }
+        check(prefs.edit().putString("bound_email",email.lowercase()).putString("token", token).putString("email", email).commit())
     }
 
     fun clearSession() {
@@ -24,6 +26,8 @@ class CloudPreferences(private val context: Context) {
             .remove("alarm_mapping")
             .remove("alarm_snapshots")
             .remove("alarm_versions")
+            .remove("settings_snapshot")
+            .remove("settings_version")
             .apply()
     }
 
@@ -32,7 +36,7 @@ class CloudPreferences(private val context: Context) {
             ?: "1970-01-01T00:00:00.000Z"
 
     fun setCursor(cursor: String) {
-        prefs.edit().putString("cursor", cursor).apply()
+        prefs.edit().putString("cursor", cursor).commit()
     }
 
     fun getDeviceId(): String {
@@ -44,6 +48,23 @@ class CloudPreferences(private val context: Context) {
         val id = androidId ?: UUID.randomUUID().toString()
         prefs.edit().putString("device_id", id).apply()
         return id
+    }
+
+    fun saveAlarmMetadata(mapping: Map<String, Long>, snapshots: Map<String, String>, versions: Map<String, Long>) {
+        val mapJson = JSONObject().apply { mapping.forEach { (key,value) -> put(key,value) } }
+        val snapshotJson = JSONObject().apply { snapshots.forEach { (key,value) -> put(key,value) } }
+        val versionJson = JSONObject().apply { versions.forEach { (key,value) -> put(key,value) } }
+        check(prefs.edit()
+            .putString("alarm_mapping",mapJson.toString())
+            .putString("alarm_snapshots",snapshotJson.toString())
+            .putString("alarm_versions",versionJson.toString())
+            .commit()) { "alarm_sync_metadata_write_failed" }
+    }
+
+    fun getSettingsSnapshot(): String? = prefs.getString("settings_snapshot", null)
+    fun getSettingsVersion(): Long = prefs.getLong("settings_version", 0L)
+    fun saveSettingsMetadata(snapshot: String, version: Long) {
+        check(prefs.edit().putString("settings_snapshot", snapshot).putLong("settings_version", version).commit()) { "settings_sync_metadata_write_failed" }
     }
 
     fun getMapping(): Map<String, Long> {

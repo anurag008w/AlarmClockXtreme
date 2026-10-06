@@ -71,3 +71,20 @@ data class CloudAiResponse(
     @field:Json(name = "message") val message: String? = null,
     @field:Json(name = "executed") val executed: List<Map<String, Any?>>? = null
 )
+
+data class CloudSettingsResponse(
+    val payload: Map<String, Any?> = emptyMap(),
+    val version: Long = 0,
+    val updatedAt: String = ""
+)
+
+ data class CloudUtilityCommand(
+    val deviceId: String, val commandId: String, val kind: String,
+    val action: String, val payload: Map<String, Any?> = emptyMap()
+)
+data class CloudUtilityRow(
+    val id: String, val deviceId: String, val status: String = "",
+    val command: CloudUtilityCommand? = null,
+    val expiresMillis: Long = 0, val createdMillis: Long = 0, val payload: Map<String, Any?> = emptyMap()
+)
+data class CloudUtilitiesResponse(val serverNowMillis: Long, val items: List<CloudUtilityRow> = emptyList())
