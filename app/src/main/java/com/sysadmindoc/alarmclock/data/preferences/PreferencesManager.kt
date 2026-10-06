@@ -569,7 +569,7 @@ class PreferencesManager @Inject constructor(
      *  drift from each other (a previous source of bugs where new fields would
      *  reset to default during update because only [settings] knew about them). */
     private fun Preferences.toSettings(): AppSettings = AppSettings(
-        worldClockZones = this[Keys.WORLD_CLOCK_ZONES] ?: context.getSharedPreferences("world_clock_prefs", Context.MODE_PRIVATE).getString("zones", null) ?: "America/New_York|America/Los_Angeles|Europe/London|Asia/Tokyo",
+        worldClockZones = this[Keys.WORLD_CLOCK_ZONES] ?: context.getSharedPreferences("world_clock_prefs", Context.MODE_PRIVATE).getString("zones", null) ?: AppSettings().worldClockZones,
         is24HourFormat = this[Keys.IS_24_HOUR] ?: false,
         defaultSnoozeDuration = this[Keys.DEFAULT_SNOOZE] ?: 10,
         defaultGradualVolume = this[Keys.DEFAULT_GRADUAL_VOLUME] ?: 60,
