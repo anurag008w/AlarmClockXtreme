@@ -27,6 +27,7 @@ data class StopwatchUiState(
     val state: StopwatchState = StopwatchState.IDLE,
     val laps: List<Lap> = emptyList()
 ) {
+    val currentLapMillis: Long get() = (elapsedMillis - (laps.maxByOrNull { it.number }?.totalMillis ?: 0L)).coerceAtLeast(0L)
     val hours: Int get() = (elapsedMillis / 3600000).toInt()
     val minutes: Int get() = ((elapsedMillis % 3600000) / 60000).toInt()
     val seconds: Int get() = ((elapsedMillis % 60000) / 1000).toInt()
