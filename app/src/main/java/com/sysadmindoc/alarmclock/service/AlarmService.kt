@@ -245,8 +245,10 @@ class AlarmService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        OnCallDndOverride.restoreStale(this)
         createNotificationChannels(this)
+        // Promote before restoration, wake locks or action-specific work on slow OEM cold starts.
+        startForegroundWithPlaceholder()
+        OnCallDndOverride.restoreStale(this)
 
         // v1.5.4: Safe cast + defensive try around acquire(); rare OEM builds
         // throw SecurityException from newWakeLock() when the process is in a
