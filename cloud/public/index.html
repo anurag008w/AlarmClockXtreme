@@ -79,6 +79,7 @@
           </div>
           <button id="exportBtn" class="ghost" type="button">export</button>
         </div>
+        <details class="alarm-tools-disclosure"><summary>Tools</summary>
         <div class="alarm-tools row">
           <input id="alarmSearch" type="search" placeholder="Search alarms or groups" aria-label="Search alarms">
           <select id="alarmSort" aria-label="Sort alarms"><option value="time">By time</option><option value="manual">Manual order</option><option value="label">By label</option></select>
@@ -86,6 +87,7 @@
         <div class="row wrap template-tools"><button id="loadAlarmTemplates" class="secondary" type="button">Load Android templates</button><select id="alarmTemplatePicker" aria-label="Alarm template"></select><button id="draftAlarmTemplate" class="secondary" type="button">Open template draft</button></div>
         <div class="row quick-alarms"><span class="muted">Quick alarm</span><button data-quick="10" class="secondary" type="button">10 min</button><button data-quick="20" class="secondary" type="button">20 min</button><button data-quick="30" class="secondary" type="button">30 min</button></div>
         <div class="card selection-tools"><h3>Selected alarms</h3><div class="row wrap"><button id="batchEnable" class="secondary" type="button">Enable selected</button><button id="batchDisable" class="secondary" type="button">Disable selected</button><button id="batchDelete" class="danger" type="button">Delete selected</button><button id="batchClear" class="ghost" type="button">Clear selection</button></div><p id="batchStatus" class="muted" role="status"></p></div>
+        </details>
         <div id="alarmList" class="grid"></div>
       </section>
 
@@ -217,8 +219,8 @@
   <script src="/settings.js"></script>
   <script src="/app.js?v=live-split-1"></script>
   <script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(()=>{});</script>
-<script src="/sections.js"></script>
-  <script src="/utilities.js"></script>
+<script src="/sections.js?v=auto-phone-1"></script>
+  <script src="/utilities.js?v=auto-phone-1"></script>
   <script src="/practice-data.js"></script>
   <script src="/practice.js"></script>
 </body>
