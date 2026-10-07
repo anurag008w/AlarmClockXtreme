@@ -142,6 +142,7 @@ function switchAuth(mode) {
   setAuthError("");
 }
 
+let alarmsLoaded = false;
 async function syncNow({ forceFull = false, silent = false } = {}) {
   if (syncPromise) return syncPromise;
   syncPromise = (async () => {
@@ -152,7 +153,7 @@ async function syncNow({ forceFull = false, silent = false } = {}) {
 
       const mutationEpoch = localMutationEpoch;
       const cursorKey = cursorStorageKey();
-      const cursor = forceFull ? new Date(0).toISOString() :
+      const cursor = (forceFull || !alarmsLoaded) ? new Date(0).toISOString() :
         (localStorage.getItem(cursorKey) || new Date(0).toISOString());
       const data = await api(`/api/alarms?since=${encodeURIComponent(cursor)}`, { signal: syncController.signal });
       // A write completed while this GET was in flight. Discard this response;
@@ -171,6 +172,7 @@ async function syncNow({ forceFull = false, silent = false } = {}) {
           state.alarms.push(remote);
         }
       }
+      alarmsLoaded = true;
       localStorage.setItem(cursorKey, data.cursor);
       state.alarms.sort((a,b) => {
         const ah = Number(a.payload?.hour ?? 0), bh = Number(b.payload?.hour ?? 0);
@@ -249,6 +251,7 @@ function nextFireLabel(payload) {
 
 function renderAlarms() {
   const box = $("alarmList");
+  if (!alarmsLoaded) { box.innerHTML='<div class="card"><h2>Loading alarms</h2><p class="muted">Cloud list has not loaded yet. Tap sync now to retry.</p></div>';return; }
   if (!state.alarms.length) {
     box.innerHTML = '<div class="card"><h2>no alarms yet</h2><p class="muted">create one here and it will appear in the Android app after sync</p></div>';
     return;
