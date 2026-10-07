@@ -30,6 +30,7 @@ import javax.inject.Singleton
  *  - NewPipe search with a metadata-only yt-dlp fallback; downloads remain explicit.
  *  - No FFmpeg — the raw `bestaudio` stream is saved as-is. This keeps the APK
  *    smaller and avoids the FFmpeg LD_LIBRARY_PATH gymnastics from Aura.
+ *  - Private temporary downloads are copied to MediaStore and cleaned up.
  *  - No stream-URL cache — alarm tones are downloaded once and reused from
  *    MediaStore, so a 6-hour token cache adds no value here.
  */
@@ -254,46 +255,52 @@ class PlayYouTubeAudioDownloader @Inject constructor(
 
     override suspend fun getPreviewStreamUrl(youtubeUrl: String): Result<String> = withContext(Dispatchers.IO) {
         runCatching {
-            require(isAvailable()) {
-                "YouTube engine still warming up — try again in a moment."
-            }
-            require(isLikelyYouTubeUrl(youtubeUrl)) {
-                "That doesn't look like a YouTube URL."
-            }
-            // Session cache hit?
-            previewCache[youtubeUrl]?.let { cached ->
-                if (System.currentTimeMillis() - cached.cachedAtMs < PREVIEW_TTL_MS) {
-                    return@runCatching cached.url
+            require(isAvailable()) { "YouTube engine still warming up" }
+            require(isLikelyYouTubeUrl(youtubeUrl)) { "Invalid YouTube URL" }
+            // Preview is a completed local low-bitrate file, not a signed CDN URL
+            // handed to a second network stack. Bound disk use to four clips.
+            val cache = java.io.File(context.cacheDir, "youtube-previews").apply { mkdirs() }
+            synchronized(previewCache) {
+                previewCache[youtubeUrl]?.let { cached ->
+                    val file = java.io.File(cached.url)
+                    if(file.isFile && System.currentTimeMillis()-cached.cachedAtMs < PREVIEW_TTL_MS)
+                        return@runCatching file.absolutePath
+                    previewCache.remove(youtubeUrl)
                 }
-                previewCache.remove(youtubeUrl)
             }
-            // worstaudio = fastest to resolve, smallest to buffer; perfect for preview.
-            // CVE-2026-26331 affects callers that enable yt-dlp's --netrc-cmd
-            // option. ACX never exposes arbitrary yt-dlp options and only adds
-            // this fixed allow-list after validating a whitespace-free YouTube URL.
-            val request = YoutubeDLRequest(youtubeUrl).apply {
-                addOption("-f", "worstaudio")
-                addOption("--get-url")
-                addOption("--socket-timeout", "20")
-            }
-            val response = try { YoutubeDL.getInstance().execute(request) } catch(e: Exception) {
-                if(e is CancellationException) throw e
-                YouTubeFailureDiagnostics.record(context, "stream-resolve", e)
+            val directory=java.io.File(cache, java.util.UUID.randomUUID().toString())
+            check(directory.mkdirs()) { "Could not create private preview folder" }
+            try {
+                val request=YoutubeDLRequest(youtubeUrl).apply {
+                    addOption("-f", "worstaudio")
+                    addOption("--no-playlist")
+                    addOption("--ignore-config")
+                    addOption("--socket-timeout", "20")
+                    addOption("--retries", "2")
+                    addOption("--fragment-retries", "1")
+                    addOption("--extractor-retries", "1")
+                    addOption("--http-chunk-size", "1M")
+                    addOption("--max-filesize", "15M")
+                    addOption("--no-mtime")
+                    addOption("-o", java.io.File(directory, "audio.%(ext)s").absolutePath)
+                }
+                YoutubeDL.getInstance().execute(request)
+                val audio=directory.listFiles()?.singleOrNull {
+                    it.isFile && it.extension.lowercase(Locale.ROOT) in setOf("webm","m4a","mp3","ogg","opus")
+                } ?: throw java.io.IOException("Native preview produced no complete audio file")
+                require(audio.length() in 1..(15L*1024*1024)) { "Preview file is empty or too large" }
+                previewCache[youtubeUrl]=CachedStream(audio.absolutePath,System.currentTimeMillis())
+                cache.listFiles()?.filter { it.isDirectory && it != directory }
+                    ?.sortedByDescending { it.lastModified() }?.drop(3)?.forEach { it.deleteRecursively() }
+                audio.absolutePath
+            } catch(e: Exception) {
+                directory.deleteRecursively()
                 throw e
             }
-            val streamUrl = response.out
-                ?.trim()
-                ?.lines()
-                ?.firstOrNull { it.startsWith("http") }
-                ?.takeIf { it.isNotBlank() }
-                ?: throw IllegalStateException(
-                    "Couldn't get a preview stream. The video may be age-restricted, removed, or region-locked."
-                )
-            previewCache[youtubeUrl] = CachedStream(streamUrl, System.currentTimeMillis())
-            streamUrl
         }.recoverCatching { e ->
-            if (e is CancellationException) throw e
-            Log.w(TAG, "preview-url failed for $youtubeUrl", e)
+            if(e is CancellationException) throw e
+            YouTubeFailureDiagnostics.record(context,"native-preview",e)
+            Log.w(TAG,"preview failed",e)
             throw e
         }
     }
@@ -370,33 +377,41 @@ class PlayYouTubeAudioDownloader @Inject constructor(
                 "That doesn't look like a YouTube URL. Paste a watch link, share link, or shorts URL."
             }
 
-            // Resolve the bestaudio direct URL via yt-dlp (--get-url, no
-            // download). June 2026 yt-dlp CVEs around curl cookie leaks,
-            // aria2c manifests, and filename-created desktop/link files affect
-            // downloader/file-write paths ACX does not enable: user input is
-            // validated as a URL, options stay on this fixed allow-list, and
-            // OkHttp writes the resolved stream into MediaStore.
-            val request = YoutubeDLRequest(youtubeUrl).apply {
-                addOption("-f", "bestaudio")
-                addOption("--get-url")
-                // Reasonable network timeout inside the python layer too.
-                addOption("--socket-timeout", "30")
+            // Keep extraction and actual transfer in the same engine, preserving its
+            // client-specific headers, chunking, retries and transport. Never shell
+            // out to a caller-selected downloader or write a user-controlled path.
+            val directory = java.io.File(context.cacheDir, "youtube-audio-${java.util.UUID.randomUUID()}")
+            check(directory.mkdirs()) { "Could not create private audio folder" }
+            try {
+                val request = YoutubeDLRequest(youtubeUrl).apply {
+                    addOption("-f", "bestaudio")
+                    addOption("--no-playlist")
+                    addOption("--ignore-config")
+                    addOption("--socket-timeout", "20")
+                    addOption("--retries", "2")
+                    addOption("--fragment-retries", "1")
+                    addOption("--extractor-retries", "1")
+                    addOption("--http-chunk-size", "1M")
+                    addOption("--max-filesize", "60M")
+                    addOption("--no-mtime")
+                    addOption("-o", java.io.File(directory, "audio.%(ext)s").absolutePath)
+                }
+                try {
+                    YoutubeDL.getInstance().execute(request)
+                } catch(e: Exception) {
+                    if(e is CancellationException) throw e
+                    YouTubeFailureDiagnostics.record(context, "native-download", e)
+                    throw e
+                }
+                val audio = directory.listFiles()?.singleOrNull {
+                    it.isFile && it.extension.lowercase(Locale.ROOT) in setOf("webm", "m4a", "mp3", "ogg", "opus")
+                } ?: throw java.io.IOException("Native download produced no complete audio file")
+                require(audio.length() in 1..MAX_BYTES) { "Audio file is empty or too large" }
+                val safeName = sanitizeName(displayName).ifBlank { "youtube-alarm-${System.currentTimeMillis()}" }
+                saveFileAsAlarm(audio, safeName)
+            } finally {
+                directory.deleteRecursively()
             }
-            val response = try { YoutubeDL.getInstance().execute(request) } catch(e: Exception) {
-                if(e is CancellationException) throw e
-                YouTubeFailureDiagnostics.record(context, "stream-resolve", e)
-                throw e
-            }
-            val streamUrl = response.out?.trim()?.lines()?.firstOrNull()?.takeIf { it.isNotBlank() }
-                ?: throw IllegalStateException(
-                    "Couldn't resolve an audio stream. The video may be age-restricted, removed, or region-locked."
-                )
-
-            // Decide a clean file name. Sanitise the user's label down to MediaStore-safe chars.
-            val safeName = sanitizeName(displayName)
-                .ifBlank { "youtube-alarm-${System.currentTimeMillis()}" }
-            val savedName = saveStreamAsAlarm(streamUrl, safeName)
-            savedName
         }.recoverCatching { e ->
             if (e is CancellationException) throw e
             YouTubeFailureDiagnostics.record(context, "audio-save", e)
@@ -406,7 +421,7 @@ class PlayYouTubeAudioDownloader @Inject constructor(
     }
 
     /**
-     * Streams the resolved audio URL into MediaStore.Audio at
+     * Copies the completed app-private audio file into MediaStore.Audio at
      * `Environment.DIRECTORY_ALARMS` with `IS_ALARM=1`, then flips
      * `IS_PENDING=0` so the system clock app + RingtoneManager pick it up.
      *
@@ -414,26 +429,24 @@ class PlayYouTubeAudioDownloader @Inject constructor(
      * Mirrors `SoundApplier.saveUrlToMediaStore` in the Aura codebase but
      * inlined and locked to ContentType.ALARM.
      */
-    private fun saveStreamAsAlarm(streamUrl: String, baseName: String): String {
+    private fun saveFileAsAlarm(audio: java.io.File, baseName: String): String {
         if (Build.VERSION.SDK_INT <= 28 && androidx.core.content.ContextCompat.checkSelfPermission(
             context, android.Manifest.permission.WRITE_EXTERNAL_STORAGE
         ) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
             throw SecurityException("Storage permission is required to save audio on Android 9 or earlier")
         }
         val resolver = context.contentResolver
-        return httpClient.newCall(Request.Builder().url(streamUrl).build()).execute().use { resp ->
-            if (!resp.isSuccessful) throw java.io.IOException("HTTP ${resp.code} from audio CDN")
-            val body = resp.body ?: throw java.io.IOException("Empty audio body")
-            val advertised = body.contentLength()
-            if (advertised > MAX_BYTES) throw java.io.IOException("Audio is too large")
-            val mime = body.contentType()?.toString()?.substringBefore(';')?.lowercase(Locale.ROOT)
-            val extension = when (mime) {
-                "audio/webm", "video/webm" -> "webm"
-                "audio/mp4", "video/mp4", "audio/x-m4a" -> "m4a"
-                "audio/mpeg" -> "mp3"
-                "audio/ogg", "application/ogg" -> "ogg"
-                else -> throw java.io.IOException("Unsupported audio content type")
-            }
+        val advertised = audio.length()
+        require(advertised in 1..MAX_BYTES) { "Audio file is empty or too large" }
+        val extension = audio.extension.lowercase(Locale.ROOT)
+        val mime = when(extension) {
+            "webm" -> "audio/webm"
+            "m4a" -> "audio/mp4"
+            "mp3" -> "audio/mpeg"
+            "ogg", "opus" -> "audio/ogg"
+            else -> throw java.io.IOException("Unsupported audio container")
+        }
+        return run {
             val stem = baseName.replace(Regex("(?i)\\.(m4a|mp3|ogg|webm)$"), "")
             val displayName = "$stem.$extension"
             val values = ContentValues().apply {
@@ -463,7 +476,7 @@ class PlayYouTubeAudioDownloader @Inject constructor(
                 ?: throw java.io.IOException("MediaStore could not create audio file")
             try {
                 resolver.openOutputStream(uri)?.use { out ->
-                    val copied = body.byteStream().use { input ->
+                    val copied = audio.inputStream().use { input ->
                         var count = 0L
                         val buf = ByteArray(64 * 1024)
                         while(true) {

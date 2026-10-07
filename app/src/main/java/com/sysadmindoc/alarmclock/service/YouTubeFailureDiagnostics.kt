@@ -38,10 +38,10 @@ internal object YouTubeFailureDiagnostics {
         }
     }
     fun record(context: Context, stage: String, error: Throwable) {
-        val safeStage = stage.takeIf { it in setOf("search", "newpipe-search", "ytdlp-search", "stream-resolve", "audio-copy", "audio-save") } ?: "unknown"
+        val safeStage = stage.takeIf { it in setOf("search", "newpipe-search", "ytdlp-search", "stream-resolve", "native-download", "native-preview", "preview-playback", "audio-copy", "audio-save") } ?: "unknown"
         val chain = youTubeFailureChain(error)
         val allText = chain.joinToString(" ") { it.message.orEmpty() }.lowercase()
-        val signals = listOf("certificate_verify_failed", "name resolution", "timed out", "permission denied", "cannot link executable", "no such file", "not a bot", "captcha", "403", "429", "signature", "player response", "unsupported locale", "javascript runtime", "requested format is not available", "mediastore", "relative_path")
+        val signals = listOf("certificate_verify_failed", "name resolution", "timed out", "permission denied", "cannot link executable", "no such file", "not a bot", "captcha", "403", "429", "signature", "player response", "unsupported locale", "javascript runtime", "requested format is not available", "mediastore", "relative_path", "connection reset", "unexpected eof", "unexpected end", "broken pipe", "handshake", "certificate", "trust anchor", "protocol error", "ssl_read", "ssl routines", "http error", "no complete audio")
             .filter { it in allText }.joinToString(",")
         val classes = chain.map { it.javaClass.simpleName.replace(Regex("[^A-Za-z0-9_$]"), "").take(80) }.joinToString(",")
         val row = "${System.currentTimeMillis()} stage=$safeStage category=${category(error)} classes=$classes signals=$signals"
