@@ -2373,4 +2373,7 @@
     <string name="cloud_ai_failed">AI request failed</string>
     <string name="cloud_account_connected">Account connected</string>
     <string name="cloud_request_failed">Request failed</string>
+    <string name="youtube_engine_checking">Checking downloader version...</string>
+    <string name="youtube_engine_update_available">New downloader version available: %1$s</string>
+    <string name="youtube_engine_check_unavailable">yt-dlp %1$s. Version check unavailable; no update confirmed.</string>
 </resources>
