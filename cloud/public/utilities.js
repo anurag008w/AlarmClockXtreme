@@ -52,3 +52,36 @@ document.querySelectorAll('[data-phone-stopwatch]').forEach(button=>button.oncli
 });
 
 setInterval(()=>{ if(state.token && !document.hidden && $('utilityDevice').value && (document.querySelector('[data-tab=timer]').classList.contains('active') || document.querySelector('[data-tab=stopwatch]').classList.contains('active'))) refreshPhoneTimers().catch(error=>$('phoneUtilityStatus').textContent=error.message); },15000);
+
+let autoPhoneToken = "";
+let autoPhoneRequest = null;
+async function ensureAccountPhone() {
+ if (!state.token) return;
+ if (autoPhoneToken===state.token && autoPhoneRequest) return autoPhoneRequest;
+ const token=state.token;
+ autoPhoneToken=token;
+ autoPhoneRequest=(async()=>{
+  const data=await api('/api/utilities/devices');
+  if(state.token!==token)return;
+  const devices=data.devices.filter(d=>d.platform==='android');
+  for(const id of ['utilityDevice','dashboardDevice']) {
+   const node=$(id), previous=node.value;
+   node.innerHTML='<option value="">Choose phone</option>'+devices.map(d=>`<option value="${escapeAttr(d.id)}">${escapeHtml(d.id)} (${escapeHtml(d.appVersion||'unknown')})</option>`).join('');
+   node.value=devices.length===1?devices[0].id:devices.some(d=>d.id===previous)?previous:'';
+   node.hidden=devices.length===1;
+  }
+  $('loadUtilityDevices').hidden=devices.length===1;
+  $('dashboardPhones').hidden=devices.length===1;
+  if(devices.length===1) {
+   await Promise.all([refreshPhoneTimers(),loadPhoneDashboard()]);
+  }
+ })().catch(e=>{autoPhoneToken='';autoPhoneRequest=null;throw e;});
+ return autoPhoneRequest;
+}
+for(const tab of document.querySelectorAll('[data-tab]')) tab.addEventListener('click',()=>{
+ ensureAccountPhone().then(()=>{
+  if(['timer','stopwatch'].includes(tab.dataset.tab) && $('utilityDevice').value) return refreshPhoneTimers();
+  if(['stats','bedtime','today'].includes(tab.dataset.tab) && $('dashboardDevice').value) return loadPhoneDashboard();
+ }).catch(e=>{$('phoneUtilityStatus').textContent=e.message;});
+});
+if(state.token)ensureAccountPhone().catch(e=>{$('phoneUtilityStatus').textContent=e.message;});
