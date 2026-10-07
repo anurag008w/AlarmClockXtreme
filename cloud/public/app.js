@@ -807,25 +807,41 @@ $("timerReset").onclick = () => {
 };
 renderTimer();
 
-let sw = { running:false, started:0, elapsed:0 };
-setInterval(() => {
-  const now = performance.now();
-  if (sw.running) sw.elapsed = now - sw.started;
-  const cs = Math.floor(sw.elapsed / 10), s = Math.floor(cs/100)%60, m = Math.floor(cs/6000);
-  $("stopwatchDisplay").textContent = `${String(Math.floor(m/60)).padStart(2,"0")}:${String(m%60).padStart(2,"0")}:${String(s).padStart(2,"0")}.${String(cs%100).padStart(2,"0")}`;
-}, 30);
+let sw = { running:false, started:0, elapsed:0, lapStarted:0, lapCount:0 };
+function stopwatchTime(ms) {
+  const cs = Math.floor(Math.max(0, ms) / 10), s = Math.floor(cs/100)%60, m = Math.floor(cs/6000);
+  return `${String(Math.floor(m/60)).padStart(2,"0")}:${String(m%60).padStart(2,"0")}:${String(s).padStart(2,"0")}.${String(cs%100).padStart(2,"0")}`;
+}
+function renderStopwatch() {
+  if (sw.running) sw.elapsed = performance.now() - sw.started;
+  $("stopwatchDisplay").textContent = stopwatchTime(sw.elapsed);
+  $("stopwatchSplit").textContent = stopwatchTime(sw.elapsed - sw.lapStarted);
+  $("stopwatchLapLabel").textContent = `Current lap ${sw.lapCount + 1}`;
+}
+setInterval(renderStopwatch, 30);
 $("swStart").onclick = () => {
+  renderStopwatch();
   if (!sw.running) { sw.running = true; sw.started = performance.now() - sw.elapsed; }
   else sw.running = false;
   $("swStart").textContent = sw.running ? "pause" : "start";
 };
 $("swLap").onclick = () => {
+  if (!sw.running) return;
+  renderStopwatch();
   const item = document.createElement("div");
   item.className = "list-item";
-  item.textContent = new Date().toLocaleTimeString() + " · " + $("stopwatchDisplay").textContent;
+  item.textContent = `Lap ${++sw.lapCount} · split ${stopwatchTime(sw.elapsed - sw.lapStarted)} · total ${stopwatchTime(sw.elapsed)}`;
   $("laps").prepend(item);
+  sw.lapStarted = sw.elapsed;
+  renderStopwatch();
 };
-$("swReset").onclick = () => { sw = { running:false, started:0, elapsed:0 }; $("swStart").textContent = "start"; $("laps").innerHTML = ""; };
+$("swReset").onclick = () => {
+  sw = { running:false, started:0, elapsed:0, lapStarted:0, lapCount:0 };
+  $("swStart").textContent = "start";
+  $("laps").innerHTML = "";
+  renderStopwatch();
+};
+renderStopwatch();
 
 function renderWorld() {
   if (typeof worldZonesSynced !== "undefined" && !worldZonesSynced) { $("worldList").textContent="Waiting for an updated phone to sync its saved zones."; return; }
