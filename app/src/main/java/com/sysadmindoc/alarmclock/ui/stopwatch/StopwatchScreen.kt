@@ -1,6 +1,9 @@
 package com.sysadmindoc.alarmclock.ui.stopwatch
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -112,6 +115,7 @@ fun StopwatchScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(SurfaceDark)
+            .verticalScroll(rememberScrollState())
     ) {
         AlarmClockHeroHeader(
             title = stringResource(R.string.stopwatch_title),
@@ -159,7 +163,7 @@ fun StopwatchScreen(
 
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -186,14 +190,13 @@ fun StopwatchScreen(
                 AppSurfaceCard(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f, fill = false)
                 ) {
                     AppSectionTitle(
                         title = stringResource(R.string.stopwatch_lap_history),
                         description = stringResource(R.string.stopwatch_best_slowest_splits_are_highlighted)
                     )
                     LazyColumn(
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 180.dp, max = 360.dp)
                     ) {
                         items(state.laps) { lap ->
                             LapRow(lap)
