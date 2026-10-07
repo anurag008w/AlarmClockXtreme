@@ -313,3 +313,6 @@ dialog{width:100%;max-width:100%;height:100%;max-height:100%;margin:0}
 html{scroll-padding-bottom:200px}
 #settingsEditor input,#settingsEditor select,#settingsEditor textarea{scroll-margin-block:24px}
 @media(min-width:601px){html{scroll-padding-bottom:165px}}
+
+.alarm-tools-disclosure{margin:12px 0}.alarm-tools-disclosure>summary{cursor:pointer;color:var(--muted);padding:10px}
+@media(max-width:600px){.app-hero{padding:14px!important}.app-hero .time{font-size:36px!important}.alarm-tools-disclosure{margin:0 0 10px}.nav-btn{padding:8px!important}#tab-alarms .section-head{margin:10px 0}#tab-timer,#tab-stopwatch{display:none}#tab-timer.active,#tab-stopwatch.active{display:flex;flex-direction:column}#tab-timer .utility,#tab-stopwatch .utility{order:-1}}
