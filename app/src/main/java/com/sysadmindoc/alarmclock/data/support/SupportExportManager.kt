@@ -110,6 +110,7 @@ class SupportExportManager @Inject constructor(
             "readiness.json",
             "smart_wake_summary.json",
             "diagnostics.txt",
+            "youtube_failures_redacted.txt",
             "alarms_redacted.csv",
             "incident_timeline.csv"
         )
@@ -152,6 +153,7 @@ class SupportExportManager @Inject constructor(
             )
             zip.writeTextEntry(
                 "diagnostics.txt",
+            "youtube_failures_redacted.txt",
                 SupportDiagnosticsFormatter.diagnosticsText(
                     generatedAt = generatedAt,
                     appVersion = BuildConfig.VERSION_NAME,
@@ -202,6 +204,7 @@ class SupportExportManager @Inject constructor(
                     learnedCommuteSampleCount = commuteHistorySummary.sampleCount
                 )
             )
+            zip.writeTextEntry("youtube_failures_redacted.txt", com.sysadmindoc.alarmclock.service.YouTubeFailureDiagnostics.report(context))
             zip.writeTextEntry("alarms_redacted.csv", SupportDiagnosticsFormatter.alarmCsv(alarms))
             zip.writeTextEntry("incident_timeline.csv", SupportDiagnosticsFormatter.alarmIncidentCsv(incidents))
             if (crashLogs.isEmpty()) {
@@ -252,6 +255,28 @@ class SupportExportManager @Inject constructor(
             exportFile
         )
         return SupportExportFile(uri = uri, fileName = fileName, mimeType = "text/plain")
+    }
+
+    /** Same locally redacted support data as ZIP, joined into a single shareable text. */
+    suspend fun createAllLogsExport(): SupportExportFile {
+        val support = createSupportExport()
+        val exportDir = File(context.cacheDir, EXPORT_DIR_NAME)
+        val fileName = "alarmclock-all-logs-${FILE_TIMESTAMP.format(Instant.now())}.txt"
+        exportDir.listFiles()?.filter { it.name.startsWith("alarmclock-all-logs-") }
+            ?.forEach { runCatching { it.delete() } }
+        val target = File(exportDir, fileName)
+        target.bufferedWriter().use { writer ->
+            writer.write("AlarmClockXtreme all local logs (redacted)\n")
+            java.util.zip.ZipFile(File(exportDir, support.fileName)).use { zip ->
+                zip.entries().asSequence().filter { !it.isDirectory }.forEach { entry ->
+                    writer.write("\n===== ${entry.name} =====\n")
+                    zip.getInputStream(entry).bufferedReader().use { input -> input.copyTo(writer) }
+                    writer.write("\n")
+                }
+            }
+        }
+        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", target)
+        return SupportExportFile(uri, fileName, "text/plain")
     }
 
     private fun hasNotificationPermission(): Boolean {
