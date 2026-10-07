@@ -423,23 +423,11 @@ private fun LapRow(lap: Lap) {
         ) {
             Column(modifier = Modifier.width(84.dp)) {
                 Text(
-                    text = stringResource(R.string.stopwatch_lap_number, lap.number),
-                    color = TextPrimary,
+                    text = String.format(Locale.ROOT, "%02d", lap.number),
+                    color = textColor,
                     style = MaterialTheme.typography.titleSmall
                 )
-                Text(
-                    text = when {
-                        lap.isBest -> stringResource(R.string.stopwatch_best_split)
-                        lap.isWorst -> stringResource(R.string.stopwatch_slowest_split)
-                        else -> stringResource(R.string.stopwatch_split)
-                    },
-                    color = when {
-                        lap.isBest -> DismissGreen
-                        lap.isWorst -> AccentRed
-                        else -> TextMuted
-                    },
-                    style = MaterialTheme.typography.bodySmall
-                )
+
             }
 
             Column(
@@ -452,11 +440,7 @@ private fun LapRow(lap: Lap) {
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium
                 )
-                Text(
-                    text = stringResource(R.string.stopwatch_split_time),
-                    color = TextMuted,
-                    style = MaterialTheme.typography.bodySmall
-                )
+
             }
 
             Column(
@@ -465,15 +449,11 @@ private fun LapRow(lap: Lap) {
             ) {
                 Text(
                     text = formatMillis(lap.totalMillis),
-                    color = TextSecondary,
+                    color = textColor,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium
                 )
-                Text(
-                    text = stringResource(R.string.stopwatch_total),
-                    color = TextMuted,
-                    style = MaterialTheme.typography.bodySmall
-                )
+
             }
         }
     }
