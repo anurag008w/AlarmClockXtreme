@@ -843,9 +843,9 @@ function renderStopwatchLaps() {
     const label = ranked && lap.split===best ? "Best split" : ranked && lap.split===slowest ? "Slowest split" : "Split";
     if (label==="Best split") { item.style.color="var(--success,#73d7ac)"; item.style.borderColor="var(--success,#73d7ac)"; }
     if (label==="Slowest split") { item.style.color="var(--danger,#ff7f8c)"; item.style.borderColor="var(--danger,#ff7f8c)"; }
-    const title=document.createElement("strong");title.textContent=`Lap ${lap.number}`;
-    const split=document.createElement("div");split.textContent=`${label} · ${stopwatchTime(lap.split)}`;
-    const total=document.createElement("div");total.textContent=`Total · ${stopwatchTime(lap.total)}`;
+    const title=document.createElement("strong");title.textContent=String(lap.number).padStart(2,"0");
+    const split=document.createElement("div");split.textContent=stopwatchTime(lap.split);
+    const total=document.createElement("div");total.textContent=stopwatchTime(lap.total);
     item.append(title,split,total);
     return item;
   }));
