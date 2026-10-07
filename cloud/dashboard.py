@@ -16,7 +16,29 @@ def boolean(value):
 def clean_row(row,schema):
  if not isinstance(row,dict) or set(row)!=set(schema):fail()
  return {key:fn(row[key]) for key,fn in schema.items()}
+def normalize_nullable_fields(body):
+ # Moshi's default Map adapter omits null values. Restore only schema-defined
+ # nullable fields; do not broaden accepted keys, types or numeric ranges.
+ if not isinstance(body,dict):return body
+ body=dict(body)
+ for key in ('location','nextAlarm'):body.setdefault(key,None)
+ details=body.get('alarmDetails')
+ if isinstance(details,list):
+  body['alarmDetails']=[dict(row,cloudAlarmId=row.get('cloudAlarmId'),readinessMessage=row.get('readinessMessage')) if isinstance(row,dict) else row for row in details]
+ sleep=body.get('sleep')
+ if isinstance(sleep,dict):
+  sleep=dict(sleep);body['sleep']=sleep
+  if isinstance(sleep.get('health'),dict):
+   sleep['health']=dict(sleep['health']);sleep['health'].setdefault('errorMessage',None)
+  if isinstance(sleep.get('noiseBaseline'),dict):
+   sleep['noiseBaseline']=dict(sleep['noiseBaseline'])
+   for key in ('dbfs','level'):sleep['noiseBaseline'].setdefault(key,None)
+  if isinstance(sleep.get('correlations'),list):
+   sleep['correlations']=[dict(row,**{key:row.get(key) for key in ('averageRestlessMinutes','baselineRestlessMinutes','deltaRestlessMinutes')}) if isinstance(row,dict) else row for row in sleep['correlations']]
+ return body
+
 def validate(body):
+ body=normalize_nullable_fields(body)
  keys={'phoneObservedMillis','timezone','calendarDate','location','calendarStatus','calendar','nextAlarm','stats','events','sleep','alarmDetails'}
  if not isinstance(body,dict) or not keys-{'alarmDetails'} <= set(body) or set(body)-keys:fail()
  result={'phoneObservedMillis':integer(body['phoneObservedMillis']),'timezone':text(body['timezone'],100),'calendarDate':text(body['calendarDate'],10)}
