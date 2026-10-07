@@ -144,6 +144,7 @@ class AlarmClockApp : Application(), Configuration.Provider {
             private var utilityReceiver: Job? = null
             override fun onActivityResumed(activity: android.app.Activity) {
                 resumed++
+                com.sysadmindoc.alarmclock.ui.stopwatch.StopwatchNotifications.refresh(activity)
                 if (utilityReceiver?.isActive == true) return
                 utilityReceiver = appScope.launch {
                     while (kotlinx.coroutines.currentCoroutineContext().isActive) {
