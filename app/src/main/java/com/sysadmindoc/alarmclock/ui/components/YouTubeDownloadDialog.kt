@@ -317,7 +317,9 @@ fun YouTubeDownloadDialog(
                                 start()
                             }
                             setOnCompletionListener { stopPreview() }
-                            setOnErrorListener { _, _, _ ->
+                            setOnErrorListener { _, what, extra ->
+                                com.sysadmindoc.alarmclock.service.YouTubeFailureDiagnostics.record(context, "preview-playback",
+                                    java.io.IOException("MediaPlayer what=$what extra=$extra"))
                                 setStatus("That preview could not play. Try another result.", isError = true)
                                 stopPreview()
                                 true
@@ -325,7 +327,8 @@ fun YouTubeDownloadDialog(
                             prepareAsync()
                         }
                         mediaPlayerHolder.value = player
-                    } catch (_: Exception) {
+                    } catch (e: Exception) {
+                        com.sysadmindoc.alarmclock.service.YouTubeFailureDiagnostics.record(context, "preview-playback", e)
                         setStatus("That preview could not start. Try another result.", isError = true)
                         stopPreview()
                     }
