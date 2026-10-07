@@ -2,6 +2,11 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.15.50]
+
+- Fix older-Android YouTube compatibility by enabling NewPipe-required NIO core library desugaring. Repair Android9 audio saving and storage permission, correct audio MIME/extension and copy failure cleanup, fix duplicate editor section keys, remove simulated progress, and add separate redacted all-logs TXT export with YouTube diagnostics. Promote alarm foreground service before cold-start work. Existing alarms unchanged. Verified F-Droid717 and Play723 automated tests and native API28 component render; physical-phone search/save verification still required.
+- Release: v1.15.50 (versionCode 152).
+
 ## [1.15.49]
 
 - Fix YouTube search with a metadata-only fallback and show downloader Update only for a confirmed newer engine. Keep stopwatch lap cards visible on small screens with numeric rows and live current-lap time. Add lightweight running stopwatch notification with Pause and Lap, Resume when paused, and Android notification permission handling. Exclude absent fire timestamps from weekday response averages without deleting history. Existing alarms preserved. Verified F-Droid710 and Play716 tests and actual one/two-lap renders; physical-phone search, notification and alarm behavior still need device confirmation.
