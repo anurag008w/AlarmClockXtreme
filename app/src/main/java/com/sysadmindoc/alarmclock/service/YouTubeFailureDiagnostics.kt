@@ -25,6 +25,7 @@ internal object YouTubeFailureDiagnostics {
         val chain = youTubeFailureChain(error)
         val text = chain.joinToString(" ") { it.javaClass.simpleName + " " + it.message.orEmpty() }.lowercase()
         return when {
+            chain.any { it is LinkageError } -> "compatibility"
             chain.any { it is java.net.UnknownHostException } || "name resolution" in text -> "dns"
             chain.any { it is javax.net.ssl.SSLException } || "certificate_verify_failed" in text -> "tls"
             chain.any { it is java.net.SocketTimeoutException } || "timed out" in text -> "timeout"
@@ -37,7 +38,7 @@ internal object YouTubeFailureDiagnostics {
         }
     }
     fun record(context: Context, stage: String, error: Throwable) {
-        val safeStage = stage.takeIf { it in setOf("newpipe-search", "ytdlp-search", "stream-resolve", "audio-copy", "audio-save") } ?: "unknown"
+        val safeStage = stage.takeIf { it in setOf("search", "newpipe-search", "ytdlp-search", "stream-resolve", "audio-copy", "audio-save") } ?: "unknown"
         val chain = youTubeFailureChain(error)
         val allText = chain.joinToString(" ") { it.message.orEmpty() }.lowercase()
         val signals = listOf("certificate_verify_failed", "name resolution", "timed out", "permission denied", "cannot link executable", "no such file", "not a bot", "captcha", "403", "429", "signature", "player response", "unsupported locale", "javascript runtime", "requested format is not available", "mediastore", "relative_path")
@@ -51,5 +52,5 @@ internal object YouTubeFailureDiagnostics {
         }
     }
     fun report(context: Context): String = context.getSharedPreferences("youtube_diagnostics", Context.MODE_PRIVATE)
-        .getString("failures", "No recorded YouTube failures.") ?: "No recorded YouTube failures."
+        .getString("failures", "none") ?: "none"
 }
