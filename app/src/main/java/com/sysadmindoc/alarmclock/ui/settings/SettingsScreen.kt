@@ -1480,7 +1480,7 @@ internal fun SettingsInfo(label: String, description: String) {
 }
 
 @Composable
-private fun UtilityShortcutCard(
+internal fun UtilityShortcutCard(
     icon: ImageVector,
     title: String,
     description: String,
