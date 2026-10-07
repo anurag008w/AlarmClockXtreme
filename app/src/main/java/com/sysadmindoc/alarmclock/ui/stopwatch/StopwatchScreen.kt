@@ -391,7 +391,7 @@ private fun ControlsRow(
                     label = stringResource(R.string.alarm_list_pause),
                     icon = Icons.Default.Pause,
                     onClick = viewModel::pause,
-                    modifier = Modifier.weight(1.35f)
+                    modifier = Modifier.weight(1f)
                 )
             }
         }
@@ -413,7 +413,7 @@ private fun ControlsRow(
                     label = stringResource(R.string.stopwatch_resume),
                     icon = Icons.Default.PlayArrow,
                     onClick = viewModel::resume,
-                    modifier = Modifier.weight(1.35f)
+                    modifier = Modifier.weight(1f)
                 )
             }
         }
@@ -446,7 +446,7 @@ private fun LapRow(lap: Lap) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Column(modifier = Modifier.width(84.dp)) {
+            Column(modifier = Modifier.width(32.dp)) {
                 Text(
                     text = String.format(Locale.ROOT, "%02d", lap.number),
                     color = textColor,
@@ -462,7 +462,8 @@ private fun LapRow(lap: Lap) {
                 Text(
                     text = formatMillis(lap.splitMillis),
                     color = textColor,
-                    fontSize = 16.sp,
+                    fontSize = 14.sp,
+                    maxLines = 1, softWrap = false,
                     fontWeight = FontWeight.Medium
                 )
 
@@ -476,6 +477,7 @@ private fun LapRow(lap: Lap) {
                     text = formatMillis(lap.totalMillis),
                     color = textColor,
                     fontSize = 14.sp,
+                    maxLines = 1, softWrap = false,
                     fontWeight = FontWeight.Medium
                 )
 
@@ -499,7 +501,7 @@ private fun StopwatchPrimaryButton(
     ) {
         Icon(icon, contentDescription = label, modifier = Modifier.size(20.dp))
         Spacer(modifier = Modifier.width(8.dp))
-        Text(label, fontWeight = FontWeight.SemiBold)
+        Text(label, fontWeight = FontWeight.SemiBold, maxLines = 1, softWrap = false)
     }
 }
 
@@ -519,7 +521,7 @@ private fun StopwatchSecondaryButton(
     ) {
         Icon(icon, contentDescription = label, modifier = Modifier.size(18.dp))
         Spacer(modifier = Modifier.width(8.dp))
-        Text(label, fontWeight = FontWeight.Medium)
+        Text(label, fontWeight = FontWeight.Medium, maxLines = 1, softWrap = false)
     }
 }
 
