@@ -36,7 +36,7 @@ interface AlarmEventDao {
     suspend fun countByDayOfWeek(): List<DayOfWeekCount>
 
     // Stats: average response time per day of week
-    @Query("SELECT dayOfWeek, AVG(actionAt - firedAt) as avgMs FROM alarm_events WHERE action = 'DISMISSED' AND actionAt > 0 GROUP BY dayOfWeek ORDER BY dayOfWeek")
+    @Query("SELECT dayOfWeek, AVG(actionAt - firedAt) as avgMs FROM alarm_events WHERE action = 'DISMISSED' AND actionAt > 0 AND firedAt > 0 GROUP BY dayOfWeek ORDER BY dayOfWeek")
     suspend fun avgResponseByDayOfWeek(): List<DayOfWeekAvg>
 
     // Stats: events in last N days
