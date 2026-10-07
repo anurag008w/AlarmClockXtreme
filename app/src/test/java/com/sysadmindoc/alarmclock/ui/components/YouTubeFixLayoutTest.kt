@@ -49,4 +49,29 @@ class YouTubeFixLayoutTest {
         File(dir,"youtube-fix-options.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG,100,it) }
         bitmap.recycle()
     }
+
+    @Test fun namedLegacyAndNewToneRows() {
+        val legacy = com.sysadmindoc.alarmclock.ui.ringtone.audioDisplayName("", "h.m4a", "Alarm sound")
+        compose.setContent {
+            AlarmClockXtremeTheme {
+                Column(Modifier.width(360.dp).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    com.sysadmindoc.alarmclock.ui.ringtone.RingtoneRow(
+                        com.sysadmindoc.alarmclock.ui.ringtone.RingtoneItem(legacy,"content://test/legacy"),false,false,{},{})
+                    com.sysadmindoc.alarmclock.ui.ringtone.RingtoneRow(
+                        com.sysadmindoc.alarmclock.ui.ringtone.RingtoneItem("Rooster Crow","content://test/new"),false,false,{},{})
+                }
+            }
+        }
+        compose.onNodeWithText("h").assertIsDisplayed()
+        compose.onNodeWithText("Rooster Crow").assertIsDisplayed()
+        lateinit var bitmap: Bitmap
+        compose.runOnUiThread {
+            val view=compose.activity.window.decorView
+            bitmap=Bitmap.createBitmap(view.width,view.height,Bitmap.Config.ARGB_8888)
+            view.draw(Canvas(bitmap))
+        }
+        val dir=File("build/reports/stopwatch-layout").apply { mkdirs() }
+        File(dir,"named-tone-rows.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG,100,it) }
+        bitmap.recycle()
+    }
 }
