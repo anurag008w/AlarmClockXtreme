@@ -2,6 +2,11 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.15.52]
+
+- Preview prefers Android-compatible AAC audio, accepts audio MP4 and uses the same bounded60MBlimit as Save. Detect zero-exit size skips, nonzero engine exit and missing/partial/ambiguous output; retain redacted result counts without raw engine logs. New YouTube saves populate media TITLE from entered name or actual video-title fallback; old nameless picker rows use filename without rewriting media or alarms. Automated722F-Droid/736Play tests pass; API28native sound-row PNG checked. UserconfirmedSaveworkingonv1.15.51;Previewandnewnamesstillneedphysicalphoneconfirmation. Existingalarmsandwebunchanged.
+- Release: v1.15.52 (versionCode 154).
+
 ## [1.15.51]
 
 - Keep both preview and saved audio transfer inside the existing yt-dlp engine with1MBHTTPchunks, bounded retries, fixed private files and cleanup instead of handing bare CDN URLs to separate Android network stacks. Preview prepares a cached low-bitrate local clip with15MB/fourclip limit, so startup may take longer. Expand redacted native-download/native-preview/playback diagnostics. Retain Android9storage/desugaring repairs and separate all-logs export. Existing alarms and web unchanged. F-Droid717/Play724automated tests and actualserveraudio download passed; physicalVivo9preview/save confirmation still needed.
