@@ -4,6 +4,7 @@ import com.sysadmindoc.alarmclock.service.YouTubeAudioDownloader
 import com.sysadmindoc.alarmclock.service.YouTubeEngineUpdateResult
 import com.sysadmindoc.alarmclock.service.YouTubeEngineUpdateState
 import com.sysadmindoc.alarmclock.service.YouTubeSearchHit
+import com.sysadmindoc.alarmclock.service.YouTubeEngineRelease
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -41,6 +42,13 @@ class YouTubeDownloadViewModelTest {
         var engineResult: Result<YouTubeEngineUpdateResult> =
             Result.failure(IllegalStateException("not configured"))
 
+        var releaseCalls = 0
+        var releaseResult = Result.success(YouTubeEngineRelease("2026.08.19", "2026.08.19"))
+        override suspend fun checkEngineRelease(): Result<YouTubeEngineRelease> {
+            releaseCalls++
+            return releaseResult
+        }
+
         override fun engineVersionName(): String = "2026.01.01"
 
         override suspend fun updateEngine(): Result<YouTubeEngineUpdateResult> = engineResult
@@ -60,6 +68,28 @@ class YouTubeDownloadViewModelTest {
 
         override suspend fun getPreviewStreamUrl(youtubeUrl: String): Result<String> =
             Result.success("https://stream.example/audio")
+    }
+
+    @Test fun `release check is shared across recompositions and hides current update`() = runTest {
+        val downloader = FakeDownloader()
+        val viewModel = YouTubeDownloadViewModel(downloader)
+        viewModel.checkEngineRelease()
+        dispatcher.scheduler.advanceUntilIdle()
+        viewModel.checkEngineRelease()
+        dispatcher.scheduler.advanceUntilIdle()
+        assertEquals(1, downloader.releaseCalls)
+        assertFalse(viewModel.engineRelease.value!!.updateAvailable)
+        assertFalse(viewModel.checkingEngine.value)
+    }
+
+    @Test fun `failed release check never offers an update`() = runTest {
+        val downloader = FakeDownloader()
+        downloader.releaseResult = Result.failure(IllegalStateException("HTTP 429"))
+        val viewModel = YouTubeDownloadViewModel(downloader)
+        viewModel.checkEngineRelease()
+        dispatcher.scheduler.advanceUntilIdle()
+        assertNull(viewModel.engineRelease.value)
+        assertFalse(viewModel.checkingEngine.value)
     }
 
     @Test
