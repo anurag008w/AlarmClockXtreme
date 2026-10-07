@@ -12,6 +12,15 @@ import java.net.UnknownHostException
  */
 class YouTubeDialogErrorMessageTest {
 
+    @Test fun suppressedPrimaryFailureIsClassified() {
+        val fallback = IllegalStateException("fallback failed")
+        fallback.addSuppressed(UnknownHostException("private-query-secret"))
+        assertEquals(R.string.youtube_error_no_connection, youTubeDialogErrorMessage(fallback, YouTubeDialogAction.Search))
+    }
+    @Test fun olderAndroidPermissionHasSpecificRecovery() {
+        assertEquals(R.string.youtube_error_storage_permission, youTubeDialogErrorMessage(
+            SecurityException("permission"), YouTubeDialogAction.Download))
+    }
     @Test fun wrappedSearchNetworkErrorKeepsNetworkRecovery() {
         assertEquals(R.string.youtube_error_no_connection,
             youTubeDialogErrorMessage(IllegalStateException("Search failed",
