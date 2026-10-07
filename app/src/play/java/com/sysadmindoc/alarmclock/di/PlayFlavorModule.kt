@@ -1,5 +1,7 @@
 package com.sysadmindoc.alarmclock.di
 
+import com.sysadmindoc.alarmclock.data.cloud.PlayPushTokenProvider
+import com.sysadmindoc.alarmclock.data.cloud.PushTokenProvider
 import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepRepository
 import com.sysadmindoc.alarmclock.data.health.PlayHealthConnectSleepRepository
 import com.sysadmindoc.alarmclock.service.PlayYouTubeAudioDownloader
@@ -50,4 +52,8 @@ abstract class PlayFlavorBindings {
     abstract fun bindDigitalInkChallengeRecognizer(
         impl: PlayDigitalInkChallengeRecognizer
     ): DigitalInkChallengeRecognizer
+
+    @Binds
+    @Singleton
+    abstract fun bindPushTokenProvider(impl: PlayPushTokenProvider): PushTokenProvider
 }

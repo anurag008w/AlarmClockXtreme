@@ -29,6 +29,7 @@ class CloudSyncManagerTest {
     private lateinit var calculator: NextAlarmCalculator
     private lateinit var prefs: CloudPreferences
     private lateinit var manager: CloudSyncManager
+    private lateinit var pushTokens: PushTokenProvider
     private val stamp = "2026-10-06T07:00:00.000000Z"
 
     @Before fun setup() {
@@ -41,12 +42,63 @@ class CloudSyncManagerTest {
         prefs = CloudPreferences(context)
         prefs.saveSession("test-token", "test@example.invalid")
         coEvery { api.getSettings(any()) } returns CloudSettingsResponse(emptyMap(), 1)
+        coEvery { api.putSettings(any(), any()) } returns CloudSettingsResponse(emptyMap(), 1)
         coEvery { api.getUtilities(any(),any()) } returns CloudUtilitiesResponse(System.currentTimeMillis())
         coEvery { api.putUtilitySnapshot(any(),any(),any()) } returns emptyMap()
         coEvery { api.putDashboardSnapshot(any(),any(),any()) } returns emptyMap()
-        manager = CloudSyncManager(context, api, Moshi.Builder().addLast(KotlinJsonAdapterFactory()).build(), repository, scheduler, calculator, PreferencesManager(context), mockk(relaxed = true), mockk(relaxed = true))
+        pushTokens = mockk()
+        coEvery { pushTokens.currentToken() } returns ""
+        coEvery { api.getAlarms(any(), any()) } returns CloudAlarmListResponse(emptyList(), stamp)
+        coEvery { api.registerDevice(any(), any()) } returns emptyMap()
+        manager = CloudSyncManager(context, api, Moshi.Builder().addLast(KotlinJsonAdapterFactory()).build(), repository, scheduler, calculator, PreferencesManager(context), mockk(relaxed = true), mockk(relaxed = true), pushTokens)
     }
     @After fun cleanup() { unmockkAll() }
+
+    @Test fun pushTokenIsRegisteredOnceThenOnlyWhenItChanges() = runTest {
+        val calls = mutableListOf<String>()
+        coEvery { api.registerDevice(any(), any()) } coAnswers { calls.add(secondArg<CloudDeviceRequest>().pushToken); emptyMap() }
+        coEvery { pushTokens.currentToken() } returns "token-one-aaaaaaaaaaaaaaaaaaaa"
+        val r1 = manager.syncNow()
+        assertTrue("sync1 failed: ${r1.exceptionOrNull()}", r1.isSuccess)
+        val r2 = manager.syncNow()
+        assertTrue("sync2 failed: ${r2.exceptionOrNull()}", r2.isSuccess)
+        assertEquals("calls after two syncs: $calls saved=${prefs.getRegisteredPushToken()} at=${prefs.getPushRegisteredAt()} now=${System.currentTimeMillis()}", listOf("token-one-aaaaaaaaaaaaaaaaaaaa"), calls)
+        assertEquals("token-one-aaaaaaaaaaaaaaaaaaaa", prefs.getRegisteredPushToken())
+        coEvery { pushTokens.currentToken() } returns "token-two-bbbbbbbbbbbbbbbbbbbb"
+        assertTrue(manager.syncNow().isSuccess)
+        assertEquals("calls: $calls", listOf("token-one-aaaaaaaaaaaaaaaaaaaa", "token-two-bbbbbbbbbbbbbbbbbbbb"), calls)
+    }
+
+    @Test fun staleRegistrationIsRefreshedAfterADay() = runTest {
+        coEvery { pushTokens.currentToken() } returns "token-one-aaaaaaaaaaaaaaaaaaaa"
+        prefs.savePushRegistration("token-one-aaaaaaaaaaaaaaaaaaaa", System.currentTimeMillis() - 25L*60*60*1000)
+        assertTrue(manager.syncNow().isSuccess)
+        coVerify(exactly=1) { api.registerDevice(any(), any()) }
+    }
+
+    @Test fun noPushTokenMeansPollOnlyAndNoRegistrationCall() = runTest {
+        assertTrue(manager.syncNow().isSuccess)
+        coVerify(exactly=0) { api.registerDevice(any(), any()) }
+    }
+
+    @Test fun failedTokenRegistrationDoesNotFailTheSyncAndRetriesNextTime() = runTest {
+        coEvery { pushTokens.currentToken() } returns "token-one-aaaaaaaaaaaaaaaaaaaa"
+        coEvery { api.registerDevice(any(), any()) } throws java.io.IOException("offline")
+        val r1 = manager.syncNow()
+        assertTrue("sync1 failed: ${r1.exceptionOrNull()}", r1.isSuccess)
+        assertEquals("", prefs.getRegisteredPushToken())
+        coEvery { api.registerDevice(any(), any()) } returns emptyMap()
+        val r2 = manager.syncNow()
+        assertTrue("sync2 failed: ${r2.exceptionOrNull()}", r2.isSuccess)
+        assertEquals("saved=${prefs.getRegisteredPushToken()} at=${prefs.getPushRegisteredAt()}", "token-one-aaaaaaaaaaaaaaaaaaaa", prefs.getRegisteredPushToken())
+    }
+
+    @Test fun loggingOutForgetsRegisteredToken() = runTest {
+        prefs.savePushRegistration("token-one-aaaaaaaaaaaaaaaaaaaa", 1L)
+        prefs.clearSession()
+        assertEquals("", prefs.getRegisteredPushToken())
+        assertEquals(0L, prefs.getPushRegisteredAt())
+    }
 
     @Test fun remoteDeleteCancelsNativeSchedule() = runTest {
         val alarm = Alarm(id=7, hour=7, minute=0, isEnabled=false)

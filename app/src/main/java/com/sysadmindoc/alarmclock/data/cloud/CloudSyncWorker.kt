@@ -40,6 +40,7 @@ class CloudSyncWorker @AssistedInject constructor(
 
     companion object {
         private const val IMMEDIATE_WORK_NAME = "cloud_sync_immediate"
+        private const val PUSH_WORK_NAME = "cloud_sync_push"
 
         /**
          * Queue one cloud sync as soon as network is available. KEEP
@@ -57,6 +58,28 @@ class CloudSyncWorker @AssistedInject constructor(
             WorkManager.getInstance(context).enqueueUniqueWork(
                 IMMEDIATE_WORK_NAME,
                 ExistingWorkPolicy.KEEP,
+                request
+            )
+        }
+
+        /**
+         * Queue a sync because the server pushed a wake-up. Unlike
+         * [enqueueImmediate] this never drops the request: if a sync is already
+         * running, a second one is queued behind it so a change that landed
+         * after that sync fetched its data is still picked up.
+         */
+        fun enqueueFromPush(context: Context) {
+            val request = OneTimeWorkRequestBuilder<CloudSyncWorker>()
+                .setConstraints(
+                    Constraints.Builder()
+                        .setRequiredNetworkType(NetworkType.CONNECTED)
+                        .build()
+                )
+                .build()
+
+            WorkManager.getInstance(context).enqueueUniqueWork(
+                PUSH_WORK_NAME,
+                ExistingWorkPolicy.APPEND_OR_REPLACE,
                 request
             )
         }

@@ -28,6 +28,8 @@ class CloudPreferences(private val context: Context) {
             .remove("alarm_versions")
             .remove("settings_snapshot")
             .remove("settings_version")
+            .remove("registered_push_token")
+            .remove("push_registered_at")
             .apply()
     }
 
@@ -37,6 +39,13 @@ class CloudPreferences(private val context: Context) {
 
     fun setCursor(cursor: String) {
         prefs.edit().putString("cursor", cursor).commit()
+    }
+
+    /** Push token the server last acknowledged, and when. */
+    fun getRegisteredPushToken(): String = prefs.getString("registered_push_token", "") ?: ""
+    fun getPushRegisteredAt(): Long = prefs.getLong("push_registered_at", 0L)
+    fun savePushRegistration(token: String, atMillis: Long) {
+        prefs.edit().putString("registered_push_token", token).putLong("push_registered_at", atMillis).apply()
     }
 
     fun getDeviceId(): String {

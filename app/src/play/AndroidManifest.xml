@@ -5,4 +5,15 @@
          explicit in-app opt-in and Health Connect permission grant. -->
     <uses-permission android:name="android.permission.health.READ_SLEEP" />
 
+    <application>
+        <!-- Play flavor only: cloud server wake-up for background sync (FCM). -->
+        <service
+            android:name=".data.cloud.PlayFcmService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+    </application>
+
 </manifest>

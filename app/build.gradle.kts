@@ -78,10 +78,20 @@ android {
     productFlavors {
         create("play") {
             dimension = "distribution"
+            // Public Firebase project identifiers (not secrets) for FCM
+            // background sync. Overridable with -PfcmApiKey etc. for forks.
+            buildConfigField("String", "FCM_APP_ID", "\"${providers.gradleProperty("fcmAppId").orElse("1:431982251308:android:609dbc235ae136a30e7089").get()}\"")
+            buildConfigField("String", "FCM_API_KEY", "\"${providers.gradleProperty("fcmApiKey").orElse("AIzaSyBA9iNU2EPd-0nuHG0tJhmvQLqOZWA5XOk").get()}\"")
+            buildConfigField("String", "FCM_PROJECT_ID", "\"${providers.gradleProperty("fcmProjectId").orElse("alarmclockxtreme-fcm").get()}\"")
+            buildConfigField("String", "FCM_SENDER_ID", "\"${providers.gradleProperty("fcmSenderId").orElse("431982251308").get()}\"")
             manifestPlaceholders["wearActionBridgeEnabled"] = "true"
         }
         create("fdroid") {
             dimension = "distribution"
+            buildConfigField("String", "FCM_APP_ID", "\"\"")
+            buildConfigField("String", "FCM_API_KEY", "\"\"")
+            buildConfigField("String", "FCM_PROJECT_ID", "\"\"")
+            buildConfigField("String", "FCM_SENDER_ID", "\"\"")
             manifestPlaceholders["wearActionBridgeEnabled"] = "false"
         }
     }
@@ -466,6 +476,11 @@ dependencies {
     // Wear OS Data Layer bridge (play flavor only). F-Droid keeps the wearable
     // bridge as a no-op because Play Services is proprietary.
     "playImplementation"("com.google.android.gms:play-services-wearable:20.0.1")
+    // Cloud server wake-up for background sync. Play flavor only; initialised
+    // from BuildConfig (no google-services plugin). The F-Droid flavor stays
+    // free of Google dependencies and keeps polling.
+    "playImplementation"(platform("com.google.firebase:firebase-bom:34.19.0"))
+    "playImplementation"("com.google.firebase:firebase-messaging")
     // Health Connect sleep-session reads (play flavor only). F-Droid keeps
     // this out of its dependency graph and binds a no-op repository.
     "playImplementation"("androidx.health.connect:connect-client:1.1.0")

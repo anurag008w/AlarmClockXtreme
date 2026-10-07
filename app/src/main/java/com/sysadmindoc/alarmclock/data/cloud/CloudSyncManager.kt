@@ -54,7 +54,8 @@ class CloudSyncManager @Inject constructor(
     private val calculator: NextAlarmCalculator,
     private val preferencesManager: PreferencesManager,
     private val eventRepository: com.sysadmindoc.alarmclock.data.repository.AlarmEventRepository,
-    private val sleepSnapshot: CloudSleepSnapshot
+    private val sleepSnapshot: CloudSleepSnapshot,
+    private val pushTokens: PushTokenProvider
 ) {
     private val prefs = CloudPreferences(context)
     private val mutex = Mutex()
@@ -213,6 +214,9 @@ class CloudSyncManager @Inject constructor(
             settingsResult.getOrThrow()
             syncUtilities()
             syncDashboard()
+            runCatching { registerPushTokenIfNeeded() }.onFailure {
+                if (it is CancellationException) throw it
+            }
         }
     }
 
@@ -366,13 +370,34 @@ class CloudSyncManager @Inject constructor(
 
     private suspend fun registerDevice() {
         if (!isLoggedIn()) return
+        val token = currentPushToken()
         api.registerDevice(
             auth(),
             CloudDeviceRequest(
                 deviceId = prefs.getDeviceId(),
-                appVersion = BuildConfig.VERSION_NAME
+                appVersion = BuildConfig.VERSION_NAME,
+                pushToken = token
             )
         )
+        if (token.isNotBlank()) prefs.savePushRegistration(token, System.currentTimeMillis())
+    }
+
+    private suspend fun currentPushToken(): String =
+        runCatching { pushTokens.currentToken() }
+            .onFailure { if (it is CancellationException) throw it }
+            .getOrDefault("")
+
+    /**
+     * Tell the server about a new or rotated push token, and refresh it once a
+     * day so the server can drop tokens of devices that stopped syncing.
+     */
+    private suspend fun registerPushTokenIfNeeded() {
+        if (!isLoggedIn()) return
+        val token = currentPushToken()
+        if (token.isBlank()) return
+        val age = System.currentTimeMillis() - prefs.getPushRegisteredAt()
+        if (token == prefs.getRegisteredPushToken() && age in 0 until PUSH_REREGISTER_MILLIS) return
+        registerDevice()
     }
 
     private suspend fun pushLocalChanges(
@@ -792,5 +817,6 @@ class CloudSyncManager @Inject constructor(
 
     private companion object {
         const val EPOCH = "1970-01-01T00:00:00Z"
+        const val PUSH_REREGISTER_MILLIS = 24L * 60 * 60 * 1000
     }
 }

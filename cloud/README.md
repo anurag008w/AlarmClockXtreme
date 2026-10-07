@@ -37,3 +37,14 @@ Native exact scheduling, ringtone playback, dismissal challenges, NFC/camera/ste
 ## Web
 
 The web dashboard provides clock, cloud alarm CRUD, timer, stopwatch, world clocks, AI alarm control, activity, and export.
+
+
+## Background push (FCM)
+
+After an alarm, setting, utility command or AI command is written through the API, the server sends the user's phones a data-only Firebase Cloud Messaging wake-up. The message contains no alarm data: the app reacts by running its normal cloud sync, so a lost or forged push cannot change anything on its own.
+
+- Set `FCM_SERVICE_ACCOUNT_JSON` (full service-account JSON for the Firebase project) in the Render environment. Without it push is skipped and phones keep syncing by polling.
+- `GET /api/health` reports `"push": true` when the sender is configured.
+- Phones send their token through `POST /api/devices/register` (`pushToken`). Tokens are never returned by the API; `GET /api/utilities/devices` only shows `push: true/false`.
+- Only the Play build registers a token. The F-Droid build has no Google dependencies and keeps polling.
+- Bursts of writes are coalesced into one push. Dead tokens (`UNREGISTERED`) are removed automatically.

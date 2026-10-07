@@ -1,5 +1,7 @@
 package com.sysadmindoc.alarmclock.di
 
+import com.sysadmindoc.alarmclock.data.cloud.FdroidPushTokenProvider
+import com.sysadmindoc.alarmclock.data.cloud.PushTokenProvider
 import com.sysadmindoc.alarmclock.data.health.FdroidHealthConnectSleepRepository
 import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepRepository
 import com.sysadmindoc.alarmclock.service.FdroidYouTubeAudioDownloader
@@ -50,4 +52,8 @@ abstract class FdroidFlavorBindings {
     abstract fun bindDigitalInkChallengeRecognizer(
         impl: FdroidDigitalInkChallengeRecognizer
     ): DigitalInkChallengeRecognizer
+
+    @Binds
+    @Singleton
+    abstract fun bindPushTokenProvider(impl: FdroidPushTokenProvider): PushTokenProvider
 }

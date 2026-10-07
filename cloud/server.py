@@ -26,6 +26,7 @@ import news
 import today
 import dashboard
 import challenge_rules
+import fcm
 
 BASE = Path(__file__).resolve().parent
 PUBLIC = (BASE / "public").resolve()
@@ -33,7 +34,7 @@ JWT_SECRET = os.environ.get("JWT_SECRET", "").strip()
 AI_API_KEY = os.environ.get("AI_API_KEY", "").strip()
 AI_BASE_URL = os.environ.get("AI_BASE_URL", "https://api.openai.com/v1").rstrip("/")
 AI_MODEL = os.environ.get("AI_MODEL", "gpt-4o-mini")
-APP_VERSION = "1.15.47"
+APP_VERSION = "1.16.0"
 try:
     DUPLICATE_CREATE_WINDOW_SECONDS = max(
         0, int(os.environ.get("DUPLICATE_CREATE_WINDOW_SECONDS", "120"))
@@ -64,6 +65,71 @@ async def private_api_cache_policy(request: Request, call_next):
         response.headers["Pragma"] = "no-cache"
         response.headers["Vary"] = "Authorization"
     return response
+
+# Paths whose successful writes change what a phone should pull.
+_PUSH_PATHS = ("/api/alarms/", "/api/settings", "/api/utilities/commands", "/api/ai/command", "/api/sync/refresh")
+_push_pending: dict[str, asyncio.Task] = {}
+PUSH_DEBOUNCE_SECONDS = 1.5
+
+
+@app.middleware("http")
+async def wake_phones_after_writes(request: Request, call_next):
+    response = await call_next(request)
+    try:
+        if (
+            request.method in {"PUT", "POST", "DELETE"}
+            and response.status_code < 300
+            and request.url.path.startswith(_PUSH_PATHS)
+            and request.url.path != "/api/sync/refresh"
+            and fcm.is_configured()
+        ):
+            user_id = getattr(request.state, "user_id", None)
+            if user_id:
+                schedule_push(user_id, "change")
+    except Exception:  # push must never affect an API response
+        pass
+    return response
+
+
+def schedule_push(user_id: str, reason: str) -> None:
+    """Coalesce bursts of writes into one FCM wake-up per user."""
+    task = _push_pending.get(user_id)
+    if task and not task.done():
+        return
+    _push_pending[user_id] = asyncio.create_task(_push_later(user_id, reason))
+
+
+async def _push_later(user_id: str, reason: str) -> None:
+    await asyncio.sleep(PUSH_DEBOUNCE_SECONDS)
+    await notify_devices(user_id, reason)
+
+
+async def notify_devices(user_id: str, reason: str = "change") -> dict:
+    record = await usersync.get_scope(user_id, "devices")
+    devices = record.get("devices", {})
+    if not isinstance(devices, dict):
+        return {"sent": 0, "dead": [], "failed": 0}
+    tokens = {
+        device_id: info["pushToken"]
+        for device_id, info in devices.items()
+        if isinstance(info, dict) and fcm.valid_push_token(info.get("pushToken"))
+    }
+    result = await fcm.send_sync(tokens, reason)
+    dead = result.get("dead", [])
+    if dead:
+        async with _sync_lock:
+            record = await usersync.get_scope(user_id, "devices")
+            changed = False
+            for device_id in dead:
+                info = record.get("devices", {}).get(device_id)
+                if isinstance(info, dict) and info.get("pushToken") == tokens.get(device_id):
+                    info.pop("pushToken", None)
+                    changed = True
+            if changed:
+                await usersync.save_scope(user_id, "devices", record)
+                await asyncio.to_thread(github_sync.push_data)
+    return result
+
 
 _sync_task: asyncio.Task | None = None
 _sync_lock = asyncio.Lock()
@@ -122,6 +188,7 @@ def current_user(request: Request) -> dict:
             raise ValueError("invalid_claims")
     except (jwt.PyJWTError, ValueError, TypeError):
         raise HTTPException(401, "invalid_token")
+    request.state.user_id = user_id
     return {
         "id": user_id,
         "email": email,
@@ -499,6 +566,7 @@ async def health():
             or os.environ.get("GIT_COMMIT", "")
         )[:8],
         "sync": sync,
+        "push": fcm.is_configured(),
     }
 
 
@@ -547,11 +615,18 @@ async def register_device(body: dict, user=Depends(current_user)):
     if not isinstance(devices, dict):
         devices = {}
 
-    devices[device_id] = {
+    entry = {
         "platform": str(body.get("platform", "android"))[:32],
         "appVersion": str(body.get("appVersion", ""))[:64],
         "lastSeenAt": usersync.now_utc(),
     }
+    push_token = body.get("pushToken")
+    if fcm.valid_push_token(push_token):
+        entry["pushToken"] = push_token
+    elif isinstance(devices.get(device_id), dict) and devices[device_id].get("pushToken"):
+        # An app build without push support must not erase a working token.
+        entry["pushToken"] = devices[device_id]["pushToken"]
+    devices[device_id] = entry
     record["devices"] = devices
     # Serialize the filesystem mutation with the GitHub durability cycle.
     async with _sync_lock:
@@ -642,7 +717,10 @@ async def utility_devices(user=Depends(current_user)):
         if not await asyncio.to_thread(github_sync.ensure_current, 2.0):
             raise HTTPException(503, "github_refresh_failed_retry")
         record = await usersync.get_scope(user["id"], "devices")
-    return {"devices": [{"id": key, **value} for key, value in record.get("devices", {}).items()]}
+    return {"devices": [
+        {"id": key, **{k: v for k, v in value.items() if k != "pushToken"}, "push": bool(value.get("pushToken"))}
+        for key, value in record.get("devices", {}).items()
+    ]}
 
 
 @app.get("/api/utilities/{device_id}")
