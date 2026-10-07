@@ -777,6 +777,11 @@ class SettingsViewModel @Inject constructor(
         exporter = supportExportManager::createSupportExport
     )
 
+    suspend fun createAllLogsExport(): Result<SupportExportFile> = createDiagnosticExport(
+        successMessage = R.string.settings_all_logs_ready,
+        exporter = supportExportManager::createAllLogsExport
+    )
+
     suspend fun createCrashLogExport(): Result<SupportExportFile> = createDiagnosticExport(
         successMessage = R.string.settings_crash_log_ready,
         exporter = supportExportManager::createCrashLogExport

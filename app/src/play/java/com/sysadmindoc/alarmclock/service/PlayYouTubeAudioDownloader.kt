@@ -276,7 +276,11 @@ class PlayYouTubeAudioDownloader @Inject constructor(
                 addOption("--get-url")
                 addOption("--socket-timeout", "20")
             }
-            val response = YoutubeDL.getInstance().execute(request)
+            val response = try { YoutubeDL.getInstance().execute(request) } catch(e: Exception) {
+                if(e is CancellationException) throw e
+                YouTubeFailureDiagnostics.record(context, "stream-resolve", e)
+                throw e
+            }
             val streamUrl = response.out
                 ?.trim()
                 ?.lines()
@@ -323,6 +327,7 @@ class PlayYouTubeAudioDownloader @Inject constructor(
                     }
             } catch (primary: Exception) {
                 if (primary is CancellationException) throw primary
+                YouTubeFailureDiagnostics.record(context, "newpipe-search", primary)
                 Log.w(TAG, "NewPipe search failed; trying flat yt-dlp metadata", primary)
                 require(isAvailable()) { "YouTube engine is still warming up. Try again in a moment." }
                 try {
@@ -341,12 +346,14 @@ class PlayYouTubeAudioDownloader @Inject constructor(
                 } catch (fallback: Exception) {
                     if (fallback is CancellationException) throw fallback
                     fallback.addSuppressed(primary)
+                    YouTubeFailureDiagnostics.record(context, "ytdlp-search", fallback)
                     throw fallback
                 }
             }
         }.recoverCatching { e ->
             if (e is CancellationException) throw e
-            Log.w(TAG, "search failed: $query", e)
+            YouTubeFailureDiagnostics.record(context, "search", e)
+            Log.w(TAG, "search failed", e)
             throw e
         }
     }
@@ -375,7 +382,11 @@ class PlayYouTubeAudioDownloader @Inject constructor(
                 // Reasonable network timeout inside the python layer too.
                 addOption("--socket-timeout", "30")
             }
-            val response = YoutubeDL.getInstance().execute(request)
+            val response = try { YoutubeDL.getInstance().execute(request) } catch(e: Exception) {
+                if(e is CancellationException) throw e
+                YouTubeFailureDiagnostics.record(context, "stream-resolve", e)
+                throw e
+            }
             val streamUrl = response.out?.trim()?.lines()?.firstOrNull()?.takeIf { it.isNotBlank() }
                 ?: throw IllegalStateException(
                     "Couldn't resolve an audio stream. The video may be age-restricted, removed, or region-locked."
@@ -385,10 +396,10 @@ class PlayYouTubeAudioDownloader @Inject constructor(
             val safeName = sanitizeName(displayName)
                 .ifBlank { "youtube-alarm-${System.currentTimeMillis()}" }
             val savedName = saveStreamAsAlarm(streamUrl, safeName)
-                ?: throw IllegalStateException("Couldn't write the downloaded audio to MediaStore.")
             savedName
         }.recoverCatching { e ->
             if (e is CancellationException) throw e
+            YouTubeFailureDiagnostics.record(context, "audio-save", e)
             Log.w(TAG, "downloadAsAlarm failed", e)
             throw e
         }
@@ -399,86 +410,85 @@ class PlayYouTubeAudioDownloader @Inject constructor(
      * `Environment.DIRECTORY_ALARMS` with `IS_ALARM=1`, then flips
      * `IS_PENDING=0` so the system clock app + RingtoneManager pick it up.
      *
-     * Returns the saved display name on success; `null` on any failure.
+     * Returns the saved display name; throws the actual failure after cleanup.
      * Mirrors `SoundApplier.saveUrlToMediaStore` in the Aura codebase but
      * inlined and locked to ContentType.ALARM.
      */
-    private fun saveStreamAsAlarm(streamUrl: String, baseName: String): String? {
-        val displayName = if (baseName.endsWith(".m4a", ignoreCase = true) ||
-            baseName.endsWith(".mp3", ignoreCase = true) ||
-            baseName.endsWith(".ogg", ignoreCase = true)
-        ) {
-            baseName
-        } else {
-            // YouTube bestaudio is overwhelmingly opus-in-webm or AAC-in-m4a; we
-            // can't always know without sniffing, so default to .m4a — every
-            // Android MediaPlayer can decode it via the system extractor.
-            "$baseName.m4a"
+    private fun saveStreamAsAlarm(streamUrl: String, baseName: String): String {
+        if (Build.VERSION.SDK_INT <= 28 && androidx.core.content.ContextCompat.checkSelfPermission(
+            context, android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+        ) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            throw SecurityException("Storage permission is required to save audio on Android 9 or earlier")
         }
-
         val resolver = context.contentResolver
-        val values = ContentValues().apply {
-            put(MediaStore.Audio.Media.DISPLAY_NAME, displayName)
-            put(MediaStore.Audio.Media.MIME_TYPE, "audio/mp4")
-            put(MediaStore.Audio.Media.IS_ALARM, true)
-            put(MediaStore.Audio.Media.IS_RINGTONE, false)
-            put(MediaStore.Audio.Media.IS_NOTIFICATION, false)
-            put(MediaStore.Audio.Media.IS_MUSIC, false)
-            put(MediaStore.Audio.Media.RELATIVE_PATH, Environment.DIRECTORY_ALARMS)
-            if (Build.VERSION.SDK_INT >= 29) {
-                put(MediaStore.Audio.Media.IS_PENDING, 1)
+        return httpClient.newCall(Request.Builder().url(streamUrl).build()).execute().use { resp ->
+            if (!resp.isSuccessful) throw java.io.IOException("HTTP ${resp.code} from audio CDN")
+            val body = resp.body ?: throw java.io.IOException("Empty audio body")
+            val advertised = body.contentLength()
+            if (advertised > MAX_BYTES) throw java.io.IOException("Audio is too large")
+            val mime = body.contentType()?.toString()?.substringBefore(';')?.lowercase(Locale.ROOT)
+            val extension = when (mime) {
+                "audio/webm", "video/webm" -> "webm"
+                "audio/mp4", "video/mp4", "audio/x-m4a" -> "m4a"
+                "audio/mpeg" -> "mp3"
+                "audio/ogg", "application/ogg" -> "ogg"
+                else -> throw java.io.IOException("Unsupported audio content type")
             }
-        }
-
-        val uri = resolver.insert(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, values)
-            ?: return null
-
-        val ok = try {
-            httpClient.newCall(Request.Builder().url(streamUrl).build()).execute().use { resp ->
-                if (!resp.isSuccessful) {
-                    throw IllegalStateException("HTTP ${resp.code} from audio CDN")
+            val stem = baseName.replace(Regex("(?i)\\.(m4a|mp3|ogg|webm)$"), "")
+            val displayName = "$stem.$extension"
+            val values = ContentValues().apply {
+                put(MediaStore.Audio.Media.DISPLAY_NAME, displayName)
+                put(MediaStore.Audio.Media.MIME_TYPE, if(extension == "webm") "audio/webm" else mime)
+                put(MediaStore.Audio.Media.IS_ALARM, true)
+                put(MediaStore.Audio.Media.IS_RINGTONE, false)
+                put(MediaStore.Audio.Media.IS_NOTIFICATION, false)
+                put(MediaStore.Audio.Media.IS_MUSIC, false)
+                if (Build.VERSION.SDK_INT >= 29) {
+                    put(MediaStore.Audio.Media.RELATIVE_PATH, Environment.DIRECTORY_ALARMS)
+                    put(MediaStore.Audio.Media.IS_PENDING, 1)
+                } else {
+                    @Suppress("DEPRECATION")
+                    val directory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_ALARMS)
+                    if (!directory.exists() && !directory.mkdirs()) throw java.io.IOException("Could not create Alarms folder")
+                    // Never overwrite a user's existing audio, even if names match.
+                    var file = java.io.File(directory, displayName)
+                    var suffix = 1
+                    while(file.exists()) file = java.io.File(directory, "$stem-${suffix++}.$extension")
+                    @Suppress("DEPRECATION")
+                    put(MediaStore.Audio.Media.DATA, file.absolutePath)
+                    put(MediaStore.Audio.Media.DISPLAY_NAME, file.name)
                 }
-                val body = resp.body ?: throw IllegalStateException("Empty audio body")
-                val advertised = body.contentLength()
-                if (advertised in 1..Long.MAX_VALUE && advertised > MAX_BYTES) {
-                    throw IllegalStateException("Audio is too large (${advertised / (1024 * 1024)} MB)")
-                }
+            }
+            val uri = resolver.insert(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, values)
+                ?: throw java.io.IOException("MediaStore could not create audio file")
+            try {
                 resolver.openOutputStream(uri)?.use { out ->
-                    body.byteStream().use { input ->
-                        var copied = 0L
+                    val copied = body.byteStream().use { input ->
+                        var count = 0L
                         val buf = ByteArray(64 * 1024)
-                        while (true) {
+                        while(true) {
                             val n = input.read(buf)
-                            if (n <= 0) break
-                            copied += n
-                            if (copied > MAX_BYTES) {
-                                throw IllegalStateException("Audio is too large (${copied / (1024 * 1024)} MB)")
-                            }
+                            if(n < 0) break
+                            if(n == 0) continue
+                            count += n
+                            if(count > MAX_BYTES) throw java.io.IOException("Audio is too large")
                             out.write(buf, 0, n)
                         }
+                        count
                     }
-                    true
-                } ?: false
-            }
-        } catch (e: Exception) {
-            if (e is CancellationException) {
-                resolver.delete(uri, null, null)
+                    if(copied == 0L || (advertised >= 0 && copied != advertised)) throw java.io.IOException("Audio transfer incomplete")
+                } ?: throw java.io.IOException("MediaStore output stream unavailable")
+                if(Build.VERSION.SDK_INT >= 29) {
+                    val finalize = ContentValues().apply { put(MediaStore.Audio.Media.IS_PENDING, 0) }
+                    if(resolver.update(uri, finalize, null, null) != 1) throw java.io.IOException("MediaStore could not finalize audio")
+                }
+                values.getAsString(MediaStore.Audio.Media.DISPLAY_NAME)
+            } catch(e: Exception) {
+                runCatching { resolver.delete(uri, null, null) }
+                if(e !is CancellationException) YouTubeFailureDiagnostics.record(context, "audio-copy", e)
                 throw e
             }
-            Log.w(TAG, "Stream copy failed", e)
-            false
         }
-
-        if (!ok) {
-            resolver.delete(uri, null, null)
-            return null
-        }
-
-        if (Build.VERSION.SDK_INT >= 29) {
-            val finalize = ContentValues().apply { put(MediaStore.Audio.Media.IS_PENDING, 0) }
-            resolver.update(uri, finalize, null, null)
-        }
-        return displayName
     }
 
     companion object {

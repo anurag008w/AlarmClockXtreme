@@ -77,10 +77,8 @@ private object NewPipeDownloader : org.schabi.newpipe.extractor.downloader.Downl
             val headers = conn.headerFields
                 .filterKeys { it != null }
                 .mapValues { (_, v) -> v }
-            val body = try {
-                (if (code < 400) conn.inputStream else conn.errorStream)
-                    ?.bufferedReader()?.use { it.readText() } ?: ""
-            } catch (_: Exception) { "" }
+            val body = (if (code < 400) conn.inputStream else conn.errorStream)
+                ?.bufferedReader()?.use { it.readText() } ?: ""
             return org.schabi.newpipe.extractor.downloader.Response(
                 code,
                 conn.responseMessage ?: "",

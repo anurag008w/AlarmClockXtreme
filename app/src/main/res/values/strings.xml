@@ -2378,4 +2378,9 @@
     <string name="youtube_engine_check_unavailable">yt-dlp %1$s. Version check unavailable; no update confirmed.</string>
     <string name="stopwatch_current_lap_time">Current lap %1$d · %2$s</string>
     <string name="stopwatch_notifications_denied">Stopwatch keeps running. Enable notifications in app settings to see its controls.</string>
+<string name="youtube_working_no_progress">Resolving and saving audio. Transfer progress is not available yet.</string>
+<string name="youtube_error_storage_permission">Allow storage permission to save audio on Android 9 or earlier, then try again.</string>
+<string name="settings_share_all_logs">Share all logs (.txt)</string>
+<string name="settings_share_all_logs_description">One text file with redacted crashes, readiness, diagnostics and YouTube failures. Nothing is uploaded automatically.</string>
+<string name="settings_all_logs_ready">All logs are ready to share as one text file.</string>
 </resources>

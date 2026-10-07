@@ -969,6 +969,16 @@ fun SettingsScreen(
                 HorizontalDivider(color = TextMuted.copy(alpha = 0.14f))
                 UtilityShortcutCard(
                     icon = Icons.Default.BugReport,
+                    title = stringResource(R.string.settings_share_all_logs),
+                    description = stringResource(R.string.settings_share_all_logs_description),
+                    onClick = {
+                        if (!supportExportBusy) screenScope.launch {
+                            viewModel.createAllLogsExport().onSuccess { export -> shareSupportExport(export) }
+                        }
+                    }
+                )
+                UtilityShortcutCard(
+                    icon = Icons.Default.BugReport,
                     title = stringResource(R.string.settings_share_crash_log),
                     description = if (supportExportBusy) {
                         stringResource(R.string.settings_packaging_diagnostics)
@@ -1470,7 +1480,7 @@ internal fun SettingsInfo(label: String, description: String) {
 }
 
 @Composable
-private fun UtilityShortcutCard(
+internal fun UtilityShortcutCard(
     icon: ImageVector,
     title: String,
     description: String,

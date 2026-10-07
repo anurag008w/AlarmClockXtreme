@@ -197,6 +197,27 @@ fun YouTubeDownloadDialog(
     // The download and the engine update outlive this composition, so they
     // belong to a ViewModel; a rotation used to cancel both.
     val downloadViewModel: YouTubeDownloadViewModel = hiltViewModel()
+    val storagePermissionError = stringResource(R.string.youtube_error_storage_permission)
+    var pendingDownload by rememberSaveable { mutableStateOf<List<String>?>(null) }
+    var permissionError by remember { mutableStateOf(false) }
+    val storagePermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        val pending = pendingDownload
+        pendingDownload = null
+        if(granted && pending != null) downloadViewModel.download(pending[0], pending[1])
+        else permissionError = true
+    }
+
+    fun startDownload(videoUrl: String, title: String) {
+        permissionError = false
+        if(android.os.Build.VERSION.SDK_INT <= 28 && androidx.core.content.ContextCompat.checkSelfPermission(
+            context, android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+        ) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            pendingDownload = listOf(videoUrl, title)
+            storagePermissionLauncher.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        } else downloadViewModel.download(videoUrl, title)
+    }
     val inFlight by downloadViewModel.downloading.collectAsStateWithLifecycle()
     val updatingEngine by downloadViewModel.updatingEngine.collectAsStateWithLifecycle()
     val engineVersion by downloadViewModel.engineVersion.collectAsStateWithLifecycle()
@@ -226,6 +247,13 @@ fun YouTubeDownloadDialog(
             engineStatusArg = update.afterVersionName
             statusMessage = ""
             statusIsError = false
+        }
+    }
+
+    LaunchedEffect(permissionError) {
+        if(permissionError) {
+            statusMessage = storagePermissionError
+            statusIsError = true
         }
     }
 
@@ -435,7 +463,7 @@ fun YouTubeDownloadDialog(
                         onPick = { hit ->
                             stopPreview()
                             setStatus(downloadingMessage(hit.title.take(40)))
-                            downloadViewModel.download(hit.videoUrl, hit.title)
+                            startDownload(hit.videoUrl, hit.title)
                         },
                         inFlight = inFlight,
                     )
@@ -459,7 +487,7 @@ fun YouTubeDownloadDialog(
                         stopPreview()
                         val labelGuess = name.ifBlank { url.substringAfter("v=").substringBefore('&').take(11) }
                         setStatus(downloadingMessage(labelGuess.ifBlank { fallbackSoundName }))
-                        downloadViewModel.download(url.trim(), labelGuess)
+                        startDownload(url.trim(), labelGuess)
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(10.dp)
@@ -837,12 +865,14 @@ internal fun youTubeDialogErrorMessage(
     error: Throwable,
     action: YouTubeDialogAction
 ): Int {
-    val causes = generateSequence(error) { it.cause }.take(8).toList()
-    val message = causes.joinToString(" ") { it.message.orEmpty() }
+    val causes = com.sysadmindoc.alarmclock.service.youTubeFailureChain(error)
+    val message = causes.joinToString(" ") { it.javaClass.simpleName + " " + it.message.orEmpty() }
 
     return when {
         message.contains("not available in this build", ignoreCase = true) ->
             R.string.youtube_error_unavailable_build
+        causes.any { it is SecurityException } && action == YouTubeDialogAction.Download ->
+            R.string.youtube_error_storage_permission
         causes.any { it is UnknownHostException } ->
             R.string.youtube_error_no_connection
         causes.any { it is SocketTimeoutException } ->
@@ -864,7 +894,7 @@ internal fun youTubeDialogErrorMessage(
         message.contains("invalid", ignoreCase = true) ||
             message.contains("unsupported", ignoreCase = true) ->
             R.string.youtube_error_invalid_link
-        error is IOException ->
+        causes.any { it is IOException } ->
             R.string.youtube_error_io
         else -> when (action) {
             YouTubeDialogAction.Preview ->
@@ -879,88 +909,13 @@ internal fun youTubeDialogErrorMessage(
     }
 }
 
-/**
- * v1.7.3: Faux-progress download hint.
- *
- * Real progress is hard to surface here because yt-dlp's `--get-url` resolve step
- * has no progress signal, and OkHttp byte-counting only kicks in once the
- * stream resolves. A static spinner read as "stuck" in user testing.
- *
- * The faux-progress curve is `1 - e^(-3t) * 0.92` over 30 s: fast off the
- * line, slows asymptotically toward 92% so completion (which jumps it to
- * 100% instantly) still feels like a finish, not a fast-forward. The status
- * label rotates through phases on the same timer so the user sees something
- * change every few seconds.
- */
+/** Indeterminate until real transfer progress exists; never invent stages or percentages. */
 @Composable
-private fun DownloadingHint() {
-    val phases = remember {
-        listOf(
-            "Resolving audio stream...",
-            "Connecting to YouTube...",
-            "Downloading audio...",
-            "Almost there...",
-            "Saving to your alarms..."
-        )
-    }
-    var progress by remember { mutableStateOf(0f) }
-    var phaseIndex by remember { mutableStateOf(0) }
-
-    androidx.compose.runtime.LaunchedEffect(Unit) {
-        val totalMs = 30_000L
-        val ticks = 60
-        repeat(ticks) { i ->
-            kotlinx.coroutines.delay(totalMs / ticks)
-            val t = (i + 1).toFloat() / ticks
-            // Asymptotic curve: leaps to ~30% in the first 4s, then crawls.
-            progress = (1f - kotlin.math.exp(-3f * t)) * 0.92f
-            phaseIndex = (i * phases.size / ticks).coerceIn(0, phases.lastIndex)
-        }
-    }
-
-    val animatedProgress by androidx.compose.animation.core.animateFloatAsState(
-        targetValue = progress,
-        animationSpec = androidx.compose.animation.core.tween(durationMillis = 450),
-        label = stringResource(R.string.youtube_download_progress)
-    )
-
-    Column(
-        modifier = Modifier.semantics {
-            liveRegion = LiveRegionMode.Polite
-            stateDescription = phases[phaseIndex]
-        },
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = phases[phaseIndex],
-                color = MaterialTheme.colorScheme.primary,
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.weight(1f)
-            )
-            Text(
-                text = "${(animatedProgress * 100).toInt()}%",
-                color = TextMuted,
-                style = MaterialTheme.typography.labelMedium
-            )
-        }
-        LinearProgressIndicator(
-            progress = { animatedProgress },
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(8.dp)),
-            color = MaterialTheme.colorScheme.primary,
-            trackColor = SurfaceLight
-        )
-        Text(
-            text = stringResource(R.string.youtube_take_10_60_seconds_depending),
-            color = TextMuted,
-            style = MaterialTheme.typography.bodySmall
-        )
+internal fun DownloadingHint() {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        Text(text = stringResource(R.string.youtube_working_no_progress), color = TextMuted,
+            style = MaterialTheme.typography.bodySmall)
     }
 }
 
