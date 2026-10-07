@@ -14,8 +14,8 @@ from pathlib import Path
 
 
 PACKAGE = "com.sysadmindoc.alarmclock"
-EXPECTED_VERSION_CODE = "150"
-EXPECTED_VERSION_NAME = "1.15.48"
+EXPECTED_VERSION_CODE = "151"
+EXPECTED_VERSION_NAME = "1.15.49"
 DEFAULT_APKS = (
     Path("app/build/outputs/apk/play/release/app-play-release.apk"),
     Path("app/build/outputs/apk/fdroid/release/app-fdroid-release.apk"),

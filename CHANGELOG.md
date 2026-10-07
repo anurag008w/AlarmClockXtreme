@@ -2,6 +2,11 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.15.49]
+
+- Fix YouTube search with a metadata-only fallback and show downloader Update only for a confirmed newer engine. Keep stopwatch lap cards visible on small screens with numeric rows and live current-lap time. Add lightweight running stopwatch notification with Pause and Lap, Resume when paused, and Android notification permission handling. Exclude absent fire timestamps from weekday response averages without deleting history. Existing alarms preserved. Verified F-Droid710 and Play716 tests and actual one/two-lap renders; physical-phone search, notification and alarm behavior still need device confirmation.
+- Release: v1.15.49 (versionCode 151).
+
 ## [1.15.48]
 
 - Fix Retrofit wildcard request-body parsing for cloud utility snapshots, utility acknowledgements, and dashboard snapshots. Add eager validation of every CloudApi endpoint and JSON-body regression coverage. No Android visible UI changes.
