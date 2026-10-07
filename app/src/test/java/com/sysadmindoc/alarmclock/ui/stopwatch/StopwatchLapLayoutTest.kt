@@ -1,16 +1,16 @@
 package com.sysadmindoc.alarmclock.ui.stopwatch
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.captureToImage
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.dp
@@ -29,7 +29,7 @@ import java.io.File
 @Config(sdk = [28])
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class StopwatchLapLayoutTest {
-    @get:Rule val compose = createComposeRule()
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     private val context = ApplicationProvider.getApplicationContext<Context>()
 
     @After fun clear() {
@@ -51,9 +51,18 @@ class StopwatchLapLayoutTest {
         }
         compose.onNodeWithTag("stopwatch-lap-history").performScrollTo()
         val dir = File("build/reports/stopwatch-layout").apply { mkdirs() }
-        File(dir, "${count}-laps.png").outputStream().use {
-            compose.onRoot().captureToImage().asAndroidBitmap().compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it)
+        // Robolectric has no physical Surface for PixelCopy's forceRedraw.
+        // Draw the actual attached view tree into a native bitmap instead.
+        lateinit var bitmap: Bitmap
+        compose.runOnUiThread {
+            val view = compose.activity.window.decorView
+            bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+            view.draw(Canvas(bitmap))
         }
+        File(dir, "${count}-laps.png").outputStream().use {
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)
+        }
+        bitmap.recycle()
         compose.onNodeWithText(String.format(java.util.Locale.ROOT, "%02d", count)).assertIsDisplayed()
     }
 
