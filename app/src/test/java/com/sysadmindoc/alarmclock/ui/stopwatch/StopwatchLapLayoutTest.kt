@@ -48,7 +48,7 @@ class StopwatchLapLayoutTest {
                 }
             }
         }
-        compose.onNodeWithText("Lap $count").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(String.format(java.util.Locale.ROOT, "%02d", count)).performScrollTo().assertIsDisplayed()
         val dir = File("build/reports/stopwatch-layout").apply { mkdirs() }
         File(dir, "${count}-laps.png").outputStream().use {
             compose.onRoot().captureToImage().asAndroidBitmap().compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it)
