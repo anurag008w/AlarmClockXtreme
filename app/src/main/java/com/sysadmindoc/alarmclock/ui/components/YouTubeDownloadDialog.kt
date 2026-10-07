@@ -911,7 +911,7 @@ internal fun youTubeDialogErrorMessage(
 
 /** Indeterminate until real transfer progress exists; never invent stages or percentages. */
 @Composable
-private fun DownloadingHint() {
+internal fun DownloadingHint() {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
         Text(text = stringResource(R.string.youtube_working_no_progress), color = TextMuted,
