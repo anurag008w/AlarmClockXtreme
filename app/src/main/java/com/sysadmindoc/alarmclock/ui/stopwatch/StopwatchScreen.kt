@@ -175,6 +175,13 @@ fun StopwatchScreen(
 
                 StopwatchDial(state = state)
 
+                Text(
+                    text = stringResource(R.string.stopwatch_current_lap_time,
+                        state.laps.size + 1, formatMillis(state.currentLapMillis)),
+                    color = TextSecondary,
+                    style = MaterialTheme.typography.titleMedium
+                )
+
                 ControlsRow(state = state, viewModel = viewModel, onReset = onReset)
             }
 
