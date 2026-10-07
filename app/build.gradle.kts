@@ -93,6 +93,7 @@ android {
     }
 
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -381,6 +382,8 @@ tasks.matching { it.name == "check" }.configureEach {
 }
 
 dependencies {
+    // Required by NewPipeExtractor for Java 10+ APIs on Android below API 33.
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.1.5")
     // Compose BOM
     val composeBom = platform("androidx.compose:compose-bom:2026.06.00")
     implementation(composeBom)
