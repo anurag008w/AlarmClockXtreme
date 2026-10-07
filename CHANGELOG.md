@@ -2,6 +2,11 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.15.51]
+
+- Keep both preview and saved audio transfer inside the existing yt-dlp engine with1MBHTTPchunks, bounded retries, fixed private files and cleanup instead of handing bare CDN URLs to separate Android network stacks. Preview prepares a cached low-bitrate local clip with15MB/fourclip limit, so startup may take longer. Expand redacted native-download/native-preview/playback diagnostics. Retain Android9storage/desugaring repairs and separate all-logs export. Existing alarms and web unchanged. F-Droid717/Play724automated tests and actualserveraudio download passed; physicalVivo9preview/save confirmation still needed.
+- Release: v1.15.51 (versionCode 153).
+
 ## [1.15.50]
 
 - Fix older-Android YouTube compatibility by enabling NewPipe-required NIO core library desugaring. Repair Android9 audio saving and storage permission, correct audio MIME/extension and copy failure cleanup, fix duplicate editor section keys, remove simulated progress, and add separate redacted all-logs TXT export with YouTube diagnostics. Promote alarm foreground service before cold-start work. Existing alarms unchanged. Verified F-Droid717 and Play723 automated tests and native API28 component render; physical-phone search/save verification still required.
