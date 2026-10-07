@@ -198,14 +198,14 @@ fun YouTubeDownloadDialog(
     // belong to a ViewModel; a rotation used to cancel both.
     val downloadViewModel: YouTubeDownloadViewModel = hiltViewModel()
     val storagePermissionError = stringResource(R.string.youtube_error_storage_permission)
-    var pendingDownload by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var pendingDownload by rememberSaveable { mutableStateOf<List<String>?>(null) }
     var permissionError by remember { mutableStateOf(false) }
     val storagePermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
     ) { granted ->
         val pending = pendingDownload
         pendingDownload = null
-        if(granted && pending != null) downloadViewModel.download(pending.first, pending.second)
+        if(granted && pending != null) downloadViewModel.download(pending[0], pending[1])
         else permissionError = true
     }
 
@@ -214,7 +214,7 @@ fun YouTubeDownloadDialog(
         if(android.os.Build.VERSION.SDK_INT <= 28 && androidx.core.content.ContextCompat.checkSelfPermission(
             context, android.Manifest.permission.WRITE_EXTERNAL_STORAGE
         ) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            pendingDownload = videoUrl to title
+            pendingDownload = listOf(videoUrl, title)
             storagePermissionLauncher.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
         } else downloadViewModel.download(videoUrl, title)
     }
