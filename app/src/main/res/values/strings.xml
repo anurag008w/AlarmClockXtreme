@@ -2376,4 +2376,5 @@
     <string name="youtube_engine_checking">Checking downloader version...</string>
     <string name="youtube_engine_update_available">New downloader version available: %1$s</string>
     <string name="youtube_engine_check_unavailable">yt-dlp %1$s. Version check unavailable; no update confirmed.</string>
+    <string name="stopwatch_current_lap_time">Current lap %1$d · %2$s</string>
 </resources>
