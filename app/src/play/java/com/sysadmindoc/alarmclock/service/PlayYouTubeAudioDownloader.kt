@@ -384,6 +384,8 @@ class PlayYouTubeAudioDownloader @Inject constructor(
             try {
                 val request = YoutubeDLRequest(youtubeUrl).apply {
                     addOption("-f", "bestaudio")
+                    addOption("--print", "after_move:ACX_TITLE:%(title)s")
+                    addOption("--no-simulate")
                     addOption("--no-playlist")
                     addOption("--ignore-config")
                     addOption("--socket-timeout", "20")
@@ -404,8 +406,10 @@ class PlayYouTubeAudioDownloader @Inject constructor(
                     throw e
                 }
                 val audio = completedYouTubeAudio(directory, response.exitCode, response.out, response.err, MAX_BYTES)
-                val safeName = sanitizeName(displayName).ifBlank { "youtube-alarm-${System.currentTimeMillis()}" }
-                saveFileAsAlarm(audio, safeName)
+                val videoTitle = response.out.lineSequence().firstOrNull { it.startsWith("ACX_TITLE:") }?.removePrefix("ACX_TITLE:")?.take(200)
+                val title = com.sysadmindoc.alarmclock.ui.ringtone.audioDisplayName(displayName, videoTitle, "YouTube alarm sound")
+                val safeName = sanitizeName(title).ifBlank { "youtube-alarm-${System.currentTimeMillis()}" }
+                saveFileAsAlarm(audio, safeName, title)
             } finally {
                 directory.deleteRecursively()
             }
@@ -426,7 +430,7 @@ class PlayYouTubeAudioDownloader @Inject constructor(
      * Mirrors `SoundApplier.saveUrlToMediaStore` in the Aura codebase but
      * inlined and locked to ContentType.ALARM.
      */
-    private fun saveFileAsAlarm(audio: java.io.File, baseName: String): String {
+    private fun saveFileAsAlarm(audio: java.io.File, baseName: String, title: String): String {
         if (Build.VERSION.SDK_INT <= 28 && androidx.core.content.ContextCompat.checkSelfPermission(
             context, android.Manifest.permission.WRITE_EXTERNAL_STORAGE
         ) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
@@ -448,6 +452,7 @@ class PlayYouTubeAudioDownloader @Inject constructor(
             val displayName = "$stem.$extension"
             val values = ContentValues().apply {
                 put(MediaStore.Audio.Media.DISPLAY_NAME, displayName)
+                put(MediaStore.Audio.Media.TITLE, title)
                 put(MediaStore.Audio.Media.MIME_TYPE, if(extension == "webm") "audio/webm" else mime)
                 put(MediaStore.Audio.Media.IS_ALARM, true)
                 put(MediaStore.Audio.Media.IS_RINGTONE, false)
