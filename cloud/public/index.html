@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0e1117">
   <title>AlarmClockXtreme Cloud</title>
   <link rel="manifest" href="/manifest.webmanifest">
-  <link rel="stylesheet" href="/styles.css?v=8c1e659">
+  <link rel="stylesheet" href="/styles.css?v=mobile-primary-2">
 </head>
 <body>
   <div id="authView" class="shell center">
@@ -66,7 +66,7 @@
       </nav>
 
       <section id="tab-today" class="tab-panel">
-        <div class="card"><h2>Today</h2><div id="todayAlarms"></div><div id="phoneToday"></div><p class="muted">Cloud alarm configuration, not proof of the phone's next trigger. Choose a phone below to read its next-alarm, saved weather location and calendar snapshot. Saved weather coordinates are not live GPS. Browser city search below is a separate override.</p>
+        <div class="card"><h2>Today</h2><div id="todayAlarms"></div><div id="phoneToday"></div><p class="muted">Cloud alarm configuration, not proof of the phone's next trigger. Your connected phone loads automatically; accounts with multiple phones can choose one in Stats. Saved weather coordinates are not live GPS. Browser city search below is a separate override.</p>
           <label>Search weather city<input id="todayCity" type="search" maxlength="100" placeholder="City name"></label><button id="todaySearch" type="button" class="secondary">Find city</button><div id="todayCities" class="list"></div>
           <button id="todayWeatherRefresh" type="button" class="secondary">Refresh selected city</button><p id="todayStatus" role="status" class="muted"></p></div><div id="todayWeather" class="list"></div>
       </section>
@@ -92,7 +92,7 @@
       </section>
 
       <section id="tab-timer" class="tab-panel">
-        <div class="card phone-controls"><h3>Phone timers</h3><p class="muted">Choose a registered phone. Keep the updated app open for remote controls (checks every 30 seconds). Background sync can take 15 minutes or longer; commands expire after 2 minutes if the phone is unavailable. Pending means queued, not running. Snapshots can be stale.</p>
+        <div class="card phone-controls"><h3>Phone timers</h3><p class="muted">Your connected phone loads automatically. Keep the updated app open for remote controls (checks every 30 seconds). Background sync can take 15 minutes or longer; commands expire after 2 minutes if the phone is unavailable. Pending means queued, not running. Snapshots can be stale.</p>
         <button type="button" class="btn secondary" id="loadUtilityDevices">Load phones</button><select id="utilityDevice"></select>
         <label class="utility-field" for="phoneTimerSeconds">Duration in seconds</label><input id="phoneTimerSeconds" type="number" min="1" max="86400" value="60" aria-label="Phone timer seconds">
         <label class="utility-field" for="phoneTimerLabel">Timer label</label><input id="phoneTimerLabel" maxlength="120" placeholder="Label" aria-label="Phone timer label">
@@ -114,7 +114,7 @@
       </section>
 
       <section id="tab-stopwatch" class="tab-panel">
-        <div class="card phone-controls"><h3>Phone stopwatch</h3><p class="muted">Use the phone selected in Timer. Pending means queued. Reset deletes the phone run and laps.</p>
+        <div class="card phone-controls"><h3>Phone stopwatch</h3><p class="muted">Your connected phone loads automatically. Pending means queued. Reset deletes the phone run and laps.</p>
         <div id="phoneStopwatchDisplay">No phone snapshot loaded</div>
         <div class="row wrap"><button class="btn secondary" type="button" data-phone-stopwatch="start">start</button><button class="btn secondary" type="button" data-phone-stopwatch="pause">pause</button><button class="btn secondary" type="button" data-phone-stopwatch="resume">resume</button><button class="btn secondary" type="button" data-phone-stopwatch="lap">lap</button><button class="btn secondary" type="button" data-phone-stopwatch="reset">reset</button></div>
         <p id="phoneStopwatchStatus" class="muted"></p></div>
@@ -153,7 +153,7 @@
         <div id="worldList" class="grid"></div>
       </section>
 
-      <section id="tab-stats" class="tab-panel"><div class="card"><h2>Phone alarm stats</h2><p class="muted">Choose a registered phone. Counts and the 50 most recent alarm events are read-only snapshots, not combined across phones. Existing sleep/health records are mirrored below from your phone. Sync never starts sensors or grants permissions. No raw microphone audio is uploaded.</p><button id="dashboardPhones" class="secondary" type="button">Load phones</button><select id="dashboardDevice" aria-label="Dashboard phone"></select><button id="dashboardRefresh" class="secondary" type="button">Refresh phone snapshot</button><p id="dashboardStatus" class="muted" role="status"></p></div><div id="phoneStats" class="list"></div><div id="phoneAlarmDetails" class="list"></div><button id="refreshAlarmCommands" class="secondary" type="button">Refresh phone alarm command status</button><div id="alarmCommandStatus" class="list"></div><div id="phoneHistory" class="list"></div></section>
+      <section id="tab-stats" class="tab-panel"><div class="card"><h2>Phone alarm stats</h2><p class="muted">Your connected phone loads automatically. Counts and the 50 most recent alarm events are read-only snapshots, not combined across phones. Existing sleep/health records are mirrored below from your phone. Sync never starts sensors or grants permissions. No raw microphone audio is uploaded.</p><button id="dashboardPhones" class="secondary" type="button">Load phones</button><select id="dashboardDevice" aria-label="Dashboard phone"></select><button id="dashboardRefresh" class="secondary" type="button">Refresh phone snapshot</button><p id="dashboardStatus" class="muted" role="status"></p></div><div id="phoneStats" class="list"></div><div id="phoneAlarmDetails" class="list"></div><button id="refreshAlarmCommands" class="secondary" type="button">Refresh phone alarm command status</button><div id="alarmCommandStatus" class="list"></div><div id="phoneHistory" class="list"></div></section>
 
       <section id="tab-news" class="tab-panel">
         <div class="card"><h2>News</h2><p class="muted">The same preset feeds as Android. Refresh reads public news; saving a feed changes your phone setting. Custom URLs remain configurable, but this server reads presets only to avoid unsafe network requests.</p>
@@ -224,4 +224,4 @@
   <script src="/practice-data.js"></script>
   <script src="/practice.js"></script>
 </body>
-</html>
+    </html>
