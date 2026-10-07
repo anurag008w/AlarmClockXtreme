@@ -1,5 +1,16 @@
 package com.sysadmindoc.alarmclock.ui.stopwatch
 
+import android.Manifest
+import android.os.Build
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -53,6 +64,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -84,6 +96,19 @@ fun StopwatchScreen(
     viewModel: StopwatchViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    var askedForNotifications by rememberSaveable { mutableStateOf(false) }
+    val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) StopwatchNotifications.refresh(context)
+        else android.widget.Toast.makeText(context, context.getString(R.string.stopwatch_notifications_denied), android.widget.Toast.LENGTH_LONG).show()
+    }
+    LaunchedEffect(state.state) {
+        if(state.state == StopwatchState.RUNNING && Build.VERSION.SDK_INT >= 33 && !askedForNotifications &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            askedForNotifications = true
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -196,7 +221,7 @@ fun StopwatchScreen(
             } else {
                 AppSurfaceCard(
                     modifier = Modifier
-                        .fillMaxWidth()
+                        .fillMaxWidth().testTag("stopwatch-lap-history")
                 ) {
                     AppSectionTitle(
                         title = stringResource(R.string.stopwatch_lap_history),
