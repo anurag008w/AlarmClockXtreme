@@ -27,7 +27,7 @@ import javax.inject.Singleton
  * (audio extraction) and `com/freevibe/service/SoundApplier.kt` (MediaStore write).
  *
  * Stripped down for the alarm-clock use case:
- *  - No NewPipe / search — only "paste a URL, get an alarm sound" UX.
+ *  - NewPipe search with a metadata-only yt-dlp fallback; downloads remain explicit.
  *  - No FFmpeg — the raw `bestaudio` stream is saved as-is. This keeps the APK
  *    smaller and avoids the FFmpeg LD_LIBRARY_PATH gymnastics from Aura.
  *  - No stream-URL cache — alarm tones are downloaded once and reused from
@@ -81,6 +81,34 @@ class PlayYouTubeAudioDownloader @Inject constructor(
                 ?.trim()
                 ?.ifBlank { null }
         }.getOrNull()
+
+    private var releaseCheckCache: Pair<Long, YouTubeEngineRelease>? = null
+
+    override suspend fun checkEngineRelease(): Result<YouTubeEngineRelease> = withContext(Dispatchers.IO) {
+        runCatching {
+            val current = normalizedYouTubeEngineVersion(engineVersionName())
+            releaseCheckCache?.let { (time, release) ->
+                if (release.currentVersion == current && System.currentTimeMillis() - time < 15 * 60_000) {
+                    return@runCatching release
+                }
+            }
+            val request = Request.Builder().url(GITHUB_RELEASES_LATEST)
+                .header("Accept", "application/vnd.github+json")
+                .header("User-Agent", "AlarmClockXtreme/${com.sysadmindoc.alarmclock.BuildConfig.VERSION_NAME}")
+                .build()
+            val body = httpClient.newCall(request).execute().use { response ->
+                check(response.isSuccessful) { "HTTP ${response.code} checking engine release" }
+                response.body?.string() ?: error("Empty engine release response")
+            }
+            val release = JSONObject(body)
+            check(!release.optBoolean("prerelease") && !release.optBoolean("draft"))
+            val latest = normalizedYouTubeEngineVersion(release.optString("tag_name"))
+                ?: error("Invalid engine release version")
+            YouTubeEngineRelease(current, latest).also {
+                releaseCheckCache = System.currentTimeMillis() to it
+            }
+        }.onFailure { if (it is CancellationException) throw it }
+    }
 
     override suspend fun updateEngine(): Result<YouTubeEngineUpdateResult> = withContext(Dispatchers.IO) {
         if (!engineUpdateInFlight.compareAndSet(false, true)) {
@@ -272,24 +300,50 @@ class PlayYouTubeAudioDownloader @Inject constructor(
     ): Result<List<YouTubeSearchHit>> = withContext(Dispatchers.IO) {
         runCatching {
             require(query.isNotBlank()) { "Type a search like \"rooster crow\" or \"piano bell\"." }
-            val service = org.schabi.newpipe.extractor.NewPipe.getService(
-                org.schabi.newpipe.extractor.ServiceList.YouTube.serviceId
-            )
-            val extractor = service.getSearchExtractor(query)
-            extractor.fetchPage()
-            extractor.initialPage.items
-                .filterIsInstance<org.schabi.newpipe.extractor.stream.StreamInfoItem>()
-                .filter { it.duration in 1..maxDurationSeconds.toLong() }
-                .filter { !it.name.contains('#') }
-                .take(15)
-                .map { item ->
-                    YouTubeSearchHit(
-                        videoUrl = item.url,
-                        title = item.name,
-                        uploader = item.uploaderName ?: "",
-                        durationSeconds = item.duration,
-                    )
+            require(maxDurationSeconds > 0) { "Invalid maximum sound duration" }
+            val cleanQuery = query.trim().take(200)
+            try {
+                val service = org.schabi.newpipe.extractor.NewPipe.getService(
+                    org.schabi.newpipe.extractor.ServiceList.YouTube.serviceId
+                )
+                val extractor = service.getSearchExtractor(cleanQuery)
+                extractor.fetchPage()
+                extractor.initialPage.items
+                    .filterIsInstance<org.schabi.newpipe.extractor.stream.StreamInfoItem>()
+                    .filter { it.duration in 1..maxDurationSeconds.toLong() }
+                    .filter { !it.name.contains('#') }
+                    .take(15)
+                    .map { item ->
+                        YouTubeSearchHit(
+                            videoUrl = item.url,
+                            title = item.name,
+                            uploader = item.uploaderName ?: "",
+                            durationSeconds = item.duration,
+                        )
+                    }
+            } catch (primary: Exception) {
+                if (primary is CancellationException) throw primary
+                Log.w(TAG, "NewPipe search failed; trying flat yt-dlp metadata", primary)
+                require(isAvailable()) { "YouTube engine is still warming up. Try again in a moment." }
+                try {
+                    val request = YoutubeDLRequest("ytsearch30:$cleanQuery").apply {
+                        addOption("--flat-playlist")
+                        addOption("--dump-single-json")
+                        addOption("--skip-download")
+                        addOption("--socket-timeout", "15")
+                        addOption("--retries", "1")
+                        addOption("--extractor-retries", "1")
+                        addOption("--ignore-config")
+                        addOption("--no-warnings")
+                    }
+                    val response = YoutubeDL.getInstance().execute(request)
+                    YouTubeSearchMetadata.parse(response.out ?: error("Empty search metadata"), maxDurationSeconds)
+                } catch (fallback: Exception) {
+                    if (fallback is CancellationException) throw fallback
+                    fallback.addSuppressed(primary)
+                    throw fallback
                 }
+            }
         }.recoverCatching { e ->
             if (e is CancellationException) throw e
             Log.w(TAG, "search failed: $query", e)

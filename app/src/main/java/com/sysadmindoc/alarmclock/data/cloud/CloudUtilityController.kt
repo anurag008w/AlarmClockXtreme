@@ -65,6 +65,11 @@ internal class CloudUtilityController(private val context: Context) {
         check(journal.edit().putString(command.commandId, "$status:$message").commit())
         status to message
     }
+    internal fun applyNotificationStopwatchAction(action: String): String = synchronized(LOCK) {
+        require(action in listOf("pause", "resume", "lap"))
+        applyStopwatch(action)
+    }
+
     private fun applyStopwatch(action: String): String {
         val prefs = context.getSharedPreferences("stopwatch_state", Context.MODE_PRIVATE)
         val now = SystemClock.elapsedRealtime()
@@ -92,6 +97,7 @@ internal class CloudUtilityController(private val context: Context) {
             .putLong("startTime",now).putLong("bootCount",boot)
             .putLong("bootToken",System.currentTimeMillis()-now).putString("laps",laps.toString())
             .putLong("remoteRevision",prefs.getLong("remoteRevision",0)+1).commit())
+        com.sysadmindoc.alarmclock.ui.stopwatch.StopwatchNotifications.refresh(context)
         return "stopwatch_${nextState.lowercase()}"
     }
     companion object {

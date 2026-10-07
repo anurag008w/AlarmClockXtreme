@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sysadmindoc.alarmclock.service.YouTubeAudioDownloader
 import com.sysadmindoc.alarmclock.service.YouTubeEngineUpdateResult
+import com.sysadmindoc.alarmclock.service.YouTubeEngineRelease
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -70,6 +71,22 @@ class YouTubeDownloadViewModel @Inject constructor(
         }
     }
 
+    private val _engineRelease = MutableStateFlow<YouTubeEngineRelease?>(null)
+    val engineRelease: StateFlow<YouTubeEngineRelease?> = _engineRelease.asStateFlow()
+    private val _checkingEngine = MutableStateFlow(false)
+    val checkingEngine: StateFlow<Boolean> = _checkingEngine.asStateFlow()
+    private var releaseChecked = false
+
+    fun checkEngineRelease(force: Boolean = false) {
+        if (_checkingEngine.value || (releaseChecked && !force)) return
+        _checkingEngine.value = true
+        viewModelScope.launch {
+            _engineRelease.value = downloader.checkEngineRelease().getOrNull()
+            _checkingEngine.value = false
+            releaseChecked = true
+        }
+    }
+
     fun updateEngine() {
         if (_updatingEngine.value) return
         _updatingEngine.value = true
@@ -82,6 +99,8 @@ class YouTubeDownloadViewModel @Inject constructor(
                 onSuccess = { update ->
                     _engineVersion.value = update.afterVersionName ?: update.beforeVersionName
                     _engineUpdate.value = update
+                    _engineRelease.value = null
+                    checkEngineRelease(force = true)
                 },
                 onFailure = { _outcome.value = Outcome.Failed(it, YouTubeDialogAction.EngineUpdate) }
             )

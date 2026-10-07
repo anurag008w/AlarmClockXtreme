@@ -1,6 +1,20 @@
 package com.sysadmindoc.alarmclock.ui.stopwatch
 
+import android.Manifest
+import android.os.Build
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -50,6 +64,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -81,6 +96,19 @@ fun StopwatchScreen(
     viewModel: StopwatchViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    var askedForNotifications by rememberSaveable { mutableStateOf(false) }
+    val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) StopwatchNotifications.refresh(context)
+        else android.widget.Toast.makeText(context, context.getString(R.string.stopwatch_notifications_denied), android.widget.Toast.LENGTH_LONG).show()
+    }
+    LaunchedEffect(state.state) {
+        if(state.state == StopwatchState.RUNNING && Build.VERSION.SDK_INT >= 33 && !askedForNotifications &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            askedForNotifications = true
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -112,6 +140,7 @@ fun StopwatchScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(SurfaceDark)
+            .verticalScroll(rememberScrollState())
     ) {
         AlarmClockHeroHeader(
             title = stringResource(R.string.stopwatch_title),
@@ -159,7 +188,7 @@ fun StopwatchScreen(
 
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -170,6 +199,13 @@ fun StopwatchScreen(
                 )
 
                 StopwatchDial(state = state)
+
+                Text(
+                    text = stringResource(R.string.stopwatch_current_lap_time,
+                        state.laps.size + 1, formatMillis(state.currentLapMillis)),
+                    color = TextSecondary,
+                    style = MaterialTheme.typography.titleMedium
+                )
 
                 ControlsRow(state = state, viewModel = viewModel, onReset = onReset)
             }
@@ -185,15 +221,14 @@ fun StopwatchScreen(
             } else {
                 AppSurfaceCard(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f, fill = false)
+                        .fillMaxWidth().testTag("stopwatch-lap-history")
                 ) {
                     AppSectionTitle(
                         title = stringResource(R.string.stopwatch_lap_history),
                         description = stringResource(R.string.stopwatch_best_slowest_splits_are_highlighted)
                     )
                     LazyColumn(
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 180.dp, max = 360.dp)
                     ) {
                         items(state.laps) { lap ->
                             LapRow(lap)
@@ -356,7 +391,7 @@ private fun ControlsRow(
                     label = stringResource(R.string.alarm_list_pause),
                     icon = Icons.Default.Pause,
                     onClick = viewModel::pause,
-                    modifier = Modifier.weight(1.35f)
+                    modifier = Modifier.weight(1f)
                 )
             }
         }
@@ -378,7 +413,7 @@ private fun ControlsRow(
                     label = stringResource(R.string.stopwatch_resume),
                     icon = Icons.Default.PlayArrow,
                     onClick = viewModel::resume,
-                    modifier = Modifier.weight(1.35f)
+                    modifier = Modifier.weight(1f)
                 )
             }
         }
@@ -411,25 +446,13 @@ private fun LapRow(lap: Lap) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Column(modifier = Modifier.width(84.dp)) {
+            Column(modifier = Modifier.width(32.dp)) {
                 Text(
-                    text = stringResource(R.string.stopwatch_lap_number, lap.number),
-                    color = TextPrimary,
+                    text = String.format(Locale.ROOT, "%02d", lap.number),
+                    color = textColor,
                     style = MaterialTheme.typography.titleSmall
                 )
-                Text(
-                    text = when {
-                        lap.isBest -> stringResource(R.string.stopwatch_best_split)
-                        lap.isWorst -> stringResource(R.string.stopwatch_slowest_split)
-                        else -> stringResource(R.string.stopwatch_split)
-                    },
-                    color = when {
-                        lap.isBest -> DismissGreen
-                        lap.isWorst -> AccentRed
-                        else -> TextMuted
-                    },
-                    style = MaterialTheme.typography.bodySmall
-                )
+
             }
 
             Column(
@@ -439,14 +462,11 @@ private fun LapRow(lap: Lap) {
                 Text(
                     text = formatMillis(lap.splitMillis),
                     color = textColor,
-                    fontSize = 16.sp,
+                    fontSize = 14.sp,
+                    maxLines = 1, softWrap = false,
                     fontWeight = FontWeight.Medium
                 )
-                Text(
-                    text = stringResource(R.string.stopwatch_split_time),
-                    color = TextMuted,
-                    style = MaterialTheme.typography.bodySmall
-                )
+
             }
 
             Column(
@@ -455,15 +475,12 @@ private fun LapRow(lap: Lap) {
             ) {
                 Text(
                     text = formatMillis(lap.totalMillis),
-                    color = TextSecondary,
+                    color = textColor,
                     fontSize = 14.sp,
+                    maxLines = 1, softWrap = false,
                     fontWeight = FontWeight.Medium
                 )
-                Text(
-                    text = stringResource(R.string.stopwatch_total),
-                    color = TextMuted,
-                    style = MaterialTheme.typography.bodySmall
-                )
+
             }
         }
     }
@@ -484,7 +501,7 @@ private fun StopwatchPrimaryButton(
     ) {
         Icon(icon, contentDescription = label, modifier = Modifier.size(20.dp))
         Spacer(modifier = Modifier.width(8.dp))
-        Text(label, fontWeight = FontWeight.SemiBold)
+        Text(label, fontWeight = FontWeight.SemiBold, maxLines = 1, softWrap = false)
     }
 }
 
@@ -504,7 +521,7 @@ private fun StopwatchSecondaryButton(
     ) {
         Icon(icon, contentDescription = label, modifier = Modifier.size(18.dp))
         Spacer(modifier = Modifier.width(8.dp))
-        Text(label, fontWeight = FontWeight.Medium)
+        Text(label, fontWeight = FontWeight.Medium, maxLines = 1, softWrap = false)
     }
 }
 

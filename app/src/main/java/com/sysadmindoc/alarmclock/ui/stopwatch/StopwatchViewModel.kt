@@ -27,6 +27,7 @@ data class StopwatchUiState(
     val state: StopwatchState = StopwatchState.IDLE,
     val laps: List<Lap> = emptyList()
 ) {
+    val currentLapMillis: Long get() = (elapsedMillis - (laps.maxByOrNull { it.number }?.totalMillis ?: 0L)).coerceAtLeast(0L)
     val hours: Int get() = (elapsedMillis / 3600000).toInt()
     val minutes: Int get() = ((elapsedMillis % 3600000) / 60000).toInt()
     val seconds: Int get() = ((elapsedMillis % 60000) / 1000).toInt()
@@ -53,6 +54,7 @@ class StopwatchViewModel @Inject constructor(
     init {
         prefs.registerOnSharedPreferenceChangeListener(prefsListener)
         restore()
+        StopwatchNotifications.refresh(context)
         viewModelScope.launch {
             _uiState.subscriptionCount.collect { count ->
                 if (count > 0 && _uiState.value.state == StopwatchState.RUNNING && tickerJob?.isActive != true) {
@@ -245,6 +247,7 @@ class StopwatchViewModel @Inject constructor(
                 editor.putLong("bootCount", bootCount)
             }
             editor.apply()
+            StopwatchNotifications.refresh(context)
         }
     }
 

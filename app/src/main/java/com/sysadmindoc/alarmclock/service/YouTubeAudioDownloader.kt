@@ -73,6 +73,10 @@ interface YouTubeAudioDownloader {
      */
     fun engineVersionName(): String? = null
 
+    /** Read-only release check. A failed check never means an update is available. */
+    suspend fun checkEngineRelease(): Result<YouTubeEngineRelease> =
+        Result.failure(UnsupportedOperationException("Release check not available in this build"))
+
     companion object {
         const val MIN_SAFE_VERSION = "2026.06.09"
     }

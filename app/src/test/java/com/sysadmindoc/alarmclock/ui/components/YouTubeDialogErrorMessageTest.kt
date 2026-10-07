@@ -12,6 +12,18 @@ import java.net.UnknownHostException
  */
 class YouTubeDialogErrorMessageTest {
 
+    @Test fun wrappedSearchNetworkErrorKeepsNetworkRecovery() {
+        assertEquals(R.string.youtube_error_no_connection,
+            youTubeDialogErrorMessage(IllegalStateException("Search failed",
+                UnknownHostException("youtube.com")), YouTubeDialogAction.Search))
+    }
+
+    @Test fun responseCode429IsReportedAsBlockedSearch() {
+        assertEquals(R.string.youtube_error_blocked,
+            youTubeDialogErrorMessage(IllegalStateException("response code 429"),
+                YouTubeDialogAction.Search))
+    }
+
     @Test
     fun networkErrorsUsePlainRecoveryCopy() {
         assertEquals(
