@@ -38,6 +38,22 @@ class DashboardTests(unittest.IsolatedAsyncioTestCase):
   p['sleep']['health']['sessions']*=51
   with self.assertRaises(server.HTTPException):dashboard.validate(p)
 
+class MoshiWireCompatibilityTests(unittest.TestCase):
+ def omit_nulls(self,value):
+  if isinstance(value,dict):return {k:self.omit_nulls(v) for k,v in value.items() if v is not None}
+  if isinstance(value,list):return [self.omit_nulls(v) for v in value]
+  return value
+ def test_mobile_default_null_omission_matches_explicit_null_snapshot(self):
+  p=fixture()
+  p['alarmDetails']=[{'cloudAlarmId':None,'label':'Alarm','nextTriggerTime':0,'canSkipNext':False,'lookbackDays':30,'fireCount':0,'avgSnoozesPerFire':0.0,'avgDismissTimeSec':0,'missedCount':0,'readiness':'NO_HARDWARE_REQUIRED','readinessMessage':None,'blocksSave':False}]
+  p['sleep']['correlations']=[{'key':'x','label':'x','loggedNights':0,'nightsWithSessions':0,'averageRestlessMinutes':None,'baselineRestlessMinutes':None,'deltaRestlessMinutes':None}]
+  self.assertEqual(dashboard.validate(self.omit_nulls(p)),dashboard.validate(p))
+ def test_omitted_required_nonnullable_and_unknown_fields_still_fail(self):
+  p=self.omit_nulls(fixture());del p['sleep']['health']['enabled']
+  with self.assertRaises(server.HTTPException):dashboard.validate(p)
+  p=self.omit_nulls(fixture());p['sleep']['noiseBaseline']['token']='bad'
+  with self.assertRaises(server.HTTPException):dashboard.validate(p)
+
 class PrivateStoreGuardTests(unittest.TestCase):
  def test_public_or_unverifiable_repo_blocks_sensitive_write(self):
   from unittest.mock import patch,MagicMock
