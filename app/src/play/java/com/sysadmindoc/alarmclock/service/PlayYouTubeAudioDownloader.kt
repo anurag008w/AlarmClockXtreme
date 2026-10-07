@@ -257,6 +257,7 @@ class PlayYouTubeAudioDownloader @Inject constructor(
         runCatching {
             require(isAvailable()) { "YouTube engine still warming up" }
             require(isLikelyYouTubeUrl(youtubeUrl)) { "Invalid YouTube URL" }
+            // Prefer Android-native AAC containers; use the same 60MB ceiling as Save.
             // Preview is a completed local low-bitrate file, not a signed CDN URL
             // handed to a second network stack. Bound disk use to four clips.
             val cache = java.io.File(context.cacheDir, "youtube-previews").apply { mkdirs() }
@@ -272,7 +273,7 @@ class PlayYouTubeAudioDownloader @Inject constructor(
             check(directory.mkdirs()) { "Could not create private preview folder" }
             try {
                 val request=YoutubeDLRequest(youtubeUrl).apply {
-                    addOption("-f", "worstaudio")
+                    addOption("-f", "worstaudio[ext=m4a]/worstaudio[ext=mp4]/worstaudio[ext=webm]/worstaudio[ext=ogg]/worstaudio[ext=opus]/worstaudio[ext=mp3]")
                     addOption("--no-playlist")
                     addOption("--ignore-config")
                     addOption("--socket-timeout", "20")
@@ -280,12 +281,13 @@ class PlayYouTubeAudioDownloader @Inject constructor(
                     addOption("--fragment-retries", "1")
                     addOption("--extractor-retries", "1")
                     addOption("--http-chunk-size", "1M")
-                    addOption("--max-filesize", "15M")
+                    addOption("--max-filesize", "60M")
                     addOption("--no-mtime")
+                    addOption("--fixup", "warn")
                     addOption("-o", java.io.File(directory, "audio.%(ext)s").absolutePath)
                 }
                 val response = YoutubeDL.getInstance().execute(request)
-                val audio = completedYouTubeAudio(directory, response.exitCode, response.out, response.err, 15L*1024*1024)
+                val audio = completedYouTubeAudio(directory, response.exitCode, response.out, response.err, MAX_BYTES)
                 previewCache[youtubeUrl]=CachedStream(audio.absolutePath,System.currentTimeMillis())
                 cache.listFiles()?.filter { it.isDirectory && it != directory }
                     ?.sortedByDescending { it.lastModified() }?.drop(3)?.forEach { it.deleteRecursively() }
@@ -391,6 +393,7 @@ class PlayYouTubeAudioDownloader @Inject constructor(
                     addOption("--http-chunk-size", "1M")
                     addOption("--max-filesize", "60M")
                     addOption("--no-mtime")
+                    addOption("--fixup", "warn")
                     addOption("-o", java.io.File(directory, "audio.%(ext)s").absolutePath)
                 }
                 val response = try {
