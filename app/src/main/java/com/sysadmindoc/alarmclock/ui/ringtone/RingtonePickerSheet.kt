@@ -613,8 +613,8 @@ private fun loadRingtones(context: Context): RingtoneLoadResult {
     try {
         val cursor = alarmManager.cursor
         while (cursor.moveToNext()) {
-            val title = cursor.getString(RingtoneManager.TITLE_COLUMN_INDEX)
             val uri = alarmManager.getRingtoneUri(cursor.position).toString()
+            val title = resolvedRingtoneTitle(context, uri, cursor.getString(RingtoneManager.TITLE_COLUMN_INDEX))
             ringtones += RingtoneItem(title = title, uri = uri)
         }
     } catch (_: Exception) {
@@ -630,8 +630,8 @@ private fun loadRingtones(context: Context): RingtoneLoadResult {
     try {
         val cursor = notificationManager.cursor
         while (cursor.moveToNext()) {
-            val title = cursor.getString(RingtoneManager.TITLE_COLUMN_INDEX)
             val uri = notificationManager.getRingtoneUri(cursor.position).toString()
+            val title = resolvedRingtoneTitle(context, uri, cursor.getString(RingtoneManager.TITLE_COLUMN_INDEX))
             if (ringtones.none { it.uri == uri }) {
                 ringtones += RingtoneItem(
                     title = context.getString(R.string.ringtone_notification_item, title),
@@ -651,3 +651,15 @@ private fun loadRingtones(context: Context): RingtoneLoadResult {
 // v1.7.1: The YouTube download dialog and its Hilt entry point moved to
 // ui/components/YouTubeDownloadDialog.kt so the prominent entry on the
 // Alarms screen and this picker can share one implementation.
+
+/** Read-only fallback for media created before TITLE was populated. */
+private fun resolvedRingtoneTitle(context: Context, uri: String, title: String?): String {
+    if (!title.isNullOrBlank()) return title.trim()
+    val displayName = runCatching {
+        context.contentResolver.query(android.net.Uri.parse(uri),
+            arrayOf(android.provider.MediaStore.Audio.Media.DISPLAY_NAME), null, null, null)?.use {
+            if (it.moveToFirst()) it.getString(0) else null
+        }
+    }.getOrNull()
+    return audioDisplayName(title, displayName, context.getString(R.string.youtube_fallback_sound_name))
+}
