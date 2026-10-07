@@ -106,23 +106,6 @@ async function loadPhoneDashboard(){
 }
 $('refreshAlarmCommands').onclick=async()=>{const device=$('dashboardDevice').value;const token=state.token;if(!device)return;try{const data=await api('/api/utilities/'+encodeURIComponent(device));if(state.token!==token||$('dashboardDevice').value!==device)return;$('alarmCommandStatus').textContent=data.items.filter(r=>r.command?.kind==='alarm').slice(-10).map(r=>`${r.command.commandId}: ${r.status} ${r.result||''}`).join(' · ')||'No alarm commands yet';}catch(error){$('alarmCommandStatus').textContent=error.message;}};
 $('dashboardDevice').onchange=()=>{['phoneStats','phoneAlarmDetails','alarmCommandStatus','phoneHistory','phoneToday','phoneSleep'].forEach(id=>$(id).textContent='');loadPhoneDashboard();};$('dashboardRefresh').onclick=loadPhoneDashboard;
-document.querySelector('[data-tab=today]').addEventListener('click',async()=>{
- const token=state.token;
- try {
-  if (!$('dashboardDevice').value) {
-   const data=await api('/api/utilities/devices');
-   if (state.token!==token) return;
-   const devices=data.devices.filter(d=>d.platform==='android');
-   $('dashboardDevice').innerHTML='<option value="">Choose phone</option>'+devices.map(d=>`<option value="${escapeAttr(d.id)}">${escapeHtml(d.id)} (${escapeHtml(d.appVersion||'unknown')})</option>`).join('');
-   if (devices.length!==1) {
-    $('phoneToday').textContent=devices.length?'Choose a phone in Stats to use its saved city.':'No Android phone registered. Sync the app first.';
-    return;
-   }
-   $('dashboardDevice').value=devices[0].id;
-  }
-  await loadPhoneDashboard();
- } catch(e) { $('phoneToday').textContent='Phone snapshot unavailable: '+e.message; }
-});
 
 function renderPhoneSleep(sleep,notice){
  if(!sleep){$('phoneSleep').textContent='No sleep snapshot. Sync an updated phone first.';return;}
