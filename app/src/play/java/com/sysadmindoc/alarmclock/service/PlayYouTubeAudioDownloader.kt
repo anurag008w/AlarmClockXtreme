@@ -255,46 +255,52 @@ class PlayYouTubeAudioDownloader @Inject constructor(
 
     override suspend fun getPreviewStreamUrl(youtubeUrl: String): Result<String> = withContext(Dispatchers.IO) {
         runCatching {
-            require(isAvailable()) {
-                "YouTube engine still warming up — try again in a moment."
-            }
-            require(isLikelyYouTubeUrl(youtubeUrl)) {
-                "That doesn't look like a YouTube URL."
-            }
-            // Session cache hit?
-            previewCache[youtubeUrl]?.let { cached ->
-                if (System.currentTimeMillis() - cached.cachedAtMs < PREVIEW_TTL_MS) {
-                    return@runCatching cached.url
+            require(isAvailable()) { "YouTube engine still warming up" }
+            require(isLikelyYouTubeUrl(youtubeUrl)) { "Invalid YouTube URL" }
+            // Preview is a completed local low-bitrate file, not a signed CDN URL
+            // handed to a second network stack. Bound disk use to four clips.
+            val cache = java.io.File(context.cacheDir, "youtube-previews").apply { mkdirs() }
+            synchronized(previewCache) {
+                previewCache[youtubeUrl]?.let { cached ->
+                    val file = java.io.File(cached.url)
+                    if(file.isFile && System.currentTimeMillis()-cached.cachedAtMs < PREVIEW_TTL_MS)
+                        return@runCatching file.absolutePath
+                    previewCache.remove(youtubeUrl)
                 }
-                previewCache.remove(youtubeUrl)
             }
-            // worstaudio = fastest to resolve, smallest to buffer; perfect for preview.
-            // CVE-2026-26331 affects callers that enable yt-dlp's --netrc-cmd
-            // option. ACX never exposes arbitrary yt-dlp options and only adds
-            // this fixed allow-list after validating a whitespace-free YouTube URL.
-            val request = YoutubeDLRequest(youtubeUrl).apply {
-                addOption("-f", "worstaudio")
-                addOption("--get-url")
-                addOption("--socket-timeout", "20")
-            }
-            val response = try { YoutubeDL.getInstance().execute(request) } catch(e: Exception) {
-                if(e is CancellationException) throw e
-                YouTubeFailureDiagnostics.record(context, "stream-resolve", e)
+            val directory=java.io.File(cache, java.util.UUID.randomUUID().toString())
+            check(directory.mkdirs()) { "Could not create private preview folder" }
+            try {
+                val request=YoutubeDLRequest(youtubeUrl).apply {
+                    addOption("-f", "worstaudio")
+                    addOption("--no-playlist")
+                    addOption("--ignore-config")
+                    addOption("--socket-timeout", "20")
+                    addOption("--retries", "2")
+                    addOption("--fragment-retries", "1")
+                    addOption("--extractor-retries", "1")
+                    addOption("--http-chunk-size", "1M")
+                    addOption("--max-filesize", "15M")
+                    addOption("--no-mtime")
+                    addOption("-o", java.io.File(directory, "audio.%(ext)s").absolutePath)
+                }
+                YoutubeDL.getInstance().execute(request)
+                val audio=directory.listFiles()?.singleOrNull {
+                    it.isFile && it.extension.lowercase(Locale.ROOT) in setOf("webm","m4a","mp3","ogg","opus")
+                } ?: throw java.io.IOException("Native preview produced no complete audio file")
+                require(audio.length() in 1..(15L*1024*1024)) { "Preview file is empty or too large" }
+                previewCache[youtubeUrl]=CachedStream(audio.absolutePath,System.currentTimeMillis())
+                cache.listFiles()?.filter { it.isDirectory && it != directory }
+                    ?.sortedByDescending { it.lastModified() }?.drop(3)?.forEach { it.deleteRecursively() }
+                audio.absolutePath
+            } catch(e: Exception) {
+                directory.deleteRecursively()
                 throw e
             }
-            val streamUrl = response.out
-                ?.trim()
-                ?.lines()
-                ?.firstOrNull { it.startsWith("http") }
-                ?.takeIf { it.isNotBlank() }
-                ?: throw IllegalStateException(
-                    "Couldn't get a preview stream. The video may be age-restricted, removed, or region-locked."
-                )
-            previewCache[youtubeUrl] = CachedStream(streamUrl, System.currentTimeMillis())
-            streamUrl
         }.recoverCatching { e ->
-            if (e is CancellationException) throw e
-            Log.w(TAG, "preview-url failed for $youtubeUrl", e)
+            if(e is CancellationException) throw e
+            YouTubeFailureDiagnostics.record(context,"native-preview",e)
+            Log.w(TAG,"preview failed",e)
             throw e
         }
     }
