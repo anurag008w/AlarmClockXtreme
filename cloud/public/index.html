@@ -11,19 +11,19 @@
 <body>
   <div id="authView" class="shell center">
     <section class="card auth-card">
-      <div class="eyebrow">ALARMCLOCKXTREME</div>
-      <h1>your alarms, everywhere</h1>
-      <p class="muted">sign in from the web and control the native Android alarm app</p>
+      <div class="auth-brand"><span class="brand-clock" aria-hidden="true"></span><div><div class="eyebrow">ALARMCLOCKXTREME</div><div class="brand-subtitle">Cloud companion</div></div></div>
+      <h1>Your alarms.<br>Your rhythm.</h1>
+      <p class="muted">A familiar place for your alarms, timers and daily routine. Connected to your Android app.</p>
       <div class="auth-tabs">
         <button id="loginTab" class="tab active" type="button">login</button>
         <button id="registerTab" class="tab" type="button">create account</button>
       </div>
       <form id="authForm">
-        <input id="email" type="email" autocomplete="email" placeholder="email" required>
-        <input id="password" type="password" autocomplete="current-password" placeholder="password (8+ chars)" required>
+        <label for="email">Email</label><input id="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+        <label for="password">Password</label><input id="password" type="password" autocomplete="current-password" placeholder="At least 8 characters" required>
         <button class="primary" type="submit"><span id="authAction">login</span></button>
       </form>
-      <div id="authError" class="error"></div>
+      <div id="authError" class="error" role="status"></div><p class="auth-note muted">Ringing and device permissions stay on your phone.</p>
     </section>
   </div>
 
@@ -51,18 +51,18 @@
         </div>
       </section>
 
-      <nav class="nav">
-        <button class="nav-btn" data-tab="today" type="button">today</button>
-        <button class="nav-btn active" data-tab="alarms" type="button">alarms</button>
-        <button class="nav-btn" data-tab="timer" type="button">timer</button>
-        <button class="nav-btn" data-tab="stopwatch" type="button">stopwatch</button>
-        <button class="nav-btn" data-tab="world" type="button">world clocks</button>
-        <button class="nav-btn" data-tab="stats" type="button">stats</button>
-        <button class="nav-btn" data-tab="news" type="button">news</button>
-        <button class="nav-btn" data-tab="bedtime" type="button">bedtime</button>
-        <button class="nav-btn" data-tab="ai" type="button">ai assistant</button>
-        <button class="nav-btn" data-tab="settings" type="button">settings</button>
-        <button class="nav-btn" data-tab="activity" type="button">activity</button>
+      <nav class="nav" aria-label="App sections">
+        <button class="nav-btn" data-tab="today" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v15H4zM8 3v4m8-4v4M4 10h16"/></svg><span>Today</span></button>
+        <button class="nav-btn active" data-tab="alarms" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="m12 8 0 5 3 2M3 5l3-3m15 3-3-3M6 20l-2 2m14-2 2 2"/></svg><span>Alarms</span></button>
+        <button class="nav-btn" data-tab="timer" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="14" r="8"/><path d="M9 2h6m-3 0v4m0 4v4l3-2m4-7 2 2"/></svg><span>Timer</span></button>
+        <button class="nav-btn" data-tab="stopwatch" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="14" r="8"/><path d="M9 2h6m-3 0v4m0 4v5m7-10 2 2"/></svg><span>Stopwatch</span></button>
+        <button class="nav-btn" data-tab="world" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c5 5 5 13 0 18-5-5-5-13 0-18Z"/></svg><span>World clocks</span></button>
+        <button class="nav-btn" data-tab="stats" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M7 16V9m5 7V4m5 12v-5"/></svg><span>Stats</span></button>
+        <button class="nav-btn" data-tab="news" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h15v17H5zM2 7v13h3M8 7h9M8 11h9M8 15h5"/></svg><span>News</span></button>
+        <button class="nav-btn" data-tab="bedtime" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15A9 9 0 0 1 9 4a9 9 0 1 0 11 11Z"/></svg><span>Bedtime</span></button>
+        <button class="nav-btn" data-tab="ai" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5Z"/></svg><span>AI assistant</span></button>
+        <button class="nav-btn" data-tab="settings" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="8" cy="7" r="3"/><circle cx="16" cy="17" r="3"/></svg><span>Settings</span></button>
+        <button class="nav-btn" data-tab="activity" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg><span>Activity</span></button>
       </nav>
 
       <section id="tab-today" class="tab-panel">
@@ -83,25 +83,25 @@
           <input id="alarmSearch" type="search" placeholder="Search alarms or groups" aria-label="Search alarms">
           <select id="alarmSort" aria-label="Sort alarms"><option value="time">By time</option><option value="manual">Manual order</option><option value="label">By label</option></select>
         </div>
-        <div class="row wrap"><button id="loadAlarmTemplates" class="secondary" type="button">Load Android templates</button><select id="alarmTemplatePicker" aria-label="Alarm template"></select><button id="draftAlarmTemplate" class="secondary" type="button">Open template draft</button></div>
+        <div class="row wrap template-tools"><button id="loadAlarmTemplates" class="secondary" type="button">Load Android templates</button><select id="alarmTemplatePicker" aria-label="Alarm template"></select><button id="draftAlarmTemplate" class="secondary" type="button">Open template draft</button></div>
         <div class="row quick-alarms"><span class="muted">Quick alarm</span><button data-quick="10" class="secondary" type="button">10 min</button><button data-quick="20" class="secondary" type="button">20 min</button><button data-quick="30" class="secondary" type="button">30 min</button></div>
-        <div class="card"><h3>Selected alarms</h3><div class="row wrap"><button id="batchEnable" class="secondary" type="button">Enable selected</button><button id="batchDisable" class="secondary" type="button">Disable selected</button><button id="batchDelete" class="danger" type="button">Delete selected</button><button id="batchClear" class="ghost" type="button">Clear selection</button></div><p id="batchStatus" class="muted" role="status"></p></div>
+        <div class="card selection-tools"><h3>Selected alarms</h3><div class="row wrap"><button id="batchEnable" class="secondary" type="button">Enable selected</button><button id="batchDisable" class="secondary" type="button">Disable selected</button><button id="batchDelete" class="danger" type="button">Delete selected</button><button id="batchClear" class="ghost" type="button">Clear selection</button></div><p id="batchStatus" class="muted" role="status"></p></div>
         <div id="alarmList" class="grid"></div>
       </section>
 
       <section id="tab-timer" class="tab-panel">
-        <div class="card"><h3>Phone timers</h3><p class="muted">Choose a registered phone. Keep the updated app open for remote controls (checks every 30 seconds). Background sync can take 15 minutes or longer; commands expire after 2 minutes if the phone is unavailable. Pending means queued, not running. Snapshots can be stale.</p>
+        <div class="card phone-controls"><h3>Phone timers</h3><p class="muted">Choose a registered phone. Keep the updated app open for remote controls (checks every 30 seconds). Background sync can take 15 minutes or longer; commands expire after 2 minutes if the phone is unavailable. Pending means queued, not running. Snapshots can be stale.</p>
         <button type="button" class="btn secondary" id="loadUtilityDevices">Load phones</button><select id="utilityDevice"></select>
-        <input id="phoneTimerSeconds" type="number" min="1" max="86400" value="60" aria-label="Phone timer seconds">
-        <input id="phoneTimerLabel" maxlength="120" placeholder="Label" aria-label="Phone timer label">
+        <label class="utility-field" for="phoneTimerSeconds">Duration in seconds</label><input id="phoneTimerSeconds" type="number" min="1" max="86400" value="60" aria-label="Phone timer seconds">
+        <label class="utility-field" for="phoneTimerLabel">Timer label</label><input id="phoneTimerLabel" maxlength="120" placeholder="Label" aria-label="Phone timer label">
         <button type="button" class="btn secondary" id="startPhoneTimer">Start on phone</button><button type="button" class="btn secondary" id="refreshPhoneTimers">Refresh phone status</button>
         <p id="phoneUtilityStatus" class="muted"></p><div id="phoneTimerList"></div></div>
         <div class="card utility">
           <h2>Browser timer (local only)</h2>
-          <div id="timerDisplay" class="utility-display">00:05:00</div>
+          <div id="timerDisplay" class="utility-display" aria-live="off">00:05:00</div>
           <div class="row">
-            <input id="timerMinutes" type="number" min="0" max="999" value="5" placeholder="minutes">
-            <input id="timerSeconds" type="number" min="0" max="59" value="0" placeholder="seconds">
+            <label class="timer-unit">Minutes<input id="timerMinutes" aria-label="Browser timer minutes" type="number" min="0" max="999" value="5" placeholder="minutes"></label>
+            <label class="timer-unit">Seconds<input id="timerSeconds" aria-label="Browser timer seconds" type="number" min="0" max="59" value="0" placeholder="seconds"></label>
           </div>
           <div class="row">
             <button id="timerStart" class="primary" type="button">start</button>
@@ -112,7 +112,7 @@
       </section>
 
       <section id="tab-stopwatch" class="tab-panel">
-        <div class="card"><h3>Phone stopwatch</h3><p class="muted">Use the phone selected in Timer. Pending means queued. Reset deletes the phone run and laps.</p>
+        <div class="card phone-controls"><h3>Phone stopwatch</h3><p class="muted">Use the phone selected in Timer. Pending means queued. Reset deletes the phone run and laps.</p>
         <div id="phoneStopwatchDisplay">No phone snapshot loaded</div>
         <div class="row wrap"><button class="btn secondary" type="button" data-phone-stopwatch="start">start</button><button class="btn secondary" type="button" data-phone-stopwatch="pause">pause</button><button class="btn secondary" type="button" data-phone-stopwatch="resume">resume</button><button class="btn secondary" type="button" data-phone-stopwatch="lap">lap</button><button class="btn secondary" type="button" data-phone-stopwatch="reset">reset</button></div>
         <p id="phoneStopwatchStatus" class="muted"></p></div>
