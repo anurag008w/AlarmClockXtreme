@@ -54,6 +54,7 @@ class StopwatchViewModel @Inject constructor(
     init {
         prefs.registerOnSharedPreferenceChangeListener(prefsListener)
         restore()
+        StopwatchNotifications.refresh(context)
         viewModelScope.launch {
             _uiState.subscriptionCount.collect { count ->
                 if (count > 0 && _uiState.value.state == StopwatchState.RUNNING && tickerJob?.isActive != true) {
@@ -246,6 +247,7 @@ class StopwatchViewModel @Inject constructor(
                 editor.putLong("bootCount", bootCount)
             }
             editor.apply()
+            StopwatchNotifications.refresh(context)
         }
     }
 
