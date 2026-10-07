@@ -201,6 +201,9 @@ fun YouTubeDownloadDialog(
     val updatingEngine by downloadViewModel.updatingEngine.collectAsStateWithLifecycle()
     val engineVersion by downloadViewModel.engineVersion.collectAsStateWithLifecycle()
     val engineUpdate by downloadViewModel.engineUpdate.collectAsStateWithLifecycle()
+    val engineRelease by downloadViewModel.engineRelease.collectAsStateWithLifecycle()
+    val checkingEngine by downloadViewModel.checkingEngine.collectAsStateWithLifecycle()
+    LaunchedEffect(downloadViewModel) { downloadViewModel.checkEngineRelease() }
     val downloadingTemplate = stringResource(R.string.youtube_downloading)
     val downloadingMessage = { title: String -> downloadingTemplate.format(title) }
     val fallbackSoundName = stringResource(R.string.youtube_fallback_sound_name)
@@ -337,6 +340,8 @@ fun YouTubeDownloadDialog(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 EngineUpdatePanel(
                     versionName = engineVersion,
+                    release = engineRelease,
+                    checking = checkingEngine,
                     updating = updatingEngine,
                     enabled = !inFlight && !searching,
                     onUpdate = {
@@ -482,6 +487,8 @@ fun YouTubeDownloadDialog(
 @Composable
 private fun EngineUpdatePanel(
     versionName: String?,
+    release: com.sysadmindoc.alarmclock.service.YouTubeEngineRelease?,
+    checking: Boolean,
     updating: Boolean,
     enabled: Boolean,
     onUpdate: () -> Unit,
@@ -506,14 +513,20 @@ private fun EngineUpdatePanel(
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                text = versionName
-                    ?.let { "yt-dlp $it. Update only if YouTube search or downloads stop working." }
-                    ?: stringResource(R.string.components_update_yt_dlp_only_if_youtube),
+                text = when {
+                    checking -> stringResource(R.string.youtube_engine_checking)
+                    release?.updateAvailable == true -> stringResource(
+                        R.string.youtube_engine_update_available, release.latestVersion)
+                    release != null && release.currentVersion != null -> stringResource(
+                        R.string.youtube_engine_current, release.currentVersion)
+                    else -> stringResource(R.string.youtube_engine_check_unavailable,
+                        versionName?.removePrefix("yt-dlp ") ?: "unknown")
+                },
                 color = TextSecondary,
                 style = MaterialTheme.typography.bodySmall
             )
         }
-        TextButton(
+        if (release?.updateAvailable == true || updating) TextButton(
             onClick = onUpdate,
             enabled = enabled && !updating
         ) {
@@ -824,21 +837,27 @@ internal fun youTubeDialogErrorMessage(
     error: Throwable,
     action: YouTubeDialogAction
 ): Int {
-    val message = error.message.orEmpty()
+    val causes = generateSequence(error) { it.cause }.take(8).toList()
+    val message = causes.joinToString(" ") { it.message.orEmpty() }
+
     return when {
         message.contains("not available in this build", ignoreCase = true) ->
             R.string.youtube_error_unavailable_build
-        error is UnknownHostException ->
+        causes.any { it is UnknownHostException } ->
             R.string.youtube_error_no_connection
-        error is SocketTimeoutException ->
+        causes.any { it is SocketTimeoutException } ->
             R.string.youtube_error_timeout
-        error is SSLException ->
+        causes.any { it is SSLException } ->
             R.string.youtube_error_tls
-        message.contains("HTTP 403") || message.contains("HTTP 429") ->
+        message.contains("403") || message.contains("429") ||
+            message.contains("confirm you’re not a bot", ignoreCase = true) ||
+            message.contains("confirm you're not a bot", ignoreCase = true) ||
+            message.contains("captcha", ignoreCase = true) ->
             R.string.youtube_error_blocked
-        message.contains("HTTP", ignoreCase = true) ->
+        message.contains("HTTP", ignoreCase = true) && action != YouTubeDialogAction.Search ->
             R.string.youtube_error_no_audio_stream
-        message.contains("extractor", ignoreCase = true) ||
+        message.contains("ParsingException", ignoreCase = true) ||
+            message.contains("extractor", ignoreCase = true) ||
             message.contains("signature", ignoreCase = true) ||
             message.contains("player response", ignoreCase = true) ->
             R.string.youtube_error_extractor
