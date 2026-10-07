@@ -11,6 +11,7 @@ import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
@@ -48,11 +49,12 @@ class StopwatchLapLayoutTest {
                 }
             }
         }
-        compose.onNodeWithText(String.format(java.util.Locale.ROOT, "%02d", count)).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("stopwatch-lap-history").performScrollTo()
         val dir = File("build/reports/stopwatch-layout").apply { mkdirs() }
         File(dir, "${count}-laps.png").outputStream().use {
             compose.onRoot().captureToImage().asAndroidBitmap().compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it)
         }
+        compose.onNodeWithText(String.format(java.util.Locale.ROOT, "%02d", count)).assertIsDisplayed()
     }
 
     @Test fun oneLapIsVisibleOnSmallScreen() = verifyLaps(1)
