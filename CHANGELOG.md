@@ -2,6 +2,11 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.16.0]
+
+- FCM background sync: the cloud server now wakes the phone the moment an alarm, setting or utility command changes, so web edits reach the phone in seconds without opening the app. Play build only; F-Droid keeps polling. Software tests passed; physical-device verification pending.
+- Release: v1.16.0 (versionCode 155).
+
 ## [1.15.52]
 
 - Preview prefers Android-compatible AAC audio, accepts audio MP4 and uses the same bounded60MBlimit as Save. Detect zero-exit size skips, nonzero engine exit and missing/partial/ambiguous output; retain redacted result counts without raw engine logs. New YouTube saves populate media TITLE from entered name or actual video-title fallback; old nameless picker rows use filename without rewriting media or alarms. Automated722F-Droid/736Play tests pass; API28native sound-row PNG checked. UserconfirmedSaveworkingonv1.15.51;Previewandnewnamesstillneedphysicalphoneconfirmation. Existingalarmsandwebunchanged.
