@@ -807,7 +807,7 @@ $("timerReset").onclick = () => {
 };
 renderTimer();
 
-let sw = { running:false, started:0, elapsed:0, lapStarted:0, lapCount:0 };
+let sw = { running:false, started:0, elapsed:0, lapStarted:0, lapCount:0, laps:[] };
 function stopwatchTime(ms) {
   const cs = Math.floor(Math.max(0, ms) / 10), s = Math.floor(cs/100)%60, m = Math.floor(cs/6000);
   return `${String(Math.floor(m/60)).padStart(2,"0")}:${String(m%60).padStart(2,"0")}:${String(s).padStart(2,"0")}.${String(cs%100).padStart(2,"0")}`;
@@ -828,15 +828,30 @@ $("swStart").onclick = () => {
 $("swLap").onclick = () => {
   if (!sw.running) return;
   renderStopwatch();
-  const item = document.createElement("div");
-  item.className = "list-item";
-  item.textContent = `Lap ${++sw.lapCount} · split ${stopwatchTime(sw.elapsed - sw.lapStarted)} · total ${stopwatchTime(sw.elapsed)}`;
-  $("laps").prepend(item);
+  sw.laps.unshift({number:++sw.lapCount, split:sw.elapsed-sw.lapStarted, total:sw.elapsed});
+  renderStopwatchLaps();
   sw.lapStarted = sw.elapsed;
   renderStopwatch();
 };
+function renderStopwatchLaps() {
+  const best = Math.min(...sw.laps.map(lap=>lap.split));
+  const slowest = Math.max(...sw.laps.map(lap=>lap.split));
+  $("laps").replaceChildren(...sw.laps.map(lap => {
+    const item = document.createElement("div");
+    item.className = "list-item";
+    const ranked = sw.laps.length >= 3 && best !== slowest;
+    const label = ranked && lap.split===best ? "Best split" : ranked && lap.split===slowest ? "Slowest split" : "Split";
+    if (label==="Best split") { item.style.color="var(--success,#73d7ac)"; item.style.borderColor="var(--success,#73d7ac)"; }
+    if (label==="Slowest split") { item.style.color="var(--danger,#ff7f8c)"; item.style.borderColor="var(--danger,#ff7f8c)"; }
+    const title=document.createElement("strong");title.textContent=`Lap ${lap.number}`;
+    const split=document.createElement("div");split.textContent=`${label} · ${stopwatchTime(lap.split)}`;
+    const total=document.createElement("div");total.textContent=`Total · ${stopwatchTime(lap.total)}`;
+    item.append(title,split,total);
+    return item;
+  }));
+}
 $("swReset").onclick = () => {
-  sw = { running:false, started:0, elapsed:0, lapStarted:0, lapCount:0 };
+  sw = { running:false, started:0, elapsed:0, lapStarted:0, lapCount:0, laps:[] };
   $("swStart").textContent = "start";
   $("laps").innerHTML = "";
   renderStopwatch();
