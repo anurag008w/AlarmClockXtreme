@@ -352,7 +352,8 @@ class PlayYouTubeAudioDownloader @Inject constructor(
             }
         }.recoverCatching { e ->
             if (e is CancellationException) throw e
-            Log.w(TAG, "search failed: $query", e)
+            YouTubeFailureDiagnostics.record(context, "search", e)
+            Log.w(TAG, "search failed", e)
             throw e
         }
     }
@@ -409,7 +410,7 @@ class PlayYouTubeAudioDownloader @Inject constructor(
      * `Environment.DIRECTORY_ALARMS` with `IS_ALARM=1`, then flips
      * `IS_PENDING=0` so the system clock app + RingtoneManager pick it up.
      *
-     * Returns the saved display name on success; `null` on any failure.
+     * Returns the saved display name; throws the actual failure after cleanup.
      * Mirrors `SoundApplier.saveUrlToMediaStore` in the Aura codebase but
      * inlined and locked to ContentType.ALARM.
      */
