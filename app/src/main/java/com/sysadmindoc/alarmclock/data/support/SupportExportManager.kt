@@ -153,7 +153,6 @@ class SupportExportManager @Inject constructor(
             )
             zip.writeTextEntry(
                 "diagnostics.txt",
-            "youtube_failures_redacted.txt",
                 SupportDiagnosticsFormatter.diagnosticsText(
                     generatedAt = generatedAt,
                     appVersion = BuildConfig.VERSION_NAME,
