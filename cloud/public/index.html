@@ -118,7 +118,10 @@
         <p id="phoneStopwatchStatus" class="muted"></p></div>
         <div class="card utility">
           <h2>Browser stopwatch (local only)</h2>
+          <p class="muted">Total elapsed</p>
           <div id="stopwatchDisplay" class="utility-display">00:00:00.00</div>
+          <p id="stopwatchLapLabel" class="muted">Current lap 1</p>
+          <div id="stopwatchSplit" class="utility-display" style="font-size:clamp(24px,5vw,40px)">00:00:00.00</div>
           <div class="row">
             <button id="swStart" class="primary" type="button">start</button>
             <button id="swLap" class="secondary" type="button">lap</button>
@@ -212,7 +215,7 @@
   </dialog>
 
   <script src="/settings.js"></script>
-  <script src="/app.js"></script>
+  <script src="/app.js?v=live-split-1"></script>
   <script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(()=>{});</script>
 <script src="/sections.js"></script>
   <script src="/utilities.js"></script>
