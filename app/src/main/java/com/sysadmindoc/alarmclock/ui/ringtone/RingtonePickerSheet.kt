@@ -459,7 +459,7 @@ fun RingtonePickerSheet(
 }
 
 @Composable
-private fun RingtoneRow(
+internal fun RingtoneRow(
     ringtone: RingtoneItem,
     isSelected: Boolean,
     isPlaying: Boolean,
