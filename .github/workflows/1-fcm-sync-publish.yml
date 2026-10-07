@@ -54,15 +54,42 @@ jobs:
           chmod +x gradlew
           ./gradlew resolveDependencyIntegrity :app:lintVitalAnalyzePlayRelease :app:lintVitalAnalyzeFdroidRelease :wear:lintVitalAnalyzeRelease :app:testPlayDebugUnitTest :app:testFdroidDebugUnitTest :wear:testDebugUnitTest --write-locks --write-verification-metadata sha256 --no-daemon --console=plain
           git diff --stat -- gradle/verification-metadata.xml app/gradle.lockfile wear/gradle.lockfile || true
-          removed=$(git diff --numstat -- gradle/verification-metadata.xml app/gradle.lockfile wear/gradle.lockfile | awk '{r+=$2} END{print r+0}')
-          echo "removed lines in lock/verification files: $removed"
-          if [ "$removed" -gt 2 ]; then
-            echo "=== removed lines (diagnostic) ==="
-            git diff -U0 -- gradle/verification-metadata.xml app/gradle.lockfile wear/gradle.lockfile | grep -E '^-[^-]' | head -70
-            echo "=== added lines sample ==="
-            git diff -U0 -- gradle/verification-metadata.xml app/gradle.lockfile wear/gradle.lockfile | grep -E '^\+[^+]' | head -30
-            exit 1
-          fi
+          git diff --stat -- gradle/verification-metadata.xml app/gradle.lockfile wear/gradle.lockfile || true
+          python3 - <<'PY'
+          import re,subprocess,sys
+          import xml.etree.ElementTree as ET
+          def show(p):
+              return subprocess.run(['git','show','HEAD:'+p],capture_output=True,text=True,check=True).stdout
+          bad=[]
+          # 1. verification-metadata: an artifact present before and after must keep the exact same sha256 set.
+          def load(txt):
+              root=ET.fromstring(re.sub(r'xmlns="[^"]+"','',txt,count=1))
+              d={}
+              for c in root.iter('component'):
+                  for a in c.iter('artifact'):
+                      d.setdefault((c.get('group'),c.get('name'),c.get('version'),a.get('name')),set()).update(s.get('value') for s in a.iter('sha256'))
+              return d
+          old=load(show('gradle/verification-metadata.xml')); new=load(open('gradle/verification-metadata.xml').read())
+          changed=[k for k in old if k in new and old[k]!=new[k]]
+          dropped=[k for k in old if k not in new]
+          added=[k for k in new if k not in old]
+          print('verification: artifacts old=%d new=%d dropped=%d added=%d hash-changed=%d'%(len(old),len(new),len(dropped),len(added),len(changed)))
+          for k in changed[:20]: print('HASH CHANGED',k,old[k],new[k])
+          if changed: bad.append('hash changed for existing artifact')
+          # 2. lockfiles: a removed coordinate is fine only when the same group:artifact remains at another version.
+          for p in ('app/gradle.lockfile','wear/gradle.lockfile'):
+              o=[l.split('=')[0] for l in show(p).splitlines() if l and not l.startswith('#') and ':' in l]
+              n=[l.split('=')[0] for l in open(p).read().splitlines() if l and not l.startswith('#') and ':' in l]
+              ga=lambda c:c.rsplit(':',1)[0]
+              nga={ga(c) for c in n}
+              gone=[c for c in o if c not in n and ga(c) not in nga]
+              print(p,'removed coords',len([c for c in o if c not in n]),'artifacts fully gone',len(gone))
+              for c in gone[:40]: print('GONE',c)
+              if gone: bad.append(p+': artifact dropped entirely')
+          if bad:
+              print('GUARD FAIL',bad); sys.exit(1)
+          print('guard ok: only version upgrades and additions, no existing checksum changed')
+          PY
       - name: Verify with checksum verification enforced (play and F-Droid, release graphs)
         run: ./gradlew verifyDependencyIntegrity :app:testPlayDebugUnitTest :app:testFdroidDebugUnitTest --no-daemon --console=plain
       - name: Show failing test messages
