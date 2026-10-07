@@ -490,7 +490,7 @@ fun YouTubeDownloadDialog(
                         stopPreview()
                         val labelGuess = name.ifBlank { url.substringAfter("v=").substringBefore('&').take(11) }
                         setStatus(downloadingMessage(labelGuess.ifBlank { fallbackSoundName }))
-                        startDownload(url.trim(), labelGuess)
+                        startDownload(url.trim(), name.trim())
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(10.dp)
