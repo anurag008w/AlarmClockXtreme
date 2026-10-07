@@ -284,11 +284,8 @@ class PlayYouTubeAudioDownloader @Inject constructor(
                     addOption("--no-mtime")
                     addOption("-o", java.io.File(directory, "audio.%(ext)s").absolutePath)
                 }
-                YoutubeDL.getInstance().execute(request)
-                val audio=directory.listFiles()?.singleOrNull {
-                    it.isFile && it.extension.lowercase(Locale.ROOT) in setOf("webm","m4a","mp3","ogg","opus")
-                } ?: throw java.io.IOException("Native preview produced no complete audio file")
-                require(audio.length() in 1..(15L*1024*1024)) { "Preview file is empty or too large" }
+                val response = YoutubeDL.getInstance().execute(request)
+                val audio = completedYouTubeAudio(directory, response.exitCode, response.out, response.err, 15L*1024*1024)
                 previewCache[youtubeUrl]=CachedStream(audio.absolutePath,System.currentTimeMillis())
                 cache.listFiles()?.filter { it.isDirectory && it != directory }
                     ?.sortedByDescending { it.lastModified() }?.drop(3)?.forEach { it.deleteRecursively() }
@@ -396,17 +393,14 @@ class PlayYouTubeAudioDownloader @Inject constructor(
                     addOption("--no-mtime")
                     addOption("-o", java.io.File(directory, "audio.%(ext)s").absolutePath)
                 }
-                try {
+                val response = try {
                     YoutubeDL.getInstance().execute(request)
                 } catch(e: Exception) {
                     if(e is CancellationException) throw e
                     YouTubeFailureDiagnostics.record(context, "native-download", e)
                     throw e
                 }
-                val audio = directory.listFiles()?.singleOrNull {
-                    it.isFile && it.extension.lowercase(Locale.ROOT) in setOf("webm", "m4a", "mp3", "ogg", "opus")
-                } ?: throw java.io.IOException("Native download produced no complete audio file")
-                require(audio.length() in 1..MAX_BYTES) { "Audio file is empty or too large" }
+                val audio = completedYouTubeAudio(directory, response.exitCode, response.out, response.err, MAX_BYTES)
                 val safeName = sanitizeName(displayName).ifBlank { "youtube-alarm-${System.currentTimeMillis()}" }
                 saveFileAsAlarm(audio, safeName)
             } finally {
@@ -441,7 +435,7 @@ class PlayYouTubeAudioDownloader @Inject constructor(
         val extension = audio.extension.lowercase(Locale.ROOT)
         val mime = when(extension) {
             "webm" -> "audio/webm"
-            "m4a" -> "audio/mp4"
+            "m4a", "mp4" -> "audio/mp4"
             "mp3" -> "audio/mpeg"
             "ogg", "opus" -> "audio/ogg"
             else -> throw java.io.IOException("Unsupported audio container")
