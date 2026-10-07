@@ -89,6 +89,7 @@ async function loadPhoneDashboard(){
   $('dashboardStatus').textContent=notice;
   $('phoneToday').innerHTML=`<p>${escapeHtml(notice)}</p><h3>Phone next alarm</h3><p>${p.nextAlarm?escapeHtml(p.nextAlarm.label||'Alarm')+' · '+escapeHtml(phoneTime(p.nextAlarm.nextTriggerTime,p.timezone)):'No future phone trigger in this snapshot.'}</p><h3>Phone calendar (${escapeHtml(p.calendarDate)})</h3><p>${escapeHtml(p.calendarStatus.replaceAll('_',' '))}</p>`+p.calendar.map(e=>`<p><strong>${escapeHtml(e.title)}</strong><br>${e.allDay?'All day':escapeHtml(phoneTime(e.startTime,p.timezone))+' to '+escapeHtml(phoneTime(e.endTime,p.timezone))}<br>${escapeHtml(e.location)}</p>`).join('')+(p.location?`<p>Saved phone weather location: ${escapeHtml(p.location.name)}. Not live GPS.</p><button id="usePhoneWeather" class="secondary" type="button">Read weather for saved phone location</button>`:'<p>No saved weather location recorded.</p>');
   const weather=$('usePhoneWeather');if(weather)weather.onclick=()=>{todaySelectedCity=p.location;refreshTodayWeather();};
+  if(p.location && !todaySelectedCity && document.querySelector('[data-tab=today]').classList.contains('active')) { todaySelectedCity=p.location; $('todayCity').value=p.location.name; refreshTodayWeather(); }
   $('phoneStats').innerHTML='<div class="card"><h3>Phone totals</h3>'+Object.entries(p.stats).filter(([,value])=>typeof value!=='object').map(([key,value])=>`<p>${escapeHtml(key.replace(/([A-Z])/g,' $1'))}: <strong>${escapeHtml(String(value))}</strong></p>`).join('')+'<h3>Weekday counts and response</h3>'+Object.entries(p.stats.dayOfWeekCounts).map(([day,value])=>`<p>Day ${escapeHtml(day)}: ${value} events · average ${escapeHtml(String(p.stats.dayOfWeekAvgResponseSec[day]??'not recorded'))} seconds</p>`).join('')+'</div>';
   $('phoneAlarmDetails').innerHTML='<h3>Per-alarm 30-day stats and phone challenge readiness</h3>'+(p.alarmDetails||[]).map(a=>`<article class="card"><h3>${escapeHtml(a.label||'Alarm')}</h3><p>Cloud ID ${escapeHtml(a.cloudAlarmId||'not mapped')} · ${a.fireCount} events · ${a.missedCount} missed · average ${escapeHtml(String(a.avgSnoozesPerFire))} snoozes · ${a.avgDismissTimeSec}s response</p><p>${escapeHtml(a.readiness.replaceAll('_',' '))}${a.blocksSave?' (blocks native save)':''}<br>${escapeHtml(a.readinessMessage||'')}</p>${a.canSkipNext&&a.cloudAlarmId?`<p>Phone occurrence ${escapeHtml(phoneTime(a.nextTriggerTime,p.timezone))}</p><button class="secondary" type="button" data-skip-next="${escapeAttr(a.cloudAlarmId)}">Skip this next occurrence</button>`:''}</article>`).join('')+'<p>Readiness is a phone snapshot, not a live guarantee. Open Android to grant missing permissions/register references.</p>';
   $('phoneAlarmDetails').querySelectorAll('[data-skip-next]').forEach(button=>button.onclick=async()=>{
@@ -105,7 +106,23 @@ async function loadPhoneDashboard(){
 }
 $('refreshAlarmCommands').onclick=async()=>{const device=$('dashboardDevice').value;const token=state.token;if(!device)return;try{const data=await api('/api/utilities/'+encodeURIComponent(device));if(state.token!==token||$('dashboardDevice').value!==device)return;$('alarmCommandStatus').textContent=data.items.filter(r=>r.command?.kind==='alarm').slice(-10).map(r=>`${r.command.commandId}: ${r.status} ${r.result||''}`).join(' · ')||'No alarm commands yet';}catch(error){$('alarmCommandStatus').textContent=error.message;}};
 $('dashboardDevice').onchange=()=>{['phoneStats','phoneAlarmDetails','alarmCommandStatus','phoneHistory','phoneToday','phoneSleep'].forEach(id=>$(id).textContent='');loadPhoneDashboard();};$('dashboardRefresh').onclick=loadPhoneDashboard;
-document.querySelector('[data-tab=today]').addEventListener('click',()=>{if(!$('dashboardDevice').value)$('phoneToday').innerHTML='<p>Select a phone in Stats and refresh its snapshot to see phone calendar/location/next alarm here.</p>';});
+document.querySelector('[data-tab=today]').addEventListener('click',async()=>{
+ const token=state.token;
+ try {
+  if (!$('dashboardDevice').value) {
+   const data=await api('/api/utilities/devices');
+   if (state.token!==token) return;
+   const devices=data.devices.filter(d=>d.platform==='android');
+   $('dashboardDevice').innerHTML='<option value="">Choose phone</option>'+devices.map(d=>`<option value="${escapeAttr(d.id)}">${escapeHtml(d.id)} (${escapeHtml(d.appVersion||'unknown')})</option>`).join('');
+   if (devices.length!==1) {
+    $('phoneToday').textContent=devices.length?'Choose a phone in Stats to use its saved city.':'No Android phone registered. Sync the app first.';
+    return;
+   }
+   $('dashboardDevice').value=devices[0].id;
+  }
+  await loadPhoneDashboard();
+ } catch(e) { $('phoneToday').textContent='Phone snapshot unavailable: '+e.message; }
+});
 
 function renderPhoneSleep(sleep,notice){
  if(!sleep){$('phoneSleep').textContent='No sleep snapshot. Sync an updated phone first.';return;}
