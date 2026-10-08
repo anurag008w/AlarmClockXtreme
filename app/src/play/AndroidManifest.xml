@@ -5,6 +5,9 @@
          explicit in-app opt-in and Health Connect permission grant. -->
     <uses-permission android:name="android.permission.health.READ_SLEEP" />
 
+    <!-- Play flavor only: in-app update installs the downloaded APK. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
     <application>
         <!-- Play flavor only: cloud server wake-up for background sync (FCM). -->
         <service

@@ -57,6 +57,7 @@ class MainActivity : ComponentActivity() {
         // v1.5.0: Decide once at launch whether to surface the What's-new
         // dialog; avoid re-checking during recomposition.
         val showWhatsNew = WhatsNewTracker.shouldShow(this, BuildConfig.VERSION_CODE)
+        com.sysadmindoc.alarmclock.data.update.UpdateManager.check(this, manual = false)
 
         setContent {
             val settings = preferencesManager.settings.collectAsStateWithLifecycle(
@@ -75,6 +76,17 @@ class MainActivity : ComponentActivity() {
                         pendingSharedAlarmToken = null
                     }
                 )
+
+                val updateState by com.sysadmindoc.alarmclock.data.update.UpdateManager.state.collectAsStateWithLifecycle()
+                if (com.sysadmindoc.alarmclock.data.update.UpdateManager.shouldShowPopup(this@MainActivity, updateState)) {
+                    com.sysadmindoc.alarmclock.ui.components.UpdateDialog(
+                        state = updateState,
+                        onDownload = { com.sysadmindoc.alarmclock.data.update.UpdateManager.startDownload(this@MainActivity) },
+                        onInstall = { com.sysadmindoc.alarmclock.data.update.UpdateManager.install(this@MainActivity) },
+                        onFullNotes = { openUrl(updateState.release?.pageUrl ?: WhatsNewNotes.REPO_URL) },
+                        onLater = { com.sysadmindoc.alarmclock.data.update.UpdateManager.dismissPopup() }
+                    )
+                }
 
                 var dialogVisible by remember { mutableStateOf(showWhatsNew) }
                 if (dialogVisible) {
