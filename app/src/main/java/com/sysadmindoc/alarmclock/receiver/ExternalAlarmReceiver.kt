@@ -163,7 +163,7 @@ class ExternalAlarmReceiver : BroadcastReceiver() {
         when (r.op) {
             "set_time" -> {
                 if (r.hour !in 0..23 || r.minute !in 0..59) {
-                    ExternalAlarmAck.rejected(context, r.requestId, r.op, "invalid"); return
+                    ExternalAlarmAck.rejected(context, r.requestId, r.op, "invalid", alarm.id); return
                 }
                 val updated = alarm.copy(hour = r.hour, minute = r.minute)
                 repo.update(updated)
@@ -182,7 +182,7 @@ class ExternalAlarmReceiver : BroadcastReceiver() {
                     if (lockMinutes > 0 && alarm.nextTriggerTime > 0) {
                         val minutesUntil = (alarm.nextTriggerTime - System.currentTimeMillis()) / 60_000
                         if (minutesUntil in 0..lockMinutes.toLong()) {
-                            ExternalAlarmAck.rejected(context, r.requestId, r.op, "locked"); return
+                            ExternalAlarmAck.rejected(context, r.requestId, r.op, "locked", alarm.id); return
                         }
                     }
                     repo.setEnabled(alarm.id, enabled = false, nextTrigger = 0)
@@ -213,9 +213,11 @@ class ExternalAlarmReceiver : BroadcastReceiver() {
                 putString("label", alarm.label)
                 putBoolean("enabled", alarm.isEnabled)
                 putLong("next_trigger_ms", if (alarm.isEnabled) alarm.nextTriggerTime else 0L)
-                putInt("previous_hour", prevHour)
-                putInt("previous_minute", prevMinute)
-                putBoolean("previous_enabled", prevEnabled)
+                if (!created) {
+                    putInt("previous_hour", prevHour)
+                    putInt("previous_minute", prevMinute)
+                    putBoolean("previous_enabled", prevEnabled)
+                }
             }
         )
         runCatching {

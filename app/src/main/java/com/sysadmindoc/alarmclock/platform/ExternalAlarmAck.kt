@@ -29,7 +29,10 @@ object ExternalAlarmAck {
         }
     }
 
-    fun rejected(context: Context, requestId: String, op: String, reason: String) {
-        send(context, requestId, op, REJECTED, Bundle().apply { putString("reason", reason) })
+    fun rejected(context: Context, requestId: String, op: String, reason: String, alarmId: Long = -1L) {
+        send(context, requestId, op, REJECTED, Bundle().apply {
+            putString("reason", reason)
+            if (alarmId > 0L) putLong("alarm_id", alarmId)
+        })
     }
 }
