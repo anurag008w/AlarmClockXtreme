@@ -6,7 +6,7 @@ import androidx.compose.ui.graphics.Color
 // A cooler, more sophisticated blue. Sharp on AMOLED, crisp on IPS, never
 // neon. Tightened against the surface ladder below so primary type sits
 // confidently without glowing.
-val BluePrimary = Color(0xFF6FB7FF)
+val BluePrimary = Color(0xFF2F86F5)
 val BlueLight = Color(0xFF9BD0FF)
 val BlueDark = Color(0xFF1F4E80)
 
@@ -14,17 +14,17 @@ val BlueDark = Color(0xFF1F4E80)
 // A deliberate four-step ladder (no more drift). Each step adds ~6 luminance
 // over the previous so backgrounds, sheets, cards, and chips stack
 // predictably even with translucent overlays.
-val SurfaceDark = Color(0xFF070B11)    // App background — deepest
-val SurfaceMedium = Color(0xFF0F1721)  // Sheets / sticky regions
-val SurfaceCard = Color(0xFF15202E)    // Card surfaces
-val SurfaceLight = Color(0xFF1B2737)   // Elevated chips / hover wash
+val SurfaceDark = Color(0xFF060E1C)    // App background — deepest
+val SurfaceMedium = Color(0xFF0B172B)  // Sheets / sticky regions
+val SurfaceCard = Color(0xFF10203A)    // Card surfaces
+val SurfaceLight = Color(0xFF182B4A)   // Elevated chips / hover wash
 
 // ─── Hero accents ───────────────────────────────────────────────────────────
 // Subtler hero gradient. The previous mix had three transitions in one band
 // which fought the radial accent — now it's a single deep wash that lets the
 // primary radial breathe.
-val HeaderTop = Color(0xFF1F5FA0)
-val HeaderBottom = Color(0xFF080D14)
+val HeaderTop = Color(0xFF1B4F94)
+val HeaderBottom = Color(0xFF070F1E)
 
 // ─── Text ───────────────────────────────────────────────────────────────────
 // TextPrimary stays just shy of pure white to soften AMOLED bloom. Secondary
