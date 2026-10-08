@@ -139,6 +139,13 @@ fun DashboardScreen(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                if (state.nextAlarmTime.isNotBlank()) {
+                    NextAlarmSection(
+                        state = state,
+                        onOpenAlarms = onOpenAlarms
+                    )
+                }
+
                 if (!state.showWeather && !state.showCalendar) {
                     AppSurfaceCard {
                         AppEmptyState(
@@ -175,13 +182,6 @@ fun DashboardScreen(
                         calendarPermissionLauncher.launch(Manifest.permission.READ_CALENDAR)
                     }
                 }
-
-                if (state.nextAlarmTime.isNotBlank()) {
-                    NextAlarmSection(
-                        state = state,
-                        onOpenAlarms = onOpenAlarms
-                    )
-                }
             }
         }
     }
@@ -208,8 +208,8 @@ private fun NextAlarmSection(
         AppSurfaceCard(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onOpenAlarms),
-            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp)
+                .clickable(role = Role.Button, onClick = onOpenAlarms),
+            contentPadding = PaddingValues(16.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -323,7 +323,7 @@ private fun WeatherSection(
                                 text = if (hasLocation) {
                                     state.weatherError
                                 } else {
-                                    "Set your location"
+                                    stringResource(R.string.dashboard_set_your_location)
                                 },
                                 color = TextPrimary,
                                 style = MaterialTheme.typography.titleMedium

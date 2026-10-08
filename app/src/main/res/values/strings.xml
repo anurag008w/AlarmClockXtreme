@@ -1277,6 +1277,7 @@
     <string name="dashboard_today_quiet">Today is quiet</string>
     <string name="dashboard_weather_calendar_cards_are_off">Weather and calendar cards are off. Toggle them on in Settings.</string>
     <string name="dashboard_view">View</string>
+    <string name="dashboard_set_your_location">Set your location</string>
     <string name="dashboard_today">Today</string>
     <string name="dashboard_tornado_warning">Tornado warning</string>
     <string name="dashboard_loading_current_weather">Loading current weather</string>
