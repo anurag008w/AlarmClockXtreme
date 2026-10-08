@@ -6,6 +6,9 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.material.icons.filled.NightsStay
+import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -231,6 +234,7 @@ private fun WorldClockCard(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
     ) {
+        CityTile(entry)
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(3.dp)
@@ -266,6 +270,33 @@ private fun WorldClockCard(
                 tint = TextMuted
             )
         }
+    }
+}
+
+/** Day/night tile standing in for a city photo: sky gradient plus a sun or moon. */
+@Composable
+private fun CityTile(entry: WorldClockEntry) {
+    val hour = remember(entry.zoneId, entry.time) {
+        runCatching { java.time.ZonedDateTime.now(java.time.ZoneId.of(entry.zoneId)).hour }.getOrDefault(12)
+    }
+    val day = hour in 6..18
+    val brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+        if (day) listOf(androidx.compose.ui.graphics.Color(0xFF3F8DE8), androidx.compose.ui.graphics.Color(0xFF9CCBFF))
+        else listOf(androidx.compose.ui.graphics.Color(0xFF0B1A3A), androidx.compose.ui.graphics.Color(0xFF2A3F7A))
+    )
+    androidx.compose.foundation.layout.Box(
+        contentAlignment = androidx.compose.ui.Alignment.Center,
+        modifier = Modifier
+            .size(56.dp)
+            .clip(RoundedCornerShape(AppRadius.sm))
+            .background(brush)
+    ) {
+        Icon(
+            if (day) Icons.Default.WbSunny else Icons.Default.NightsStay,
+            contentDescription = null,
+            tint = if (day) androidx.compose.ui.graphics.Color(0xFFFFE08A) else androidx.compose.ui.graphics.Color(0xFFDCE6FF),
+            modifier = Modifier.size(28.dp)
+        )
     }
 }
 
