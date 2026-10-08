@@ -158,7 +158,7 @@ fun TimerScreen(
             subtitle = if (state.activeTimers.isEmpty()) {
                 ""
             } else {
-                "${state.activeTimers.size} timer${if (state.activeTimers.size == 1) "" else "s"} active"
+                androidx.compose.ui.res.pluralStringResource(R.plurals.timer_active_count, state.activeTimers.size, state.activeTimers.size)
             },
             actions = {
                 TextButton(onClick = onOpenStopwatch) {
@@ -296,7 +296,7 @@ private fun ActiveTimerCard(
             } else {
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     IconButton(onClick = onStop) {
-                        Icon(Icons.Default.Stop, "Stop timer", tint = AccentRed)
+                        Icon(Icons.Default.Stop, stringResource(R.string.timer_stop_timer), tint = AccentRed)
                     }
                     IconButton(onClick = { if (timer.state == TimerState.RUNNING) onPause() else onResume() }) {
                         Icon(

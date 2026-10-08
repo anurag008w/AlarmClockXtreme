@@ -350,9 +350,9 @@ private fun AddTimeZoneDialog(
                             }
                             Text(
                                 text = if (showNoResults) {
-                                    "Try a broader city name, or search a region such as Europe or America."
+                                    stringResource(R.string.worldclock_search_hint_broader)
                                 } else {
-                                    "Type at least two characters to search the available time zones."
+                                    stringResource(R.string.worldclock_search_hint_min_chars)
                                 },
                                 color = TextSecondary,
                                 style = MaterialTheme.typography.bodySmall
