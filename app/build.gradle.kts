@@ -2,7 +2,7 @@ import java.util.Properties
 import java.io.FileInputStream
 import org.gradle.api.GradleException
 
-// AlarmClockXtreme v1.16.5
+// AlarmClockXtreme v1.16.6
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -19,8 +19,8 @@ android {
         applicationId = "com.sysadmindoc.alarmclock"
         minSdk = 26
         targetSdk = 36
-        versionCode = 160
-        versionName = "1.16.5"
+        versionCode = 161
+        versionName = "1.16.6"
         val cloudBaseUrl = providers.gradleProperty("cloudBaseUrl").orElse("https://alarmclockxtreme-cloud.onrender.com/").get()
         buildConfigField("String", "CLOUD_BASE_URL", "\"${cloudBaseUrl.trimEnd('/')}/\"")
 

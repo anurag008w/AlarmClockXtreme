@@ -2,6 +2,11 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.16.6]
+
+- News thumbnails, world clock day/night tiles, Settings category badges. UI verified by code review and CI only (no emulator).
+- Release: v1.16.6 (versionCode 161).
+
 ## [1.16.5]
 
 - New look begins: deeper navy theme, alarm time-of-day icons, timer ring. UI verified by code review and CI only (no emulator).
