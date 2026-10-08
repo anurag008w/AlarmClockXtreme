@@ -2,6 +2,11 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.16.7]
+
+- Update popup shows real changelog, update check on every launch, settings toggles no longer revert after sync, alarm time fits on narrow screens. UI verified by code review and CI only (no emulator).
+- Release: v1.16.7 (versionCode 162).
+
 ## [1.16.6]
 
 - News thumbnails, world clock day/night tiles, Settings category badges. UI verified by code review and CI only (no emulator).
