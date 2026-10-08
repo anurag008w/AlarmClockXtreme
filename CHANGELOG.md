@@ -2,6 +2,11 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.16.2]
+
+- In-app updates (popup, in-app download, Settings > Updates); What's New shows real per-version notes; calmer corners and compact alarm rows; repository links point to anurag008w/AlarmClockXtreme
+- Release: v1.16.2 (versionCode 157).
+
 ## [1.16.1]
 
 - Remove the duplicate fire-time warning from the Android alarm list.
