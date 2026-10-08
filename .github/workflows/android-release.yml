@@ -130,6 +130,7 @@ jobs:
           name: AlarmClockXtreme-play-release
           path: app/build/outputs/apk/play/release/app-play-release.apk
           if-no-files-found: error
+          retention-days: 1
 
       # Cloud/Android verification runs independently on push/PR.
       # A slow or failed verification job must not block publication of the

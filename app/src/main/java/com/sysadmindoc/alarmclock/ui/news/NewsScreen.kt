@@ -313,11 +313,19 @@ private fun NewsCard(
         Modifier
     }
 
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .then(linkModifier)
             .padding(horizontal = 8.dp, vertical = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+    if (item.imageUrl != null) {
+        com.sysadmindoc.alarmclock.ui.components.RemoteThumbnail(url = item.imageUrl)
+    }
+    Column(
+        modifier = Modifier.weight(1f),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(
@@ -358,6 +366,7 @@ private fun NewsCard(
                 modifier = Modifier.size(AppIconSize.sm)
             )
         }
+    }
     }
 }
 

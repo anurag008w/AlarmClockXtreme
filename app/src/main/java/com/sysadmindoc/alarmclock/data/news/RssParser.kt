@@ -104,6 +104,7 @@ object RssParser {
         var pubDate: String? = null
         var guid: String? = null
         var source: String? = null
+        var imageUrl: String? = null
 
         while (parser.next() != XmlPullParser.END_TAG ||
             parser.name?.equals(itemName, ignoreCase = true) == false
@@ -129,6 +130,20 @@ object RssParser {
                     if (text.isNotBlank()) source = text
                 }
 
+                "media:thumbnail", "media:content", "enclosure" -> {
+                    // Empty element carrying the image in a url attribute.
+                    if (imageUrl == null) {
+                        val url = parser.getAttributeValue(null, "url")
+                        val type = parser.getAttributeValue(null, "type").orEmpty()
+                        val medium = parser.getAttributeValue(null, "medium").orEmpty()
+                        val looksLikeImage = parser.name.equals("media:thumbnail", ignoreCase = true) ||
+                            type.startsWith("image", ignoreCase = true) ||
+                            medium.equals("image", ignoreCase = true)
+                        if (looksLikeImage) imageUrl = safeImageUrl(url)
+                    }
+                    skip(parser)
+                }
+
                 else -> skip(parser)
             }
         }
@@ -142,8 +157,20 @@ object RssParser {
             description = description.trim(),
             source = source?.trim().orEmpty(),
             publishedAtMillis = pubDate?.let(::parseDate),
+            imageUrl = imageUrl ?: firstImageInHtml(description),
         )
     }
+
+    private val imgSrcPattern = Regex("<img[^>]+src=[\"']([^\"']+)[\"']", RegexOption.IGNORE_CASE)
+
+    /** Thumbnails are fetched over https only; anything else is ignored. */
+    internal fun safeImageUrl(raw: String?): String? {
+        val url = raw?.trim().orEmpty()
+        return url.takeIf { it.startsWith("https://", ignoreCase = true) && it.length < 2048 }
+    }
+
+    internal fun firstImageInHtml(html: String): String? =
+        imgSrcPattern.find(html)?.groupValues?.getOrNull(1)?.let(::safeImageUrl)
 
     private fun NewsItem.withFallbackSource(fallback: String): NewsItem =
         if (source.isBlank()) copy(source = fallback) else this

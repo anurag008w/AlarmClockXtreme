@@ -43,3 +43,4 @@ jobs:
           path: |
             app/build/reports/tests/
             app/build/reports/stopwatch-layout/
+          retention-days: 3
