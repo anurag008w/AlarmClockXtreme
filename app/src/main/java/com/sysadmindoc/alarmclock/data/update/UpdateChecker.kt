@@ -85,10 +85,28 @@ object UpdateChecker {
         )
     }
 
+    private val markdownLink = Regex("\\[([^\\]]+)]\\([^)]*\\)")
+    private val bareUrl = Regex("https?://\\S+")
+
+    /**
+     * Turns a GitHub release body into plain bullets: drops the "Full Changelog"
+     * compare line and bare URLs, strips markdown emphasis, links and list markers.
+     */
     internal fun bodyToBullets(body: String): List<String> {
         val lines = body.lines()
-            .map { it.trim().removePrefix("-").removePrefix("*").trim() }
+            .map { it.trim() }
             .filter { it.isNotBlank() && !it.startsWith("#") && !it.startsWith("Release:") }
+            .filterNot { it.contains("full changelog", ignoreCase = true) }
+            .map { line ->
+                line.removePrefix("-").removePrefix("*").trim()
+                    .replace(markdownLink, "$1")
+                    .replace(bareUrl, "")
+                    .replace("**", "")
+                    .replace("`", "")
+                    .replace(Regex("\\s+by @\\S+\\s*(in\\s*)?$"), "")
+                    .trim()
+            }
+            .filter { it.isNotBlank() }
             .take(6)
         return lines.ifEmpty { listOf("See the full release notes on GitHub.") }
     }
