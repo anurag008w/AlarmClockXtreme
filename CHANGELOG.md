@@ -2,6 +2,11 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.16.3]
+
+- Today tab: next alarm card moved to the top, screen-reader button semantics, localized weather message. Includes 1.16.2 in-app updates. UI verified by code review and CI only (no emulator).
+- Release: v1.16.3 (versionCode 158).
+
 ## [1.16.2]
 
 - In-app updates (popup, in-app download, Settings > Updates); What's New shows real per-version notes; calmer corners and compact alarm rows; repository links point to anurag008w/AlarmClockXtreme
