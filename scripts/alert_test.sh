@@ -20,7 +20,16 @@ adb exec-out screencap -p > $OUT/alert_active.png
 adb shell dumpsys activity services $P | grep -c ExternalAlertService > $OUT/alert_good_services.txt
 adb shell dumpsys notification --noredact | grep -c external_alert_channel > $OUT/alert_notification.txt
 adb shell dumpsys vibrator_manager 2>/dev/null | head -40 > $OUT/alert_vibrator.txt
-adb shell "am startservice -n $P/com.sysadmindoc.alarmclock.service.ExternalAlertService -a com.sysadmindoc.alarmclock.action.EXTERNAL_ALERT_STOP" > /dev/null 2>&1
+adb shell cmd statusbar expand-notifications
+sleep 2
+python3 scripts/tap_text.py STOP > $OUT/alert_tap_out.txt 2>&1
 sleep 3
 adb shell dumpsys activity services $P | grep -c ExternalAlertService > $OUT/alert_after_stop_services.txt
+adb shell cmd statusbar collapse
+sleep 15
+adb shell "$B --es alert_id good2 --es token ABCDEFGHJKMN --es level vibrate --ei duration_s 5" > $OUT/alert_good2_out.txt 2>&1
+sleep 3
+adb shell dumpsys activity services $P | grep -c ExternalAlertService > $OUT/alert_second_running.txt
+sleep 10
+adb shell dumpsys activity services $P | grep -c ExternalAlertService > $OUT/alert_second_after_expiry.txt
 exit 0
