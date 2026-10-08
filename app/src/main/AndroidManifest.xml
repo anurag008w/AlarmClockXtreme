@@ -96,6 +96,7 @@
 
     <!-- Manufacturer Battery Killer Detection + Spotify ringtone visibility (Android 11+) -->
     <queries>
+        <package android:name="app.divya.agent" />
         <package android:name="com.samsung.android.lool" />
         <package android:name="com.miui.securitycenter" />
         <package android:name="com.huawei.systemmanager" />
@@ -202,6 +203,31 @@
             android:name=".ui.onboarding.OnboardingTestAlarmActivity"
             android:exported="false"
             android:excludeFromRecents="true"
+            android:showOnLockScreen="true"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:theme="@style/Theme.AlarmClockXtreme" />
+
+        <!-- Opt-in external alerts: exported, but ignores anything without the pairing code. -->
+        <receiver
+            android:name=".receiver.ExternalAlertReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.alarmclockxtreme.action.EXTERNAL_ALERT" />
+            </intent-filter>
+        </receiver>
+        <receiver
+            android:name=".receiver.ExternalAlertFireReceiver"
+            android:exported="false" />
+        <service
+            android:name=".service.ExternalAlertService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+        <activity
+            android:name=".ui.externalalert.ExternalAlertActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
             android:showOnLockScreen="true"
             android:showWhenLocked="true"
             android:turnScreenOn="true"
