@@ -3,6 +3,7 @@
 package com.sysadmindoc.alarmclock.ui.bedtime
 
 import android.Manifest
+import com.sysadmindoc.alarmclock.ui.theme.AppRadius
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.provider.Settings
@@ -879,7 +880,7 @@ fun BedtimeScreen(
                 )
             },
             containerColor = SurfaceMedium,
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(AppRadius.sm)
         )
     }
 
@@ -928,7 +929,7 @@ fun BedtimeScreen(
                 )
             },
             containerColor = SurfaceMedium,
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(AppRadius.sm)
         )
     }
 }
@@ -947,7 +948,7 @@ internal fun BedtimeMetricCard(
         modifier = modifier.then(
             if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier
         ),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(AppRadius.sm),
         colors = CardDefaults.cardColors(containerColor = SurfaceCard)
     ) {
         Column(
@@ -1072,7 +1073,7 @@ private fun BedtimeAdjusterButton(
     Surface(
         modifier = modifier
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(AppRadius.sm),
         color = if (enabled) SurfaceCard.copy(alpha = 0.78f) else SurfaceCard.copy(alpha = 0.42f)
     ) {
         Column(

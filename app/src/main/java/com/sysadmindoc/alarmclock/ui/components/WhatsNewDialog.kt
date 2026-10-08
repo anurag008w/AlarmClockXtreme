@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.components
 
 import androidx.compose.foundation.BorderStroke
+import com.sysadmindoc.alarmclock.ui.theme.AppRadius
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
@@ -54,7 +55,7 @@ fun WhatsNewDialog(
             Button(
                 onClick = onDismiss,
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(AppRadius.sm)
             ) {
                 Text(stringResource(R.string.whats_new_continue))
             }
@@ -93,7 +94,7 @@ fun WhatsNewDialog(
             ) {
                 highlights.forEachIndexed { index, line ->
                     Surface(
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(AppRadius.sm),
                         color = SurfaceCard.copy(alpha = 0.82f),
                         border = BorderStroke(1.dp, TextMuted.copy(alpha = 0.14f))
                     ) {
@@ -135,6 +136,6 @@ fun WhatsNewDialog(
             }
         },
         containerColor = SurfaceMedium,
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(AppRadius.sm)
     )
 }

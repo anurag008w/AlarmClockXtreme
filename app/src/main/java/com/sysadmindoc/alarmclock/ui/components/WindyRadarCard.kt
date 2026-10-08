@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.components
 
 import android.annotation.SuppressLint
+import com.sysadmindoc.alarmclock.ui.theme.AppRadius
 import android.graphics.Bitmap
 import android.graphics.Color as AndroidColor
 import android.view.ViewGroup
@@ -142,7 +143,7 @@ fun WindyRadarCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(360.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(AppRadius.sm))
                     .background(SurfaceMedium)
             ) {
                 AndroidView(

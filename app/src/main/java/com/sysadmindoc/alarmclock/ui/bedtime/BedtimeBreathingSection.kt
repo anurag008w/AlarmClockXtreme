@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.bedtime
 
 import androidx.compose.foundation.horizontalScroll
+import com.sysadmindoc.alarmclock.ui.theme.AppRadius
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -82,7 +83,7 @@ internal fun BreathingExerciseSection(
 
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(AppRadius.sm),
             color = SurfaceCard.copy(alpha = 0.72f)
         ) {
             Column(
