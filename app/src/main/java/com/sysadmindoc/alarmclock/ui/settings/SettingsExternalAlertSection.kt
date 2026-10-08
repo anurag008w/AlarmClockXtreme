@@ -34,13 +34,8 @@ import java.util.Date
 internal fun ExternalAlertSection() {
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
-    var alarmControl by remember { mutableStateOf(ExternalAlertStore.isAlarmControlEnabled(context)) }
     var enabled by remember { mutableStateOf(ExternalAlertStore.isEnabled(context)) }
-    var code by remember {
-        mutableStateOf(
-            if (enabled || ExternalAlertStore.isAlarmControlEnabled(context)) ExternalAlertStore.pairingCode(context) else ""
-        )
-    }
+    var code by remember { mutableStateOf(if (enabled) ExternalAlertStore.pairingCode(context) else "") }
     var lastAt by remember { mutableStateOf(ExternalAlertStore.lastAt(context)) }
     val copiedText = stringResource(R.string.ext_alert_copied)
 
@@ -55,20 +50,10 @@ internal fun ExternalAlertSection() {
             onToggle = { on ->
                 ExternalAlertStore.setEnabled(context, on)
                 enabled = on
-                code = if (on || alarmControl) ExternalAlertStore.pairingCode(context) else ""
+                code = if (on) ExternalAlertStore.pairingCode(context) else ""
             }
         )
-        SettingsToggle(
-            label = stringResource(R.string.ext_alarm_control_enable),
-            checked = alarmControl,
-            supportingText = stringResource(R.string.ext_alarm_control_description),
-            onToggle = { on ->
-                ExternalAlertStore.setAlarmControlEnabled(context, on)
-                alarmControl = on
-                if (on && code.isEmpty()) code = ExternalAlertStore.pairingCode(context)
-            }
-        )
-        if (enabled || alarmControl) {
+        if (enabled) {
             Text(
                 text = stringResource(R.string.ext_alert_code_label),
                 style = MaterialTheme.typography.labelLarge

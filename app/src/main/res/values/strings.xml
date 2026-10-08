@@ -2438,14 +2438,4 @@
     <string name="ext_alert_none">No alerts received yet</string>
     <string name="ext_alert_limits">Do Not Disturb, silent volume and strict battery saving can still delay or mute alerts.</string>
     <string name="ext_alert_copied">Pairing code copied</string>
-    <string name="ext_alarm_channel_name">Alarm changes by paired app</string>
-    <string name="ext_alarm_unnamed">Alarm</string>
-    <string name="ext_alarm_notice_title">Alarm changed by paired app</string>
-    <string name="ext_alarm_notice_created">Added %1$s at %2$s</string>
-    <string name="ext_alarm_notice_moved">Moved %1$s from %2$s to %3$s</string>
-    <string name="ext_alarm_notice_enabled">Turned on %1$s (%2$s)</string>
-    <string name="ext_alarm_notice_disabled">Turned off %1$s (%2$s)</string>
-    <string name="ext_alarm_undo">Undo</string>
-    <string name="ext_alarm_control_enable">Allow remote alarm changes</string>
-    <string name="ext_alarm_control_description">When on, a paired app that sends the pairing code can list your alarms, change their time, turn them on or off, or add one. It cannot delete alarms. Every change shows a notice with Undo.</string>
 </resources>

@@ -4,7 +4,7 @@ OUT=$1
 P=com.sysadmindoc.alarmclock.debug
 cat > /tmp/ep.xml <<'X'
 <?xml version='1.0' encoding='utf-8' standalone='yes' ?>
-<map><boolean name="enabled" value="true" /><boolean name="alarm_control_enabled" value="true" /><string name="token">ABCDEFGHJKMN</string></map>
+<map><boolean name="enabled" value="true" /><string name="token">ABCDEFGHJKMN</string></map>
 X
 adb push /tmp/ep.xml /data/local/tmp/ep.xml
 adb shell chmod 644 /data/local/tmp/ep.xml
@@ -34,20 +34,4 @@ sleep 3
 adb shell dumpsys activity services $P | grep -c ExternalAlertService > $OUT/alert_second_running.txt
 sleep 10
 adb shell dumpsys activity services $P | grep -c ExternalAlertService > $OUT/alert_second_after_expiry.txt
-A="am broadcast -n $P/com.sysadmindoc.alarmclock.receiver.ExternalAlarmReceiver -a com.alarmclockxtreme.action.EXTERNAL_ALARM"
-adb shell "$A --es request_id r0 --es token WRONGCODE000 --es op create --ei hour 8 --ei minute 30 --es label CITEST" > $OUT/alarm_bad_out.txt 2>&1
-sleep 2
-adb shell "$A --es request_id r1 --es token ABCD-EFGH-JKMN --es op list" > $OUT/alarm_list_out.txt 2>&1
-sleep 2
-adb shell "$A --es request_id r2 --es token ABCD-EFGH-JKMN --es op create --ei hour 8 --ei minute 30 --es label CITEST" > $OUT/alarm_create_out.txt 2>&1
-sleep 6
-adb shell dumpsys notification --noredact | grep -i "CITEST" > $OUT/alarm_notice_create.txt
-adb shell "$A --es request_id r3 --es token ABCD-EFGH-JKMN --es op set_time --es label CITEST --ei hour 9 --ei minute 45" > $OUT/alarm_set_out.txt 2>&1
-sleep 6
-adb shell dumpsys notification --noredact | grep -i "CITEST" > $OUT/alarm_notice_set.txt
-adb shell "$A --es request_id r4 --es token ABCD-EFGH-JKMN --es op disable --es label CITEST" > $OUT/alarm_disable_out.txt 2>&1
-sleep 6
-adb shell dumpsys notification --noredact | grep -i "CITEST" > $OUT/alarm_notice_disable.txt
-adb shell dumpsys alarm | grep -c "com.sysadmindoc.alarmclock.debug" > $OUT/alarm_dumpsys_count.txt
-adb shell "run-as $P ls databases" > $OUT/alarm_dbs.txt 2>&1
 exit 0

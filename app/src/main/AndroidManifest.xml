@@ -216,18 +216,6 @@
                 <action android:name="com.alarmclockxtreme.action.EXTERNAL_ALERT" />
             </intent-filter>
         </receiver>
-        <!-- Opt-in remote alarm changes: exported, needs the pairing code and its own Settings switch. -->
-        <receiver
-            android:name=".receiver.ExternalAlarmReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="com.alarmclockxtreme.action.EXTERNAL_ALARM" />
-            </intent-filter>
-        </receiver>
-        <receiver
-            android:name=".receiver.ExternalAlarmUndoReceiver"
-            android:exported="false" />
-
         <receiver
             android:name=".receiver.ExternalAlertFireReceiver"
             android:exported="false" />
