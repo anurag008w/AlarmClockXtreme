@@ -2,6 +2,11 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.16.4]
+
+- Polish pass: consistent corner radii, Settings > Updates shows release notes, screen-reader and localization fixes. UI verified by code review and CI only (no emulator).
+- Release: v1.16.4 (versionCode 159).
+
 ## [1.16.3]
 
 - Today tab: next alarm card moved to the top, screen-reader button semantics, localized weather message. Includes 1.16.2 in-app updates. UI verified by code review and CI only (no emulator).
