@@ -1,0 +1,38 @@
+name: Android UI check
+
+on:
+  push:
+    branches:
+      - "redesign/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Make Gradle wrapper executable
+        run: chmod +x gradlew
+      - name: Assemble debug and run unit tests
+        run: ./gradlew :app:assemblePlayDebug :app:testPlayDebugUnitTest --no-daemon --stacktrace
+      - name: Upload debug APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: AlarmClockXtreme-play-debug
+          path: app/build/outputs/apk/play/debug/*.apk
+          if-no-files-found: warn
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: app/build/reports/tests
+          if-no-files-found: ignore
