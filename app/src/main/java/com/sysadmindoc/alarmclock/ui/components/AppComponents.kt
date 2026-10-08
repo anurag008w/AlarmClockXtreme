@@ -81,8 +81,8 @@ import com.sysadmindoc.alarmclock.R
 // ─── Shared shape tokens ───────────────────────────────────────────────────
 val AppCardShape = RoundedCornerShape(12.dp)
 val AppTileShape = RoundedCornerShape(10.dp)
-val AppChipShape = RoundedCornerShape(8.dp)
-val AppInputShape = RoundedCornerShape(8.dp)
+val AppChipShape = RoundedCornerShape(10.dp)
+val AppInputShape = RoundedCornerShape(10.dp)
 
 // ─── Icon size scale ───────────────────────────────────────────────────────
 // One scale, four steps. Replaces the 13 / 15 / 18 / 20 / 22 dp drift that
@@ -202,7 +202,7 @@ fun AlarmClockHeroHeader(
 fun AppSurfaceCard(
     modifier: Modifier = Modifier,
     highlighted: Boolean = false,
-    contentPadding: PaddingValues = PaddingValues(18.dp),
+    contentPadding: PaddingValues = PaddingValues(16.dp),
     content: @Composable ColumnScope.() -> Unit
 ) {
     val shapeTokens = LocalAppShapeTokens.current
