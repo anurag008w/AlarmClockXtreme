@@ -50,3 +50,28 @@ for tab in ["Today", "Alarms", "Timer", "World", "News", "Settings"]:
     tap_first([tab.lower()], min_y=int(h * 0.8))
     time.sleep(3)
     shot(f"tab_{tab}")
+
+def back():
+    adb("shell", "input", "keyevent", "4")
+    time.sleep(2)
+
+def visit(tab, words, name, min_y=0):
+    tap_first([tab.lower()], min_y=int(h * 0.8))
+    time.sleep(2)
+    hit = tap_first(words, min_y=min_y)
+    time.sleep(3)
+    if hit:
+        shot(name)
+        back()
+
+visit("Alarms", ["wake up", "weekday"], "page_alarm_edit", min_y=int(h * 0.12))
+visit("Alarms", ["new alarm"], "page_new_alarm", min_y=int(h * 0.12))
+visit("Timer", ["stopwatch"], "page_stopwatch")
+visit("Settings", ["defaults"], "page_settings_defaults", min_y=int(h * 0.1))
+visit("Settings", ["personalization"], "page_settings_personal", min_y=int(h * 0.1))
+visit("Settings", ["integrations"], "page_settings_integrations", min_y=int(h * 0.1))
+tap_first(["settings"], min_y=int(h * 0.8))
+time.sleep(2)
+adb("shell", "input", "swipe", "540", str(int(h * 0.8)), "540", str(int(h * 0.25)), "400")
+time.sleep(2)
+shot("page_settings_scrolled")

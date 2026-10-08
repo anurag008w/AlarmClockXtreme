@@ -42,7 +42,7 @@ jobs:
           script: |
             mkdir -p shots
             adb install -r app/build/outputs/apk/play/debug/app-play-debug.apk
-            adb logcat -c
+            adb logcat -c || true
             adb shell monkey -p com.sysadmindoc.alarmclock.debug -c android.intent.category.LAUNCHER 1
             python3 scripts/emulator_smoke.py shots
             adb logcat -d > shots/logcat.txt
