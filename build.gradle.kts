@@ -1,7 +1,7 @@
 import java.io.File
 import java.util.Properties
 
-// AlarmClockXtreme v1.16.8
+// AlarmClockXtreme v1.16.9
 // Top-level build file
 plugins {
     id("com.android.application") version "8.11.1" apply false
