@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.components
 
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sysadmindoc.alarmclock.ui.theme.AppRadius
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.ui.platform.LocalResources
 import androidx.annotation.StringRes
@@ -493,7 +494,7 @@ fun YouTubeDownloadDialog(
                         startDownload(url.trim(), name.trim())
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                    shape = RoundedCornerShape(10.dp)
+                    shape = RoundedCornerShape(AppRadius.xs)
                 ) {
                     Text(stringResource(R.string.youtube_download))
                 }
@@ -511,7 +512,7 @@ fun YouTubeDownloadDialog(
             }
         },
         containerColor = SurfaceMedium,
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(AppRadius.sm)
     )
 }
 
@@ -527,7 +528,7 @@ private fun EngineUpdatePanel(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(AppRadius.xs))
             .background(SurfaceLight)
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -739,7 +740,7 @@ private fun SearchResultRow(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(AppRadius.xs))
             .background(
                 if (highlight) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
                 else SurfaceLight

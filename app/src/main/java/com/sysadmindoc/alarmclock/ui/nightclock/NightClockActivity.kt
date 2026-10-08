@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.nightclock
 
 import android.os.Bundle
+import com.sysadmindoc.alarmclock.ui.theme.AppRadius
 import android.text.format.DateFormat
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -234,7 +235,7 @@ fun NightClockScreen(onExit: () -> Unit) {
                 }
 
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(AppRadius.sm),
                     color = NightClockPanel
                 ) {
                     Text(
