@@ -13,6 +13,11 @@ object WhatsNewNotes {
     fun releaseNotesUrl(versionName: String): String = "$REPO_URL/releases/tag/v$versionName"
 
     private val notes: Map<String, List<String>> = mapOf(
+        "1.16.3" to listOf(
+            "Today tab: your next alarm now sits at the top, so the most important thing is the first thing you see.",
+            "The next-alarm card is announced as a button for screen readers and has more comfortable padding.",
+            "A hard-coded weather message is now a translatable string. Alarm scheduling and reliability are unchanged."
+        ),
         "1.16.2" to listOf(
             "In-app updates: the app checks the GitHub releases and shows a popup only when a newer version really exists, with that version's notes.",
             "Download and install updates inside the app, no browser. New Settings > Updates (below Backup) with Check now, popup on/off and auto-download on Wi-Fi.",
