@@ -323,7 +323,7 @@ private fun WeatherSection(
                                 text = if (hasLocation) {
                                     state.weatherError
                                 } else {
-                                    "Set your location"
+                                    stringResource(R.string.dashboard_set_your_location)
                                 },
                                 color = TextPrimary,
                                 style = MaterialTheme.typography.titleMedium
