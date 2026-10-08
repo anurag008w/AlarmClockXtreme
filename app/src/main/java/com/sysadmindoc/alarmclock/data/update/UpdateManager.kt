@@ -51,7 +51,7 @@ object UpdateManager {
     private const val KEY_LAST_CHECK = "last_check_millis"
     private const val KEY_DOWNLOAD_ID = "download_id"
     private const val KEY_DOWNLOAD_VERSION = "download_version"
-    private const val AUTO_CHECK_INTERVAL_MS = 6L * 60 * 60 * 1000
+    private const val RECHECK_GUARD_MS = 5L * 60 * 1000
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var pollJob: Job? = null
@@ -77,9 +77,13 @@ object UpdateManager {
         if (!isSupported) return
         val app = context.applicationContext
         if (_state.value.checking) return
-        if (!manual && System.currentTimeMillis() - lastCheckMillis(app) < AUTO_CHECK_INTERVAL_MS &&
-            _state.value.release == null
-        ) return
+        if (!manual) {
+            // Launch check: runs on every cold start while the popup or auto-download
+            // is on. Only skipped when this process already checked a moment ago
+            // (rotation / activity recreate), never because of a check from an earlier run.
+            if (!popupEnabled(app) && !autoDownload(app)) return
+            if (_state.value.checkedOnce && System.currentTimeMillis() - lastCheckMillis(app) < RECHECK_GUARD_MS) return
+        }
         _state.update { it.copy(checking = true, error = null) }
         scope.launch {
             try {

@@ -149,10 +149,22 @@ jobs:
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             gh release upload "$RELEASE_TAG" "$APK" --clobber
           else
+            # Real changelog for the in-app updater and the release page: the
+            # bullets from WhatsNewNotes.kt, with GitHub's compare link appended.
+            python3 scripts/release_notes.py "$VERSION_NAME" > /tmp/release-notes.md
+            if [ -s /tmp/release-notes.md ]; then
+              PREV=$(git tag --list 'v*' --sort=-v:refname | grep -vx "$RELEASE_TAG" | head -n1 || true)
+              if [ -n "$PREV" ]; then
+                printf '\nFull changelog: https://github.com/%s/compare/%s...%s\n' "$GITHUB_REPOSITORY" "$PREV" "$RELEASE_TAG" >> /tmp/release-notes.md
+              fi
+              NOTES_ARG="--notes-file /tmp/release-notes.md"
+            else
+              NOTES_ARG="--generate-notes"
+            fi
             gh release create "$RELEASE_TAG" "$APK" \
               --target "$GITHUB_SHA" \
               --title "AlarmClockXtreme v$VERSION_NAME" \
-              --generate-notes
+              $NOTES_ARG
           fi
 
           echo "Published GitHub Release: $RELEASE_TAG ($VERSION_CODE)"
