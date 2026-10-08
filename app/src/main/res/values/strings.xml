@@ -824,7 +824,7 @@
     <string name="settings_license">License</string>
     <string name="settings_license_value">Apache License 2.0</string>
     <string name="settings_source">Source</string>
-    <string name="settings_source_value" translatable="false">github.com/SysAdminDoc/AlarmClockXtreme</string>
+    <string name="settings_source_value" translatable="false">github.com/anurag008w/AlarmClockXtreme</string>
 
     <!-- Settings readiness, diagnostics, pause, and vacation -->
     <string name="settings_diagnostics">Alarm diagnostics</string>

@@ -417,11 +417,11 @@ already sit at `Roadmap_Blocked.md:67` awaiting a human design decision.
 - https://aasm.org/staying-current-with-actigraphy-devices-for-sleep-wake-monitoring/
 
 ### This repo's tracker
-- https://github.com/SysAdminDoc/AlarmClockXtreme/issues/53
-- https://github.com/SysAdminDoc/AlarmClockXtreme/issues/50
-- https://github.com/SysAdminDoc/AlarmClockXtreme/issues/49
-- https://github.com/SysAdminDoc/AlarmClockXtreme/issues/44
-- https://github.com/SysAdminDoc/AlarmClockXtreme/issues/43
+- https://github.com/anurag008w/AlarmClockXtreme/issues/53
+- https://github.com/anurag008w/AlarmClockXtreme/issues/50
+- https://github.com/anurag008w/AlarmClockXtreme/issues/49
+- https://github.com/anurag008w/AlarmClockXtreme/issues/44
+- https://github.com/anurag008w/AlarmClockXtreme/issues/43
 
 ## Open Questions
 

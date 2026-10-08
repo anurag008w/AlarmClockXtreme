@@ -3,9 +3,9 @@ Categories:
 License: Apache-2.0
 AuthorName: SysAdminDoc
 AuthorEmail: sysadmindoc@proton.me
-SourceCode: https://github.com/SysAdminDoc/AlarmClockXtreme
-IssueTracker: https://github.com/SysAdminDoc/AlarmClockXtreme/issues
-Changelog: https://github.com/SysAdminDoc/AlarmClockXtreme/blob/main/CHANGELOG.md
+SourceCode: https://github.com/anurag008w/AlarmClockXtreme
+IssueTracker: https://github.com/anurag008w/AlarmClockXtreme/issues
+Changelog: https://github.com/anurag008w/AlarmClockXtreme/blob/main/CHANGELOG.md
 
 AutoName: AlarmClockXtreme
 Summary: Alarm clock with 30 wake-up challenges and exact scheduling
@@ -38,7 +38,7 @@ Description: |-
   you explicitly export a support bundle.
 
 RepoType: git
-Repo: https://github.com/SysAdminDoc/AlarmClockXtreme.git
+Repo: https://github.com/anurag008w/AlarmClockXtreme.git
 
 Builds:
   - versionName: 1.16.1

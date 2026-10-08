@@ -1,10 +1,10 @@
 # AlarmClockXtreme
 
-[![Version](https://img.shields.io/badge/version-1.16.1-5CA6FF)](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest)
+[![Version](https://img.shields.io/badge/version-1.16.1-5CA6FF)](https://github.com/anurag008w/AlarmClockXtreme/releases/latest)
 [![License](https://img.shields.io/badge/license-Apache%202.0-65DDB9)](LICENSE)
-[![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white)](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest)
-[![Stars](https://img.shields.io/github/stars/SysAdminDoc/AlarmClockXtreme?style=flat&color=FFD166)](https://github.com/SysAdminDoc/AlarmClockXtreme/stargazers)
-[![Downloads](https://img.shields.io/github/downloads/SysAdminDoc/AlarmClockXtreme/total?color=8EA8C9)](https://github.com/SysAdminDoc/AlarmClockXtreme/releases)
+[![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white)](https://github.com/anurag008w/AlarmClockXtreme/releases/latest)
+[![Stars](https://img.shields.io/github/stars/anurag008w/AlarmClockXtreme?style=flat&color=FFD166)](https://github.com/anurag008w/AlarmClockXtreme/stargazers)
+[![Downloads](https://img.shields.io/github/downloads/anurag008w/AlarmClockXtreme/total?color=8EA8C9)](https://github.com/anurag008w/AlarmClockXtreme/releases)
 
 <p align="center">
   <a href="https://ko-fi.com/X8K126YVER">
@@ -34,7 +34,7 @@ AlarmClockXtreme is an open-source Android alarm clock built for heavy sleepers 
 
 ## Get AlarmClockXtreme
 
-Download the signed APKs and matching checksums from the [latest release](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest).
+Download the signed APKs and matching checksums from the [latest release](https://github.com/anurag008w/AlarmClockXtreme/releases/latest).
 
 | Package | Best for | What it includes |
 |---|---|---|
@@ -106,7 +106,7 @@ Requirements:
 - Android SDK 36
 
 ```bash
-git clone https://github.com/SysAdminDoc/AlarmClockXtreme.git
+git clone https://github.com/anurag008w/AlarmClockXtreme.git
 cd AlarmClockXtreme
 ./gradlew :app:assemblePlayDebug :app:assembleFdroidDebug :wear:assembleDebug
 ```
