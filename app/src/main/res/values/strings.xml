@@ -1596,6 +1596,10 @@
     <string name="update_downloading">Downloading…</string>
     <string name="update_download_failed">Download failed. Try again.</string>
     <string name="update_install">Install</string>
+    <string name="update_error_network">Could not reach GitHub. Check your connection.</string>
+    <string name="update_error_storage">No storage available for the download.</string>
+    <string name="update_error_removed">The download was removed. Try again.</string>
+    <string name="update_error_incomplete">The downloaded file is incomplete. Try again.</string>
     <string name="update_later">Later</string>
     <string name="whats_new_full_release_notes">Full release notes</string>
     <string name="whats_new_continue">Continue</string>

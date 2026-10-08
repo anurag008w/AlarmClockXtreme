@@ -28,6 +28,15 @@ import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
 
 /** Shown on app start only when a genuinely newer release exists. Download happens inside the app. */
+@androidx.annotation.StringRes
+fun updateErrorRes(error: com.sysadmindoc.alarmclock.data.update.UpdateError?): Int = when (error) {
+    com.sysadmindoc.alarmclock.data.update.UpdateError.Network -> R.string.update_error_network
+    com.sysadmindoc.alarmclock.data.update.UpdateError.Storage -> R.string.update_error_storage
+    com.sysadmindoc.alarmclock.data.update.UpdateError.Removed -> R.string.update_error_removed
+    com.sysadmindoc.alarmclock.data.update.UpdateError.Incomplete -> R.string.update_error_incomplete
+    else -> R.string.update_download_failed
+}
+
 @Composable
 fun UpdateDialog(
     state: UpdateUiState,
@@ -83,7 +92,7 @@ fun UpdateDialog(
                         )
                     }
                     DownloadPhase.Failed -> Text(
-                        state.error ?: stringResource(R.string.update_download_failed),
+                        stringResource(updateErrorRes(state.error)),
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall
                     )

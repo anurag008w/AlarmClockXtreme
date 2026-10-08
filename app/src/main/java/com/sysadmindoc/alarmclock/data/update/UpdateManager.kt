@@ -22,11 +22,14 @@ import kotlinx.coroutines.launch
 
 enum class DownloadPhase { Idle, Downloading, Ready, Failed }
 
+/** Failure reasons; the UI maps each to a string resource. */
+enum class UpdateError { Network, Storage, Removed, Failed, Incomplete }
+
 data class UpdateUiState(
     val checking: Boolean = false,
     val release: ReleaseInfo? = null,
     val checkedOnce: Boolean = false,
-    val error: String? = null,
+    val error: UpdateError? = null,
     val phase: DownloadPhase = DownloadPhase.Idle,
     /** 0f..1f, or null while the size is not known yet. */
     val progress: Float? = null,
@@ -91,7 +94,7 @@ object UpdateManager {
                     }
                 }
             } catch (e: Exception) {
-                _state.update { it.copy(checking = false, checkedOnce = true, error = e.message ?: "Network error") }
+                _state.update { it.copy(checking = false, checkedOnce = true, error = UpdateError.Network) }
             }
         }
     }
@@ -117,7 +120,7 @@ object UpdateManager {
         if (_state.value.phase == DownloadPhase.Downloading) return
         val file = apkFile(app, release.versionName)
         if (file == null) {
-            _state.update { it.copy(phase = DownloadPhase.Failed, error = "No storage available") }
+            _state.update { it.copy(phase = DownloadPhase.Failed, error = UpdateError.Storage) }
             return
         }
         file.delete()
@@ -143,7 +146,7 @@ object UpdateManager {
             while (true) {
                 dm.query(DownloadManager.Query().setFilterById(id))?.use { cur ->
                     if (!cur.moveToFirst()) {
-                        _state.update { it.copy(phase = DownloadPhase.Failed, error = "Download was removed") }
+                        _state.update { it.copy(phase = DownloadPhase.Failed, error = UpdateError.Removed) }
                         return@launch
                     }
                     val status = cur.getInt(cur.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))
@@ -156,12 +159,12 @@ object UpdateManager {
                                 (release.apkSize <= 0 || file.length() == release.apkSize)
                             _state.update {
                                 if (sizeOk) it.copy(phase = DownloadPhase.Ready, progress = 1f)
-                                else it.copy(phase = DownloadPhase.Failed, error = "Downloaded file is incomplete")
+                                else it.copy(phase = DownloadPhase.Failed, error = UpdateError.Incomplete)
                             }
                             return@launch
                         }
                         DownloadManager.STATUS_FAILED -> {
-                            _state.update { it.copy(phase = DownloadPhase.Failed, error = "Download failed") }
+                            _state.update { it.copy(phase = DownloadPhase.Failed, error = UpdateError.Failed) }
                             return@launch
                         }
                         else -> {

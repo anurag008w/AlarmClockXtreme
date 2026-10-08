@@ -78,7 +78,7 @@ internal fun UpdatesSection() {
                 else -> SettingsActionRow(
                     label = stringResource(R.string.update_download),
                     value = "v${release.versionName}",
-                    supportingText = state.error,
+                    supportingText = state.error?.let { stringResource(com.sysadmindoc.alarmclock.ui.components.updateErrorRes(it)) },
                     onClick = { UpdateManager.startDownload(context) }
                 )
             }
