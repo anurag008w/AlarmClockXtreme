@@ -1711,6 +1711,8 @@
     <string name="share_clean">Clean</string>
     <string name="timer_timer_stopped">Timer stopped</string>
     <string name="timer_stop_timer">Stop timer</string>
+    <string name="timer_focus_time">Set a time</string>
+    <string name="alarm_list_clear_search">Clear search</string>
     <string name="worldclock_search_hint_broader">Try a broader city name, or search a region such as Europe or America.</string>
     <string name="worldclock_search_hint_min_chars">Type at least two characters to search the available time zones.</string>
     <plurals name="timer_active_count">

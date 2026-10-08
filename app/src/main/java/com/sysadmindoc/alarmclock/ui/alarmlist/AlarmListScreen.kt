@@ -9,6 +9,9 @@ import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.material.icons.filled.NightsStay
+import androidx.compose.material.icons.filled.WbTwilight
+import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
@@ -458,7 +461,7 @@ fun AlarmListScreen(
                                         trailingIcon = {
                                             if (searchQuery.isNotBlank()) {
                                                 IconButton(onClick = { searchQuery = "" }) {
-                                                    Icon(Icons.Default.Clear, "Clear search", tint = TextMuted)
+                                                    Icon(Icons.Default.Clear, stringResource(R.string.alarm_list_clear_search), tint = TextMuted)
                                                 }
                                             }
                                         },
@@ -1327,6 +1330,8 @@ private fun AlarmCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                AlarmTimeBadge(hour = alarm.hour, enabled = alarm.isEnabled)
+                Spacer(modifier = Modifier.width(12.dp))
                 Column(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -1453,6 +1458,27 @@ private fun AlarmCard(
                 )
             }
         }
+    }
+}
+
+/** Circular time-of-day badge shown at the start of an alarm row (decorative). */
+@Composable
+private fun AlarmTimeBadge(hour: Int, enabled: Boolean) {
+    val (icon, tint) = when (hour) {
+        in 5..10 -> Icons.Default.WbSunny to SnoozeYellow
+        in 11..16 -> Icons.Default.WbTwilight to MaterialTheme.colorScheme.primary
+        in 17..20 -> Icons.Default.WbTwilight to DismissGreen
+        else -> Icons.Default.NightsStay to com.sysadmindoc.alarmclock.ui.theme.BlueLight
+    }
+    val alpha = if (enabled) 1f else 0.45f
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .size(44.dp)
+            .clip(androidx.compose.foundation.shape.CircleShape)
+            .background(tint.copy(alpha = 0.16f * alpha))
+    ) {
+        Icon(icon, contentDescription = null, tint = tint.copy(alpha = alpha), modifier = Modifier.size(24.dp))
     }
 }
 

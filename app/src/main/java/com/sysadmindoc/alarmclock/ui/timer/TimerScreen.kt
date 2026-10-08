@@ -368,19 +368,63 @@ private fun TimerInputView(state: TimerUiState, viewModel: TimerViewModel, modif
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         val locale = LocalConfiguration.current.locales[0]
-        Text(
-            text = String.format(
-                locale,
-                "%02d:%02d:%02d",
-                state.inputHours,
-                state.inputMinutes,
-                state.inputSeconds
-            ),
-            modifier = Modifier.fillMaxWidth(),
-            style = ClockTimeLarge,
-            color = TextPrimary,
-            textAlign = TextAlign.Center
-        )
+        val inputTotalSeconds = state.inputHours * 3600 + state.inputMinutes * 60 + state.inputSeconds
+        val ringFraction = (inputTotalSeconds / 3600f).coerceIn(0f, 1f)
+        val ringAccent = MaterialTheme.colorScheme.primary
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(220.dp)) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val strokeWidth = 8.dp.toPx()
+                    val diameter = size.minDimension - strokeWidth
+                    val topLeft = Offset((size.width - diameter) / 2, (size.height - diameter) / 2)
+                    drawArc(
+                        color = SurfaceCard,
+                        startAngle = -90f,
+                        sweepAngle = 360f,
+                        useCenter = false,
+                        topLeft = topLeft,
+                        size = Size(diameter, diameter),
+                        style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                    )
+                    if (ringFraction > 0f) {
+                        drawArc(
+                            color = ringAccent,
+                            startAngle = -90f,
+                            sweepAngle = ringFraction * 360f,
+                            useCenter = false,
+                            topLeft = topLeft,
+                            size = Size(diameter, diameter),
+                            style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                        )
+                    }
+                }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = String.format(
+                            locale,
+                            "%02d:%02d:%02d",
+                            state.inputHours,
+                            state.inputMinutes,
+                            state.inputSeconds
+                        ),
+                        style = ClockTimeLarge.copy(fontSize = 40.sp, lineHeight = 44.sp),
+                        color = TextPrimary,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1
+                    )
+                    Text(
+                        text = stringResource(R.string.timer_focus_time),
+                        color = TextSecondary,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        }
 
         if (state.inputDigits.isNotBlank()) {
             TextButton(onClick = viewModel::clearInput) {
