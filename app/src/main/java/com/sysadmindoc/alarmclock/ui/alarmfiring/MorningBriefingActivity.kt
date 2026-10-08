@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.alarmfiring
 
 import android.os.Bundle
+import com.sysadmindoc.alarmclock.ui.theme.AppRadius
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -276,7 +277,7 @@ fun MorningBriefingScreen(
                 onClick = onClose,
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = DismissGreen),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(AppRadius.sm)
             ) {
                 Text(
                     text = stringResource(R.string.briefing_close_briefing),
@@ -296,7 +297,7 @@ private fun BriefingRow(
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(AppRadius.sm),
         color = tint.copy(alpha = 0.1f)
     ) {
         Row(
@@ -326,7 +327,7 @@ private fun RoutineRow(
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(AppRadius.sm),
         color = DismissGreen.copy(alpha = 0.08f)
     ) {
         Row(

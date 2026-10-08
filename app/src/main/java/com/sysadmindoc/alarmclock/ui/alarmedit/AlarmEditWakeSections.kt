@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.alarmedit
 
 import android.Manifest
+import com.sysadmindoc.alarmclock.ui.theme.AppRadius
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -103,7 +104,7 @@ internal fun LazyListScope.alarmEditWakeSections(
                     viewModel.updateFlashWake(false)
                 }
             },
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(AppRadius.sm),
             colors = ButtonDefaults.outlinedButtonColors(
                 contentColor = if (isGentleWake) DismissGreen else MaterialTheme.colorScheme.primary
             ),
@@ -177,7 +178,7 @@ internal fun LazyListScope.alarmEditWakeSections(
             )
             OutlinedButton(
                 onClick = viewModel::clearFiringBackgroundImage,
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(AppRadius.sm),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentRed),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
             ) {
