@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.settings
 
 import androidx.activity.compose.rememberLauncherForActivityResult
+import com.sysadmindoc.alarmclock.ui.theme.AppRadius
 import androidx.activity.result.contract.ActivityResultContracts
 import android.Manifest
 import android.content.Intent
@@ -339,7 +340,7 @@ internal fun BackupRestoreSection(viewModel: SettingsViewModel, is24HourFormat: 
                 onClick = { requestBackupExport(BackupExportKind.Plain) },
                 enabled = !operationBusy,
                 modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(AppRadius.sm),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
             ) {
                 Icon(Icons.Default.Upload, null, modifier = Modifier.size(18.dp))
@@ -350,7 +351,7 @@ internal fun BackupRestoreSection(viewModel: SettingsViewModel, is24HourFormat: 
                 onClick = { importLauncher.launch(arrayOf("application/json")) },
                 enabled = !operationBusy,
                 modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(AppRadius.sm),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
             ) {
                 Icon(Icons.Default.Download, null, modifier = Modifier.size(18.dp))
@@ -371,7 +372,7 @@ internal fun BackupRestoreSection(viewModel: SettingsViewModel, is24HourFormat: 
             onClick = { fossifyImportLauncher.launch(arrayOf("application/json", "text/plain")) },
             enabled = !operationBusy,
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(AppRadius.sm),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
         ) {
             Icon(Icons.Default.Restore, null, modifier = Modifier.size(18.dp))
@@ -443,7 +444,7 @@ internal fun BackupRestoreSection(viewModel: SettingsViewModel, is24HourFormat: 
                     onClick = { requestBackupExport(BackupExportKind.Encrypted) },
                     enabled = encryptedExportEnabled && !operationBusy,
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(AppRadius.sm),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Icon(Icons.Default.Upload, null, modifier = Modifier.size(18.dp))
@@ -454,7 +455,7 @@ internal fun BackupRestoreSection(viewModel: SettingsViewModel, is24HourFormat: 
                     onClick = { encryptedImportLauncher.launch(arrayOf("application/json", "*/*")) },
                     enabled = encryptedImportEnabled && !operationBusy,
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(AppRadius.sm),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Icon(Icons.Default.Download, null, modifier = Modifier.size(18.dp))

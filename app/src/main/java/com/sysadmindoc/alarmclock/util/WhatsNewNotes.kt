@@ -13,6 +13,12 @@ object WhatsNewNotes {
     fun releaseNotesUrl(versionName: String): String = "$REPO_URL/releases/tag/v$versionName"
 
     private val notes: Map<String, List<String>> = mapOf(
+        "1.16.4" to listOf(
+            "Polish pass across the app: every screen now uses the same corner-radius scale, so cards, sheets and buttons look consistent.",
+            "Settings > Updates now shows what is new in an available update, and the version line is a plain info row instead of a fake button.",
+            "Screen readers: settings choices announce once as a single selectable row, the timer count is read correctly (1 timer / 2 timers), and the Stop timer button is translatable.",
+            "World clock search hints are now translatable. Alarm scheduling and reliability are unchanged."
+        ),
         "1.16.3" to listOf(
             "Today tab: your next alarm now sits at the top, so the most important thing is the first thing you see.",
             "The next-alarm card is announced as a button for screen readers and has more comfortable padding.",

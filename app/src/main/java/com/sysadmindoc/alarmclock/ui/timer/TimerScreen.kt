@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.timer
 
 import androidx.compose.animation.core.FastOutSlowInEasing
+import com.sysadmindoc.alarmclock.ui.theme.AppRadius
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
@@ -158,7 +159,7 @@ fun TimerScreen(
             subtitle = if (state.activeTimers.isEmpty()) {
                 ""
             } else {
-                "${state.activeTimers.size} timer${if (state.activeTimers.size == 1) "" else "s"} active"
+                androidx.compose.ui.res.pluralStringResource(R.plurals.timer_active_count, state.activeTimers.size, state.activeTimers.size)
             },
             actions = {
                 TextButton(onClick = onOpenStopwatch) {
@@ -288,7 +289,7 @@ private fun ActiveTimerCard(
             if (isFinished) {
                 Button(
                     onClick = onDismiss,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(AppRadius.sm),
                     colors = ButtonDefaults.buttonColors(containerColor = AccentRed)
                 ) {
                     Text(stringResource(R.string.timer_dismiss))
@@ -296,7 +297,7 @@ private fun ActiveTimerCard(
             } else {
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     IconButton(onClick = onStop) {
-                        Icon(Icons.Default.Stop, "Stop timer", tint = AccentRed)
+                        Icon(Icons.Default.Stop, stringResource(R.string.timer_stop_timer), tint = AccentRed)
                     }
                     IconButton(onClick = { if (timer.state == TimerState.RUNNING) onPause() else onResume() }) {
                         Icon(
@@ -414,7 +415,7 @@ private fun TimerInputView(state: TimerUiState, viewModel: TimerViewModel, modif
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
-            shape = RoundedCornerShape(10.dp),
+            shape = RoundedCornerShape(AppRadius.xs),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary,
                 disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
@@ -480,7 +481,7 @@ private fun NumPad(
                                     else -> onDigit(key)
                                 }
                         },
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(AppRadius.sm),
                         color = if (key < 0) SurfaceCard else SurfaceMedium
                     ) {
                         Box(
@@ -488,7 +489,7 @@ private fun NumPad(
                                 .fillMaxSize()
                                 .background(
                                     color = if (key < 0) accent.copy(alpha = 0.08f) else androidx.compose.ui.graphics.Color.Transparent,
-                                    shape = RoundedCornerShape(12.dp)
+                                    shape = RoundedCornerShape(AppRadius.sm)
                                 ),
                             contentAlignment = Alignment.Center
                         ) {

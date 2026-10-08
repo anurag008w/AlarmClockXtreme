@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.ringtone
 
 import androidx.compose.ui.res.pluralStringResource
+import com.sysadmindoc.alarmclock.ui.theme.AppRadius
 import android.content.Context
 import android.content.Intent
 import android.media.MediaPlayer
@@ -282,7 +283,7 @@ fun RingtonePickerSheet(
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             OutlinedButton(
                                 onClick = { folderLauncher.launch(null) },
-                                shape = RoundedCornerShape(12.dp),
+                                shape = RoundedCornerShape(AppRadius.sm),
                                 colors = ButtonDefaults.outlinedButtonColors(
                                     contentColor = MaterialTheme.colorScheme.primary
                                 )
@@ -298,7 +299,7 @@ fun RingtonePickerSheet(
                             if (youTubeAvailable) {
                                 OutlinedButton(
                                     onClick = { showYouTubeDialog = true },
-                                    shape = RoundedCornerShape(12.dp),
+                                    shape = RoundedCornerShape(AppRadius.sm),
                                     colors = ButtonDefaults.outlinedButtonColors(
                                         contentColor = MaterialTheme.colorScheme.primary
                                     )
@@ -492,7 +493,7 @@ internal fun RingtoneRow(
             Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(AppRadius.sm))
                     .background(accent.copy(alpha = 0.14f)),
                 contentAlignment = Alignment.Center
             ) {

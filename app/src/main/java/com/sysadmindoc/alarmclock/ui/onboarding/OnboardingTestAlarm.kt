@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.onboarding
 
 import android.Manifest
+import com.sysadmindoc.alarmclock.ui.theme.AppRadius
 import android.app.AlarmManager
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -295,7 +296,7 @@ private fun TestAlarmContent(onDismiss: () -> Unit) {
         Button(
             onClick = onDismiss,
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(AppRadius.sm),
             contentPadding = PaddingValues(vertical = 16.dp),
             colors = ButtonDefaults.buttonColors(containerColor = DismissGreen)
         ) {

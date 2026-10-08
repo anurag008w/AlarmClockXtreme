@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.dashboard
 
 import android.Manifest
+import com.sysadmindoc.alarmclock.ui.theme.AppRadius
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -361,7 +362,7 @@ private fun WeatherSection(
                     )
                     OutlinedButton(
                         onClick = onRetryWeather,
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(AppRadius.sm),
                         colors = ButtonDefaults.outlinedButtonColors(
                             contentColor = MaterialTheme.colorScheme.primary
                         )
@@ -634,7 +635,7 @@ private fun AirQualityCard(summary: AirQualitySummary) {
             verticalAlignment = Alignment.Top
         ) {
             Surface(
-                shape = RoundedCornerShape(10.dp),
+                shape = RoundedCornerShape(AppRadius.xs),
                 color = accent.copy(alpha = 0.14f)
             ) {
                 Box(
@@ -864,7 +865,7 @@ private fun HourlyCell(hour: HourlyForecast) {
         modifier = Modifier
             .background(
                 color = com.sysadmindoc.alarmclock.ui.theme.SurfaceLight,
-                shape = RoundedCornerShape(10.dp)
+                shape = RoundedCornerShape(AppRadius.xs)
             )
             .padding(horizontal = 12.dp, vertical = 10.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -1130,7 +1131,7 @@ private fun LocationPickerDialog(
                 OutlinedButton(
                     onClick = onUseDevice,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(AppRadius.sm),
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = MaterialTheme.colorScheme.primary
                     )
@@ -1160,7 +1161,7 @@ private fun LocationPickerDialog(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable { onSelect(result) },
-                                    shape = RoundedCornerShape(12.dp),
+                                    shape = RoundedCornerShape(AppRadius.sm),
                                     color = com.sysadmindoc.alarmclock.ui.theme.SurfaceLight,
                                     border = androidx.compose.foundation.BorderStroke(
                                         1.dp,
@@ -1173,7 +1174,7 @@ private fun LocationPickerDialog(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Surface(
-                                            shape = RoundedCornerShape(10.dp),
+                                            shape = RoundedCornerShape(AppRadius.xs),
                                             color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
                                         ) {
                                             Box(
@@ -1239,6 +1240,6 @@ private fun LocationPickerDialog(
             }
         },
         containerColor = SurfaceDark.copy(alpha = 0.98f),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(AppRadius.sm)
     )
 }

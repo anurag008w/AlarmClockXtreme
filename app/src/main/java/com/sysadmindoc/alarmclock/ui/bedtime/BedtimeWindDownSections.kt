@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.bedtime
 
 import androidx.compose.foundation.clickable
+import com.sysadmindoc.alarmclock.ui.theme.AppRadius
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -39,7 +40,7 @@ internal fun SleepCycleOptionRow(index: Int, option: String) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(AppRadius.sm),
         color = SurfaceCard.copy(alpha = if (index == 0) 0.82f else 0.7f)
     ) {
         Row(
@@ -92,7 +93,7 @@ internal fun WindDownChecklistSection(
                         role = Role.Checkbox,
                         onValueChange = { onToggle(index) }
                     ),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(AppRadius.sm),
                 color = if (done) DismissGreen.copy(alpha = 0.09f) else SurfaceCard.copy(alpha = 0.72f)
             ) {
                 Row(

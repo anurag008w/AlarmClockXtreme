@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.components
 
 import androidx.compose.animation.animateContentSize
+import com.sysadmindoc.alarmclock.ui.theme.AppRadius
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -79,10 +80,10 @@ import androidx.compose.ui.res.stringResource
 import com.sysadmindoc.alarmclock.R
 
 // ─── Shared shape tokens ───────────────────────────────────────────────────
-val AppCardShape = RoundedCornerShape(12.dp)
-val AppTileShape = RoundedCornerShape(10.dp)
-val AppChipShape = RoundedCornerShape(10.dp)
-val AppInputShape = RoundedCornerShape(10.dp)
+val AppCardShape = RoundedCornerShape(AppRadius.sm)
+val AppTileShape = RoundedCornerShape(AppRadius.xs)
+val AppChipShape = RoundedCornerShape(AppRadius.xs)
+val AppInputShape = RoundedCornerShape(AppRadius.xs)
 
 // ─── Icon size scale ───────────────────────────────────────────────────────
 // One scale, four steps. Replaces the 13 / 15 / 18 / 20 / 22 dp drift that

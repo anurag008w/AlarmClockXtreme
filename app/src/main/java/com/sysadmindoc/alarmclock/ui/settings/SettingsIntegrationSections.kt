@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.settings
 
 import androidx.activity.compose.rememberLauncherForActivityResult
+import com.sysadmindoc.alarmclock.ui.theme.AppRadius
 import androidx.activity.result.contract.ActivityResultContracts
 import android.Manifest
 import android.content.Intent
@@ -266,7 +267,7 @@ internal fun IntegrationsSection(state: SettingsUiState, viewModel: SettingsView
                     state.settings.webhookUrl.isNotBlank() &&
                     !localWebhookPermissionMissing &&
                     !state.isWebhookTesting,
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(AppRadius.sm),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
             ) {
                 if (state.isWebhookTesting) {
@@ -497,7 +498,7 @@ internal fun PhilipsHueSection(state: SettingsUiState, viewModel: SettingsViewMo
                     state.settings.hueApiKey.isNotBlank() &&
                     !localNetworkPermissionMissing &&
                     !state.isHueTesting,
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(AppRadius.sm),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
             ) {
                 if (state.isHueTesting) {
@@ -633,7 +634,7 @@ internal fun HealthConnectSection(
                 OutlinedButton(
                     onClick = { onRequestPermissions?.invoke() },
                     enabled = onRequestPermissions != null && summary.isAvailable,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(AppRadius.sm),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(18.dp))
@@ -648,7 +649,7 @@ internal fun HealthConnectSection(
                 OutlinedButton(
                     onClick = viewModel::refreshHealthConnectSleep,
                     enabled = summary.isAvailable,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(AppRadius.sm),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Icon(Icons.Default.Bedtime, null, modifier = Modifier.size(18.dp))
@@ -790,7 +791,7 @@ internal fun ConnectionsSection(state: SettingsUiState) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 4.dp, horizontal = 4.dp),
-                shape = RoundedCornerShape(10.dp),
+                shape = RoundedCornerShape(AppRadius.xs),
                 color = if (conn.enabled) SurfaceLight.copy(alpha = 0.58f)
                     else SurfaceLight.copy(alpha = 0.28f)
             ) {

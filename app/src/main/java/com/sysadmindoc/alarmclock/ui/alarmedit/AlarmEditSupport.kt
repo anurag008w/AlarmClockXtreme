@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.alarmedit
 
 import android.Manifest
+import com.sysadmindoc.alarmclock.ui.theme.AppRadius
 import android.content.Intent
 import android.content.pm.PackageManager
 import androidx.annotation.StringRes
@@ -161,7 +162,7 @@ internal fun AlarmTimeNumpad(
                         modifier = Modifier
                             .weight(1f)
                             .height(52.dp),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(AppRadius.sm),
                         contentPadding = PaddingValues(0.dp)
                     ) {
                         when (key) {
@@ -211,7 +212,7 @@ internal fun DaySelector(
                         role = Role.Checkbox,
                         onClick = { onToggleDay(day) }
                     ),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(AppRadius.sm),
                 color = if (isSelected) {
                     MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
                 } else {
@@ -471,7 +472,7 @@ internal fun SettingsRow(
     Surface(
         modifier = Modifier
             .fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(AppRadius.sm),
         color = SurfaceLight.copy(alpha = 0.58f),
         border = BorderStroke(1.dp, BorderSubtle)
     ) {
@@ -504,7 +505,7 @@ internal fun SettingsValueButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val shape = RoundedCornerShape(12.dp)
+    val shape = RoundedCornerShape(AppRadius.sm)
     Surface(
         modifier = modifier
             .clip(shape)
@@ -558,12 +559,12 @@ internal fun SettingsHint(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 2.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(AppRadius.sm))
             .background(accentColor.copy(alpha = 0.10f))
             .border(
                 width = 1.dp,
                 color = accentColor.copy(alpha = 0.14f),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(AppRadius.sm)
             )
             .padding(horizontal = 14.dp, vertical = 12.dp)
     ) {
@@ -740,7 +741,7 @@ internal fun ChallengeChainPickerSheet(
                     }
                     Button(
                         onClick = { onApply(draftChain) },
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(AppRadius.sm),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
                         Text(

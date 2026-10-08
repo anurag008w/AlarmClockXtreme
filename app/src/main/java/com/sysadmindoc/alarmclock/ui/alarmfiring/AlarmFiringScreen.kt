@@ -3,6 +3,7 @@
 package com.sysadmindoc.alarmclock.ui.alarmfiring
 
 import android.content.Context
+import com.sysadmindoc.alarmclock.ui.theme.AppRadius
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -1071,7 +1072,7 @@ fun AlarmFiringScreen(
                                 disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
                                 disabledContentColor = TextMuted
                             ),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(AppRadius.sm)
                         ) {
                             Text(
                                 text = when {
@@ -1162,7 +1163,7 @@ fun AlarmFiringScreen(
                         OutlinedButton(
                             onClick = { showSnoozeUntilPicker = true },
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(AppRadius.sm),
                             border = BorderStroke(1.2.dp, SnoozeYellow.copy(alpha = 0.74f)),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = SnoozeYellow)
                         ) {
@@ -1233,7 +1234,7 @@ fun AlarmFiringScreen(
                 )
             },
             containerColor = SurfaceMedium,
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(AppRadius.sm)
         )
     }
 }
@@ -1458,7 +1459,7 @@ private fun HoldToDismissButton(
                     }
                 }
             },
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(AppRadius.sm),
         color = if (enabled) {
             DismissGreen.copy(alpha = 0.10f)
         } else {
@@ -1534,7 +1535,7 @@ private fun LongPressSnoozeButton(
                 onLongClickLabel = exactSnoozeLabel,
                 onLongClick = onLongClick
             ),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(AppRadius.sm),
         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.06f),
         border = BorderStroke(1.5.dp, tint.copy(alpha = 0.78f))
     ) {
@@ -1570,7 +1571,7 @@ private fun SnoozeMinutePicker(
             .fillMaxWidth()
             .background(
                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.06f),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(AppRadius.sm)
             )
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -1633,7 +1634,7 @@ private fun SnoozeMinutePicker(
                 modifier = Modifier
                     .weight(1f)
                     .height(48.dp),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(AppRadius.sm),
                 border = BorderStroke(1.2.dp, SnoozeYellow.copy(alpha = 0.74f)),
                 colors = ButtonDefaults.outlinedButtonColors(
                     contentColor = SnoozeYellow
@@ -1668,7 +1669,7 @@ private fun QuickSnoozeButton(
         onClick = onClick,
         modifier = Modifier
             .height(44.dp),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(AppRadius.sm),
         colors = ButtonDefaults.outlinedButtonColors(
             containerColor = if (isDefault) SnoozeYellow.copy(alpha = 0.12f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.06f),
             contentColor = if (isDefault) SnoozeYellow else TextSecondary

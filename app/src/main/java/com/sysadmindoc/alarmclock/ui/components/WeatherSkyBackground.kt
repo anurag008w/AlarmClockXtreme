@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.components
 
 import androidx.compose.animation.core.FastOutSlowInEasing
+import com.sysadmindoc.alarmclock.ui.theme.AppRadius
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -258,7 +259,7 @@ private fun TornadoOverlay(modifier: Modifier = Modifier) {
             contentAlignment = Alignment.Center,
         ) {
             Surface(
-                shape = RoundedCornerShape(10.dp),
+                shape = RoundedCornerShape(AppRadius.xs),
                 color = Color(0xFFB7271A),
             ) {
                 androidx.compose.foundation.layout.Row(

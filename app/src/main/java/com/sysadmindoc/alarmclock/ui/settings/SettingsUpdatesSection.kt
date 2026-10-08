@@ -36,10 +36,9 @@ internal fun UpdatesSection() {
         title = stringResource(R.string.settings_pane_updates),
         description = stringResource(R.string.settings_pane_updates_description)
     ) {
-        SettingsActionRow(
+        SettingsInfo(
             label = stringResource(R.string.updates_current_version),
-            value = "v${BuildConfig.VERSION_NAME}",
-            onClick = {}
+            description = "v${BuildConfig.VERSION_NAME}"
         )
         val status = when {
             state.checking -> stringResource(R.string.updates_checking)
@@ -61,6 +60,12 @@ internal fun UpdatesSection() {
             onClick = { UpdateManager.check(context, manual = true) }
         )
         if (release != null) {
+            if (release.notes.isNotEmpty()) {
+                SettingsInfo(
+                    label = stringResource(R.string.update_whats_new_in, release.versionName),
+                    description = release.notes.joinToString("\n") { "\u2022 $it" }
+                )
+            }
             when (state.phase) {
                 DownloadPhase.Downloading -> Column(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),

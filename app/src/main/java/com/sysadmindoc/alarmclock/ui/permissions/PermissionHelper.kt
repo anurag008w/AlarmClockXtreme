@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.permissions
 
 import android.Manifest
+import com.sysadmindoc.alarmclock.ui.theme.AppRadius
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -190,7 +191,7 @@ fun PermissionRequestCard(
                 }
             },
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(AppRadius.sm),
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
@@ -220,7 +221,7 @@ private fun PermissionItem(icon: ImageVector, title: String, description: String
     ) {
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(AppRadius.sm),
             color = SurfaceCard.copy(alpha = 0.78f)
         ) {
             Row(
@@ -228,7 +229,7 @@ private fun PermissionItem(icon: ImageVector, title: String, description: String
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Surface(
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(AppRadius.xs),
                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
                 ) {
                     Box(

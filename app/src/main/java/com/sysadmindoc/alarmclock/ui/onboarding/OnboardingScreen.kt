@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.onboarding
 
 import android.Manifest
+import com.sysadmindoc.alarmclock.ui.theme.AppRadius
 import android.app.AlarmManager
 import android.app.NotificationManager
 import android.content.Context
@@ -416,7 +417,7 @@ fun OnboardingScreen(
                         .fillMaxWidth()
                         .height(if (isLastPage) 54.dp else 58.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = onboardingPages[pagerState.currentPage].accentColor),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(AppRadius.sm)
                 ) {
                     Text(
                         text = when {
@@ -544,7 +545,7 @@ private fun OnboardingIconTile(
     Box(
         modifier = Modifier
             .size(size)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(AppRadius.sm))
             .background(
                 Brush.radialGradient(
                     colors = listOf(

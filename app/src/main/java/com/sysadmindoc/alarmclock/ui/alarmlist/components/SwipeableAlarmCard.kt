@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.alarmlist.components
 
 import androidx.compose.animation.animateColorAsState
+import com.sysadmindoc.alarmclock.ui.theme.AppRadius
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -71,7 +72,7 @@ fun SwipeableAlarmCard(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(AppRadius.sm))
                     .background(color)
                     .padding(end = 24.dp),
                 contentAlignment = Alignment.CenterEnd
@@ -103,7 +104,7 @@ fun SwipeableAlarmCard(
                         }
                         Surface(
                             color = Color.White.copy(alpha = 0.14f),
-                            shape = RoundedCornerShape(10.dp)
+                            shape = RoundedCornerShape(AppRadius.xs)
                         ) {
                             Icon(
                                 Icons.Default.Delete,

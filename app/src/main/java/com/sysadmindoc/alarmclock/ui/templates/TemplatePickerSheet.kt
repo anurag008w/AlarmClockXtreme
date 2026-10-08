@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.templates
 
 import androidx.compose.ui.res.pluralStringResource
+import com.sysadmindoc.alarmclock.ui.theme.AppRadius
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -139,7 +140,7 @@ private fun TemplateCard(
             Box(
                 modifier = Modifier
                     .size(52.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(AppRadius.sm))
                     .background(accent.copy(alpha = 0.14f)),
                 contentAlignment = Alignment.Center
             ) {

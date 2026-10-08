@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.alarmedit
 
 import android.Manifest
+import com.sysadmindoc.alarmclock.ui.theme.AppRadius
 import android.content.Intent
 import android.content.pm.PackageManager
 import androidx.annotation.StringRes
@@ -466,7 +467,7 @@ fun AlarmEditScreen(
                             .fillMaxWidth()
                             .height(56.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(AppRadius.sm)
                     ) {
                         if (state.isSaving) {
                             CircularProgressIndicator(
@@ -693,7 +694,7 @@ fun AlarmEditScreen(
                 }
             },
             containerColor = SurfaceMedium,
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(AppRadius.sm)
         )
     }
 }

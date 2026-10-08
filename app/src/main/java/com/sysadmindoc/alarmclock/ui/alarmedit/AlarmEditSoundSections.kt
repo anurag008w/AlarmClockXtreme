@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.alarmedit
 
 import android.Manifest
+import com.sysadmindoc.alarmclock.ui.theme.AppRadius
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -90,7 +91,7 @@ internal fun LazyListScope.alarmEditSoundSections(
         SettingsRow(label = stringResource(R.string.alarm_edit_partner_mode)) {
             OutlinedButton(
                 onClick = viewModel::applyDontWakePartnerProfile,
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(AppRadius.sm),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.42f)),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
             ) {

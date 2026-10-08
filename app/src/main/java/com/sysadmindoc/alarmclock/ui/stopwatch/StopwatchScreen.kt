@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.stopwatch
 
 import android.Manifest
+import com.sysadmindoc.alarmclock.ui.theme.AppRadius
 import android.os.Build
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
@@ -359,7 +360,7 @@ private fun ControlsRow(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 6.dp),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(AppRadius.sm),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
                 Icon(
@@ -432,7 +433,7 @@ private fun LapRow(lap: Lap) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 6.dp),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(AppRadius.sm),
         color = when {
             lap.isBest -> DismissGreen.copy(alpha = 0.1f)
             lap.isWorst -> AccentRed.copy(alpha = 0.09f)
@@ -496,7 +497,7 @@ private fun StopwatchPrimaryButton(
     Button(
         onClick = onClick,
         modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(AppRadius.sm),
         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
     ) {
         Icon(icon, contentDescription = label, modifier = Modifier.size(20.dp))
@@ -516,7 +517,7 @@ private fun StopwatchSecondaryButton(
     OutlinedButton(
         onClick = onClick,
         modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(AppRadius.sm),
         colors = ButtonDefaults.outlinedButtonColors(contentColor = accent)
     ) {
         Icon(icon, contentDescription = label, modifier = Modifier.size(18.dp))

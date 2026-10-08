@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.bedtime
 
 import androidx.compose.foundation.clickable
+import com.sysadmindoc.alarmclock.ui.theme.AppRadius
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -81,7 +82,7 @@ internal fun SleepSoundsSection(
                             if (isActive) viewModel.stopSound()
                             else viewModel.playSound(sound.preset)
                         },
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(AppRadius.sm),
                     colors = CardDefaults.cardColors(
                         containerColor = if (isActive) {
                             MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)

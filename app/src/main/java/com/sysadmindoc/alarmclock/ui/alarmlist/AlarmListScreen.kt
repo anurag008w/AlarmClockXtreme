@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.alarmlist
 
 import com.sysadmindoc.alarmclock.ui.alarmedit.toAlarmChallengeSummary
+import com.sysadmindoc.alarmclock.ui.theme.AppRadius
 import androidx.compose.ui.res.pluralStringResource
 import android.content.Context
 import android.content.Intent
@@ -323,7 +324,7 @@ fun AlarmListScreen(
                         viewModel.deleteSelected()
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = AccentRed),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(AppRadius.sm)
                 ) {
                     Text(
                         if (state.selectedIds.size == 1) stringResource(R.string.alarmlist_delete_alarm) else stringResource(R.string.alarmlist_delete_alarms, state.selectedIds.size)
@@ -358,7 +359,7 @@ fun AlarmListScreen(
                 )
             },
             containerColor = SurfaceMedium,
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(AppRadius.sm)
         )
     }
 
@@ -963,7 +964,7 @@ private fun AlarmDetailPane(
                         stateDescription = alarmToggleState
                         role = Role.Switch
                     },
-                shape = RoundedCornerShape(10.dp),
+                shape = RoundedCornerShape(AppRadius.xs),
                 color = SurfaceMedium,
                 border = androidx.compose.foundation.BorderStroke(
                     width = 1.dp,
@@ -996,7 +997,7 @@ private fun AlarmDetailPane(
                 Button(
                     onClick = { onEdit(alarm) },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(AppRadius.sm),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Text(stringResource(R.string.edit_alarm))
@@ -1007,7 +1008,7 @@ private fun AlarmDetailPane(
                     OutlinedButton(
                         onClick = { onDuplicate(alarm) },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(AppRadius.sm)
                     ) {
                         Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
@@ -1016,7 +1017,7 @@ private fun AlarmDetailPane(
                     OutlinedButton(
                         onClick = { onShare(alarm) },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(AppRadius.sm)
                     ) {
                         Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
@@ -1027,7 +1028,7 @@ private fun AlarmDetailPane(
                     OutlinedButton(
                         onClick = { onShowHistory(alarm) },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(AppRadius.sm)
                     ) {
                         Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
@@ -1036,7 +1037,7 @@ private fun AlarmDetailPane(
                     OutlinedButton(
                         onClick = { onDelete(alarm) },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(AppRadius.sm),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentRed)
                     ) {
                         Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -1048,7 +1049,7 @@ private fun AlarmDetailPane(
                     OutlinedButton(
                         onClick = { onSkipNext(alarm) },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(AppRadius.sm)
                     ) {
                         Icon(Icons.Default.SkipNext, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
@@ -1181,7 +1182,7 @@ private fun AlarmReorderHandle(
     Box(
         modifier = modifier
             .size(44.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(AppRadius.sm))
             .background(
                 if (enabled) {
                     SurfaceMedium
@@ -1514,7 +1515,7 @@ private fun SelectionActionBar(
                 OutlinedButton(
                     onClick = onEnableSelected,
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(AppRadius.sm),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = DismissGreen)
                 ) {
                     Icon(Icons.Default.NotificationsActive, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -1524,7 +1525,7 @@ private fun SelectionActionBar(
                 OutlinedButton(
                     onClick = onDisableSelected,
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(AppRadius.sm),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = TextSecondary)
                 ) {
                     Icon(Icons.Default.NotificationsOff, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -1534,7 +1535,7 @@ private fun SelectionActionBar(
                 Button(
                     onClick = onDeleteSelected,
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(AppRadius.sm),
                     colors = ButtonDefaults.buttonColors(containerColor = AccentRed)
                 ) {
                     Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -1748,7 +1749,7 @@ private fun YouTubeDownloadCard(
             Box(
                 modifier = Modifier
                     .size(44.dp)
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(AppRadius.xs))
                     .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)),
                 contentAlignment = Alignment.Center
             ) {

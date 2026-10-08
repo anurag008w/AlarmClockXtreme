@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.settings
 
 import androidx.activity.compose.rememberLauncherForActivityResult
+import com.sysadmindoc.alarmclock.ui.theme.AppRadius
 import androidx.activity.result.contract.ActivityResultContracts
 import android.Manifest
 import android.content.Intent
@@ -225,7 +226,7 @@ internal fun IncidentTimelineSection(
             )
             OutlinedButton(
                 onClick = { showClearDialog = true },
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(AppRadius.sm),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentRed)
             ) {
                 Text(stringResource(R.string.settings_clear_diagnostics))
@@ -343,7 +344,7 @@ internal fun SettingsOverviewTile(
         highlighted = accent == DismissGreen || accent == SnoozeYellow
     ) {
         Surface(
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(AppRadius.sm),
             color = accent.copy(alpha = 0.14f)
         ) {
             Box(
@@ -478,7 +479,7 @@ internal fun OnCallModeSection(
                         )
                     }
                 },
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(AppRadius.sm)
             ) {
                 Text(stringResource(R.string.settings_open_dnd))
             }
@@ -727,7 +728,7 @@ internal fun BatteryOptimizationSection(state: SettingsUiState, viewModel: Setti
             Button(
                 onClick = viewModel::requestBatteryExemption,
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(AppRadius.sm)
             ) {
                 Text(
                     if (state.needsBatteryGuidance) {

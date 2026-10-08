@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.alarmedit
 
 import android.Manifest
+import com.sysadmindoc.alarmclock.ui.theme.AppRadius
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -422,7 +423,7 @@ internal fun LazyListScope.alarmEditDismissSections(
             SettingsRow(label = stringResource(R.string.alarm_edit_reference_photo)) {
                 OutlinedButton(
                     onClick = onCaptureReferencePhoto,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(AppRadius.sm),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Icon(
@@ -579,7 +580,7 @@ internal fun LazyListScope.alarmEditDismissSections(
             }
             OutlinedButton(
                 onClick = requestLocationDismissTarget,
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(AppRadius.sm),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
             ) {
