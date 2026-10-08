@@ -16,6 +16,11 @@ object ExternalAlertStore {
     private const val KEY_LAST_AT = "last_at"
     private const val KEY_LAST_SUMMARY = "last_summary"
     private const val KEY_LAST_ACCEPTED_AT = "last_accepted_at"
+    private const val KEY_ALARM_CONTROL = "alarm_control_enabled"
+    private const val KEY_LAST_ALARM_CHANGE_AT = "last_alarm_change_at"
+
+    /** Minimum gap between two accepted alarm changes. */
+    const val MIN_ALARM_CHANGE_INTERVAL_MS = 5_000L
 
     /** Minimum gap between two accepted alerts. */
     const val MIN_INTERVAL_MS = 15_000L
@@ -82,4 +87,22 @@ object ExternalAlertStore {
 
     fun lastSummary(context: Context): String =
         prefs(context).getString(KEY_LAST_SUMMARY, "").orEmpty()
+
+    /** Separate opt-in: lets the paired app list and change alarms. Off by default. */
+    fun isAlarmControlEnabled(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_ALARM_CONTROL, false)
+
+    fun setAlarmControlEnabled(context: Context, enabled: Boolean) {
+        prefs(context).edit().putBoolean(KEY_ALARM_CONTROL, enabled).apply()
+        pairingCode(context)
+    }
+
+    /** True when enough time passed since the last accepted alarm change; records it when so. */
+    @Synchronized
+    fun tryAcceptAlarmChangeNow(context: Context, nowMs: Long = System.currentTimeMillis()): Boolean {
+        val last = prefs(context).getLong(KEY_LAST_ALARM_CHANGE_AT, 0L)
+        if (nowMs - last in 0 until MIN_ALARM_CHANGE_INTERVAL_MS) return false
+        prefs(context).edit().putLong(KEY_LAST_ALARM_CHANGE_AT, nowMs).apply()
+        return true
+    }
 }
