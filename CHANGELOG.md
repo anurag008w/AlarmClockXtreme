@@ -2,6 +2,11 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.16.1]
+
+- Remove the duplicate fire-time warning from the Android alarm list.
+- Release: v1.16.1 (versionCode 156).
+
 ## [1.16.0]
 
 - FCM background sync: the cloud server now wakes the phone the moment an alarm, setting or utility command changes, so web edits reach the phone in seconds without opening the app. Play build only; F-Droid keeps polling. Software tests passed; physical-device verification pending.
