@@ -1,0 +1,67 @@
+name: Emulator smoke
+
+# Installs the debug APK on real Android emulators (API 26 and 28), launches it, walks the
+# main tabs, saves screenshots, and fails on a crash. Runs when a commit message contains [emu].
+on:
+  push:
+    branches:
+      - "redesign/**"
+
+permissions:
+  contents: write
+
+jobs:
+  smoke:
+    if: contains(github.event.head_commit.message, '[emu]')
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [26, 28]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - run: chmod +x gradlew
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - run: ./gradlew :app:assemblePlayDebug --no-daemon
+      - name: Run on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api }}
+          arch: x86_64
+          target: default
+          profile: pixel_2
+          disable-animations: true
+          script: |
+            mkdir -p shots
+            adb install -r app/build/outputs/apk/play/debug/app-play-debug.apk
+            adb logcat -c
+            adb shell monkey -p com.sysadmindoc.alarmclock.debug -c android.intent.category.LAUNCHER 1
+            python3 scripts/emulator_smoke.py shots
+            adb logcat -d > shots/logcat.txt
+            adb shell pidof com.sysadmindoc.alarmclock.debug > shots/pid.txt || true
+      - name: Check for crashes and publish screenshots
+        run: |
+          sudo apt-get install -y imagemagick >/dev/null
+          cd shots
+          for f in *.png; do convert "$f" -resize 360x -quality 55 "${f%.png}.jpg"; done
+          rm -f *.png
+          grep -c "FATAL EXCEPTION" logcat.txt || true
+          grep -A12 "FATAL EXCEPTION" logcat.txt | head -40 > crash.txt || true
+          rm logcat.txt
+          cd ..
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan ci-shots-${{ matrix.api }}
+          git rm -rf . >/dev/null 2>&1 || true
+          mkdir -p out && cp shots/* out/ && git add -f out
+          git commit -m "emulator shots api ${{ matrix.api }} for ${{ github.sha }}"
+          git push -f origin ci-shots-${{ matrix.api }}
+          if [ -s shots/crash.txt ]; then cat shots/crash.txt; exit 1; fi
