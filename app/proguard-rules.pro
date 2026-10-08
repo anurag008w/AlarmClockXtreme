@@ -125,3 +125,7 @@
 # Keep class members stable so release R8 shrinking cannot rename JSON fields.
 -keep class com.sysadmindoc.alarmclock.data.cloud.** { *; }
 
+
+# Readable crash reports: keep file names and line numbers in stack traces.
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile

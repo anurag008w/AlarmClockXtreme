@@ -5,6 +5,7 @@ import com.sysadmindoc.alarmclock.ui.theme.AppRadius
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -686,6 +687,8 @@ private fun AirQualityCard(summary: AirQualitySummary) {
             }
         }
 
+        AqiGauge(aqi = summary.aqi.filter { it.isDigit() }.toIntOrNull(), accent = accent)
+
         if (summary.pollutantMetrics.isNotEmpty()) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1242,4 +1245,40 @@ private fun LocationPickerDialog(
         containerColor = SurfaceDark.copy(alpha = 0.98f),
         shape = RoundedCornerShape(AppRadius.sm)
     )
+}
+
+/**
+ * Horizontal air quality scale from good (green) to hazardous (red) with a marker at the
+ * current index. Hidden when the index is not a number.
+ */
+@Composable
+private fun AqiGauge(aqi: Int?, accent: Color) {
+    if (aqi == null) return
+    val fraction = (aqi.coerceIn(0, 300) / 300f)
+    androidx.compose.foundation.layout.BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(14.dp)
+    ) {
+        val markerSize = 14.dp
+        Box(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .fillMaxWidth()
+                .height(8.dp)
+                .background(
+                    androidx.compose.ui.graphics.Brush.horizontalGradient(
+                        listOf(DismissGreen, SnoozeYellow, AccentRed)
+                    ),
+                    RoundedCornerShape(4.dp)
+                )
+        )
+        Box(
+            modifier = Modifier
+                .padding(start = (maxWidth - markerSize) * fraction)
+                .size(markerSize)
+                .background(accent, androidx.compose.foundation.shape.CircleShape)
+                .border(2.dp, TextPrimary, androidx.compose.foundation.shape.CircleShape)
+        )
+    }
 }

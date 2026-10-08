@@ -481,6 +481,10 @@ dependencies {
     // free of Google dependencies and keeps polling.
     "playImplementation"(platform("com.google.firebase:firebase-bom:34.19.0"))
     "playImplementation"("com.google.firebase:firebase-messaging")
+    // Crash reporting (play flavor only), on the same Firebase project and the
+    // same BuildConfig initialisation as FCM. No Gradle plugin: the build id
+    // resource lives in src/play/res.
+    "playImplementation"("com.google.firebase:firebase-crashlytics")
     // Health Connect sleep-session reads (play flavor only). F-Droid keeps
     // this out of its dependency graph and binds a no-op repository.
     "playImplementation"("androidx.health.connect:connect-client:1.1.0")

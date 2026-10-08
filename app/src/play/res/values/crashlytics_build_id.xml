@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Build id normally written by the Crashlytics Gradle plugin. Fixed value, since this
+         project does not use the plugin; required by the SDK in non-debuggable builds. -->
+    <string name="com.google.firebase.crashlytics.mapping_file_id" translatable="false">acx-play-no-plugin</string>
+</resources>

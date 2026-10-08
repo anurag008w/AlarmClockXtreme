@@ -98,6 +98,7 @@ class AlarmClockApp : Application(), Configuration.Provider {
             unlockReceiver = null
         }
 
+        com.sysadmindoc.alarmclock.platform.CrashReporting.install(this)
         // Install crash logger for debugging
         com.sysadmindoc.alarmclock.util.CrashLogger.install(this)
         AlarmService.createNotificationChannels(this)

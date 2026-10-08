@@ -13,6 +13,12 @@ object WhatsNewNotes {
     fun releaseNotesUrl(versionName: String): String = "$REPO_URL/releases/tag/v$versionName"
 
     private val notes: Map<String, List<String>> = mapOf(
+        "1.16.8" to listOf(
+            "Air quality: a colour scale from good to hazardous now shows where today's reading sits.",
+            "YouTube alarm sounds: every search result shows its video picture.",
+            "Crash reports: the Play build now sends anonymous crash reports so crashes can be fixed faster. Details are in the privacy policy.",
+            "Alarm scheduling and reliability are unchanged."
+        ),
         "1.16.7" to listOf(
             "Updates: the app now checks for a new version every time it opens and shows the update popup right away.",
             "Updates: the popup lists what changed in plain text, without the raw link and markdown symbols.",
