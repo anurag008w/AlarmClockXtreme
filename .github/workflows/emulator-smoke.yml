@@ -45,6 +45,7 @@ jobs:
             adb logcat -c || true
             adb shell monkey -p com.sysadmindoc.alarmclock.debug -c android.intent.category.LAUNCHER 1
             python3 scripts/emulator_smoke.py shots
+            sh scripts/alert_test.sh shots
             adb logcat -d > shots/logcat.txt
             curl -sL -o release.apk "https://github.com/anurag008w/AlarmClockXtreme/releases/latest/download/app-play-release.apk"
             ls -la release.apk
