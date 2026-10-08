@@ -2,6 +2,11 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.16.10]
+
+- Opt-in external alerts: paired app can vibrate or ring the phone, off by default, pairing code in Settings > Integrations, Stop button. Verified on Android 8 and 9 emulators in CI.
+- Release: v1.16.10 (versionCode 165).
+
 ## [1.16.9]
 
 - Alarm edit AM/PM toggle and round day chips, Settings back arrow. Verified on Android 8 and 9 emulators in CI.

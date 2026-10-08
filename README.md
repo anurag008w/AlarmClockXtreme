@@ -1,6 +1,6 @@
 # AlarmClockXtreme
 
-[![Version](https://img.shields.io/badge/version-1.16.9-5CA6FF)](https://github.com/anurag008w/AlarmClockXtreme/releases/latest)
+[![Version](https://img.shields.io/badge/version-1.16.10-5CA6FF)](https://github.com/anurag008w/AlarmClockXtreme/releases/latest)
 [![License](https://img.shields.io/badge/license-Apache%202.0-65DDB9)](LICENSE)
 [![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white)](https://github.com/anurag008w/AlarmClockXtreme/releases/latest)
 [![Stars](https://img.shields.io/github/stars/anurag008w/AlarmClockXtreme?style=flat&color=FFD166)](https://github.com/anurag008w/AlarmClockXtreme/stargazers)
@@ -45,7 +45,7 @@ Download the signed APKs and matching checksums from the [latest release](https:
 Install the Play build over ADB:
 
 ```bash
-adb install AlarmClockXtreme-v1.16.9-play-release.apk
+adb install AlarmClockXtreme-v1.16.10-play-release.apk
 ```
 
 Each release includes `SHA256SUMS.txt` and certificate fingerprints so you can verify the file before installing it.
@@ -134,7 +134,7 @@ python scripts/osv_gradle_audit.py
 Verify an APK against the certificate fingerprint published with the release:
 
 ```bash
-apksigner verify --print-certs AlarmClockXtreme-v1.16.9-play-release.apk
+apksigner verify --print-certs AlarmClockXtreme-v1.16.10-play-release.apk
 ```
 
 For Android 17 and 16 KB page-size testing, run:
