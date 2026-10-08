@@ -13,7 +13,7 @@ async function refreshNews() {
   $('newsStatus').textContent='Loading news…';
   const data=await api('/api/news?feed='+encodeURIComponent($('newsFeed').value));
   $('newsStatus').textContent=`${data.stale?'Cached news, refresh failed.':'Feed loaded.'} Fetched ${new Date(data.fetchedAtMillis).toLocaleString()}`;
-  $('newsList').innerHTML=data.items.length ? data.items.map(item=>`<article class="card"><h3><a href="${escapeAttr(item.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.title)}</a></h3><p>${escapeHtml(item.summary)}</p><small class="muted">${escapeHtml(new URL(item.url).hostname.replace(/^www\./,''))} · ${escapeHtml(item.published)}</small></article>`).join('') : '<p>No feed entries.</p>';
+  $('newsList').innerHTML=data.items.length ? data.items.map(item=>`<article class="card"><h3><a href="${escapeAttr(item.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.title)}</a></h3>${/https?:\/\//.test(item.summary)?`<details class="advanced-details"><summary>Article details and discussion</summary><p>${escapeHtml(item.summary)}</p></details>`:`<p>${escapeHtml(item.summary)}</p>`}<small class="muted">${escapeHtml(new URL(item.url).hostname.replace(/^www\./,''))} · ${escapeHtml(item.published)}</small></article>`).join('') : '<p>No feed entries.</p>';
  } catch(error){$('newsStatus').textContent='Could not refresh: '+error.message+'. Any previous entries below are unchanged.';}
  finally{button.disabled=false;}
 }
