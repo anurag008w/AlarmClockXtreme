@@ -45,6 +45,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Backup
+import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.BatteryAlert
 import androidx.compose.material.icons.filled.BeachAccess
@@ -179,7 +180,7 @@ private data class SettingsPaneCategory(
     val icon: ImageVector
 )
 
-private val settingsPaneCategories = listOf(
+private val allSettingsPaneCategories = listOf(
     SettingsPaneCategory(
         id = "readiness",
         titleRes = R.string.settings_pane_readiness,
@@ -211,12 +212,23 @@ private val settingsPaneCategories = listOf(
         icon = Icons.Default.Backup
     ),
     SettingsPaneCategory(
+        id = "updates",
+        titleRes = R.string.settings_pane_updates,
+        descriptionRes = R.string.settings_pane_updates_description,
+        icon = Icons.Default.SystemUpdate
+    ),
+    SettingsPaneCategory(
         id = "utilities",
         titleRes = R.string.settings_pane_utilities,
         descriptionRes = R.string.settings_pane_utilities_description,
         icon = Icons.Default.Speed
     )
 )
+
+// The Updates pane is hidden in builds that cannot self-update (F-Droid).
+private val settingsPaneCategories = allSettingsPaneCategories.filter {
+    it.id != "updates" || com.sysadmindoc.alarmclock.data.update.UpdateManager.isSupported
+}
 
 private fun LazyListScope.settingsItem(
     key: String,
@@ -836,6 +848,12 @@ fun SettingsScreen(
             if (!showSettingsHome && selectedPane.id == "backup") {
             settingsItem("backup-restore") {
                 BackupRestoreSection(viewModel, is24HourFormat = state.settings.is24HourFormat)
+            }
+            }
+
+            if (!showSettingsHome && selectedPane.id == "updates") {
+            settingsItem("updates") {
+                UpdatesSection()
             }
             }
 

@@ -29,6 +29,7 @@ import com.sysadmindoc.alarmclock.ui.alarmfiring.AlarmFiringActivity
 import com.sysadmindoc.alarmclock.ui.components.WhatsNewDialog
 import com.sysadmindoc.alarmclock.ui.navigation.AppNavigation
 import com.sysadmindoc.alarmclock.ui.theme.AlarmClockXtremeTheme
+import com.sysadmindoc.alarmclock.util.WhatsNewNotes
 import com.sysadmindoc.alarmclock.util.WhatsNewTracker
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -56,6 +57,7 @@ class MainActivity : ComponentActivity() {
         // v1.5.0: Decide once at launch whether to surface the What's-new
         // dialog; avoid re-checking during recomposition.
         val showWhatsNew = WhatsNewTracker.shouldShow(this, BuildConfig.VERSION_CODE)
+        com.sysadmindoc.alarmclock.data.update.UpdateManager.check(this, manual = false)
 
         setContent {
             val settings = preferencesManager.settings.collectAsStateWithLifecycle(
@@ -75,11 +77,27 @@ class MainActivity : ComponentActivity() {
                     }
                 )
 
+                val updateState by com.sysadmindoc.alarmclock.data.update.UpdateManager.state.collectAsStateWithLifecycle()
+                if (com.sysadmindoc.alarmclock.data.update.UpdateManager.shouldShowPopup(this@MainActivity, updateState)) {
+                    com.sysadmindoc.alarmclock.ui.components.UpdateDialog(
+                        state = updateState,
+                        onDownload = { com.sysadmindoc.alarmclock.data.update.UpdateManager.startDownload(this@MainActivity) },
+                        onInstall = { com.sysadmindoc.alarmclock.data.update.UpdateManager.install(this@MainActivity) },
+                        onFullNotes = { openUrl(updateState.release?.pageUrl ?: WhatsNewNotes.REPO_URL) },
+                        onLater = { com.sysadmindoc.alarmclock.data.update.UpdateManager.dismissPopup() }
+                    )
+                }
+
                 var dialogVisible by remember { mutableStateOf(showWhatsNew) }
                 if (dialogVisible) {
                     WhatsNewDialog(
                         version = BuildConfig.VERSION_NAME,
-                        highlights = WHATS_NEW_HIGHLIGHTS,
+                        highlights = WhatsNewNotes.forVersion(BuildConfig.VERSION_NAME),
+                        onOpenReleaseNotes = {
+                            dialogVisible = false
+                            WhatsNewTracker.markShown(this@MainActivity, BuildConfig.VERSION_CODE)
+                            openUrl(WhatsNewNotes.releaseNotesUrl(BuildConfig.VERSION_NAME))
+                        },
                         onOpenRoadmap = {
                             dialogVisible = false
                             WhatsNewTracker.markShown(this@MainActivity, BuildConfig.VERSION_CODE)
@@ -95,8 +113,10 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun openRoadmap() {
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(ROADMAP_URL))
+    private fun openRoadmap() = openUrl(WhatsNewNotes.ROADMAP_URL)
+
+    private fun openUrl(url: String) {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
         runCatching { startActivity(intent) }
             .onFailure {
                 Toast.makeText(
@@ -202,20 +222,5 @@ class MainActivity : ComponentActivity() {
     companion object {
         private const val KEY_LAST_HANDLED_SHARE_TOKEN_KEY = "last_handled_share_token_key"
         private const val KEY_PENDING_SHARE_TOKEN = "pending_share_token"
-        private const val ROADMAP_URL = "https://github.com/anurag008w/AlarmClockXtreme#roadmap"
-
-        /**
-         * Terse highlights for the "What's new" dialog — four concise
-         * bullets max, written for users (not devs). Full release notes
-         * live in CHANGELOG.md. Refresh on every shipping release so a
-         * returning user sees the actual changes since they last opened
-         * the app, not stale text from two versions ago.
-         */
-        private val WHATS_NEW_HIGHLIGHTS = listOf(
-            "New reliability net: if an alarm is silently suppressed by the system, it now re-fires a couple of minutes later.",
-            "Wake readiness warns you when total-silence Do Not Disturb would mute even your alarms.",
-            "Fixed a small background resource leak in the Quick Settings skip-alarm tile.",
-            "No new permissions."
-        )
     }
 }

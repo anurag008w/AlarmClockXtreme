@@ -3,4 +3,7 @@
     <cache-path
         name="support_exports"
         path="support_exports/" />
+    <external-files-path
+        name="updates"
+        path="Download/" />
 </paths>

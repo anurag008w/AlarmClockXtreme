@@ -45,6 +45,7 @@ fun WhatsNewDialog(
     version: String,
     highlights: List<String>,
     onOpenRoadmap: () -> Unit,
+    onOpenReleaseNotes: () -> Unit = {},
     onDismiss: () -> Unit
 ) {
     AlertDialog(
@@ -127,6 +128,9 @@ fun WhatsNewDialog(
                             )
                         }
                     }
+                }
+                TextButton(onClick = onOpenReleaseNotes) {
+                    Text(stringResource(R.string.whats_new_full_release_notes), color = MaterialTheme.colorScheme.primary)
                 }
             }
         },
