@@ -864,8 +864,14 @@ renderStopwatch();
 function renderWorld() {
   if (typeof worldZonesSynced !== "undefined" && !worldZonesSynced) { $("worldList").textContent="Waiting for an updated phone to sync its saved zones."; return; }
   $("worldList").innerHTML = state.worldZones.map(zone => {
-    const now = new Intl.DateTimeFormat(undefined, {timeZone:zone,weekday:"short",month:"short",day:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit"}).format(new Date());
-    return `<div class="card"><h2>${escapeHtml(zone)}</h2><div class="alarm-time">${escapeHtml(now)}</div><button class="danger" type="button" data-zone="${escapeAttr(zone)}">remove</button></div>`;
+    const instant = new Date();
+    const date = new Intl.DateTimeFormat(undefined,{timeZone:zone,weekday:"short",month:"short",day:"numeric"}).format(instant);
+    const time = new Intl.DateTimeFormat(undefined,{timeZone:zone,hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:!phoneSettings.is24HourFormat}).format(instant);
+    const offset = z => { const parts=new Intl.DateTimeFormat('en-US',{timeZone:z,timeZoneName:'longOffset'}).formatToParts(instant);const text=parts.find(p=>p.type==='timeZoneName').value;const match=text.match(/GMT([+-])(\d{2}):(\d{2})/);return match?(match[1]==='-'?-1:1)*(Number(match[2])*60+Number(match[3])):0; };
+    const delta=(offset(zone)+instant.getTimezoneOffset())/60;
+    const relative=delta===0?'Same time as you':`${Math.abs(delta)}h ${delta>0?'ahead':'behind'}`;
+    const city=zone.split('/').pop().replaceAll('_',' ');
+    return `<div class="card world-card"><h3>${escapeHtml(city)}</h3><div class="world-date">${escapeHtml(date)}</div><div class="world-time">${escapeHtml(time)}</div><div class="world-offset">${escapeHtml(relative)}</div><details class="advanced-details"><summary>Timezone</summary><div class="world-zone">${escapeHtml(zone)}</div></details><button class="ghost" type="button" aria-label="Remove ${escapeAttr(city)}" data-zone="${escapeAttr(zone)}">Remove</button></div>`;
   }).join("");
   $("worldList").querySelectorAll("[data-zone]").forEach(btn => {
     btn.onclick = () => saveWorldZones(state.worldZones.filter(z => z !== btn.dataset.zone));
@@ -922,6 +928,7 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
     document.querySelectorAll(".nav-btn").forEach(x => x.classList.remove("active"));
     document.querySelectorAll(".tab-panel").forEach(x => x.classList.remove("active"));
     btn.classList.add("active");
+    document.querySelectorAll(".nav-btn").forEach(x=>x.setAttribute("aria-current",x===btn?"page":"false"));
     $(`tab-${btn.dataset.tab}`).classList.add("active");
   };
 });
