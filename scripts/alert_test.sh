@@ -24,6 +24,7 @@ adb shell cmd statusbar expand-notifications
 sleep 2
 python3 scripts/tap_text.py STOP > $OUT/alert_tap_out.txt 2>&1
 sleep 3
+adb exec-out screencap -p > $OUT/alert_after_tap.png
 adb shell dumpsys activity services $P | grep -c ExternalAlertService > $OUT/alert_after_stop_services.txt
 adb shell cmd statusbar collapse
 sleep 15

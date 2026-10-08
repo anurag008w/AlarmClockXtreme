@@ -5,6 +5,8 @@ subprocess.run(["adb", "shell", "uiautomator", "dump", "/sdcard/u.xml"], capture
 xml = subprocess.run(["adb", "shell", "cat", "/sdcard/u.xml"], capture_output=True).stdout.decode("utf-8", "ignore")
 root = ET.fromstring(xml[xml.index("<?xml"):] if "<?xml" in xml else xml)
 for n in root.iter("node"):
+    if (n.get("text") or n.get("content-desc")): print("node", repr(n.get("text")), repr(n.get("content-desc")), n.get("bounds"))
+for n in root.iter("node"):
     if (n.get("text") or "").strip().lower() == want:
         m = re.match(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", n.get("bounds", ""))
         x1, y1, x2, y2 = map(int, m.groups())
