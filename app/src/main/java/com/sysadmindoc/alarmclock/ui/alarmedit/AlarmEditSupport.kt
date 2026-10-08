@@ -196,34 +196,33 @@ internal fun DaySelector(
     )
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         days.forEach { (day, label) ->
             val isSelected = day in selectedDays
             Surface(
                 modifier = Modifier
-                    .weight(1f)
-                    .height(54.dp)
+                    .size(40.dp)
+                    .semantics { contentDescription = label }
                     .selectable(
                         selected = isSelected,
                         role = Role.Checkbox,
                         onClick = { onToggleDay(day) }
                     ),
-                shape = RoundedCornerShape(AppRadius.sm),
+                shape = androidx.compose.foundation.shape.CircleShape,
                 color = if (isSelected) {
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+                    MaterialTheme.colorScheme.primary
                 } else {
                     SurfaceCard.copy(alpha = 0.86f)
                 },
                 border = BorderStroke(
                     1.dp,
                     if (isSelected) {
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.38f)
+                        MaterialTheme.colorScheme.primary
                     } else {
-                        TextMuted.copy(alpha = 0.14f)
+                        TextMuted.copy(alpha = 0.22f)
                     }
                 )
             ) {
@@ -232,10 +231,11 @@ internal fun DaySelector(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = label,
-                        color = if (isSelected) TextPrimary else TextSecondary,
+                        text = label.take(1),
+                        color = if (isSelected) androidx.compose.ui.graphics.Color.White else TextSecondary,
                         fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-                        fontSize = 14.sp
+                        fontSize = 14.sp,
+                        maxLines = 1
                     )
                 }
             }
