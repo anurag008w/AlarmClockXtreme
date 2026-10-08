@@ -2421,4 +2421,21 @@
 <string name="settings_share_all_logs">Share all logs (.txt)</string>
 <string name="settings_share_all_logs_description">One text file with redacted crashes, readiness, diagnostics and YouTube failures. Nothing is uploaded automatically.</string>
 <string name="settings_all_logs_ready">All logs are ready to share as one text file.</string>
+    <string name="ext_alert_channel_name">External alerts</string>
+    <string name="ext_alert_title">Alert</string>
+    <string name="ext_alert_default_message">Your assistant is trying to reach you</string>
+    <string name="ext_alert_stop">Stop</string>
+    <string name="ext_alert_settings_title">External alerts</string>
+    <string name="ext_alert_settings_description">Let a paired app, like Divya, vibrate or ring this phone with a short alert. Off by default. Only apps that send the pairing code can trigger it.</string>
+    <string name="ext_alert_enable">Allow external alerts</string>
+    <string name="ext_alert_enable_description">When on, a paired app can vibrate or ring this phone for up to 2 minutes. You can always stop it with the Stop button.</string>
+    <string name="ext_alert_code_label">Pairing code</string>
+    <string name="ext_alert_code_hint">Paste this code into the other app once. A new code stops the old one from working.</string>
+    <string name="ext_alert_copy">Copy code</string>
+    <string name="ext_alert_new_code">New code</string>
+    <string name="ext_alert_test">Test (5 s vibration)</string>
+    <string name="ext_alert_last">Last alert: %1$s</string>
+    <string name="ext_alert_none">No alerts received yet</string>
+    <string name="ext_alert_limits">Do Not Disturb, silent volume and strict battery saving can still delay or mute alerts.</string>
+    <string name="ext_alert_copied">Pairing code copied</string>
 </resources>

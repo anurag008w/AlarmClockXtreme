@@ -832,6 +832,9 @@ fun SettingsScreen(
             settingsItem("integrations-services") {
                 IntegrationsSection(state, viewModel)
             }
+            settingsItem("integrations-external-alerts") {
+                ExternalAlertSection()
+            }
             settingsItem("integrations-holidays") {
                 HolidaysSection(state, viewModel)
             }
