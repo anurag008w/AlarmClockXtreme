@@ -68,7 +68,6 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.SkipNext
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -532,30 +531,6 @@ fun AlarmListScreen(
                     }
 
                     else -> {
-                        val conflictTimes = filteredAlarms
-                            .filter { it.isEnabled }
-                            .groupBy { it.hour * 60 + it.minute }
-                            .filterValues { it.size > 1 }
-                            .keys
-                        if (conflictTimes.isNotEmpty()) {
-                            item {
-                                val timeLabels = conflictTimes.joinToString(", ") { totalMin ->
-                                    val h = totalMin / 60
-                                    val m = totalMin % 60
-                                    AlarmTimeFormatter.format(h, m, state.is24HourFormat)
-                                }
-                                AppInlineNotice(
-                                    title = stringResource(R.string.alarm_list_duplicate_time_title),
-                                    message = stringResource(
-                                        R.string.alarm_list_duplicate_time_message,
-                                        timeLabels
-                                    ),
-                                    icon = Icons.Default.Warning,
-                                    color = SnoozeYellow,
-                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                                )
-                            }
-                        }
                         items(filteredAlarms, key = { it.id }) { alarm ->
                             val isDragging = draggingAlarmId == alarm.id
                             Row(
