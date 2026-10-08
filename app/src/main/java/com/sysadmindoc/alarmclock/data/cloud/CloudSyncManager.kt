@@ -258,23 +258,41 @@ class CloudSyncManager @Inject constructor(
         val base = prefs.getSettingsSnapshot()?.let { mapAdapter.fromJson(it) }
         var chosen = remote
         if (remote.version == 0L || (base != null && mapAdapter.toJson(local) != mapAdapter.toJson(base))) {
-            val merged = remote.payload.toMutableMap()
-            for ((key,value) in local) {
-                if (base == null || (sameValue(remote.payload[key], base[key]) && !sameValue(value, base[key]))) {
-                    merged[key] = value
+            // A key the user changed on this device since the last sync always wins over
+            // the cloud copy: a local toggle must never be reverted by stale remote data.
+            fun mergeOnto(remotePayload: Map<String, Any?>): Map<String, Any?> {
+                val merged = remotePayload.toMutableMap()
+                for ((key, value) in local) {
+                    if (base == null) {
+                        if (!remotePayload.containsKey(key)) merged[key] = value
+                    } else if (!sameValue(value, base[key])) {
+                        merged[key] = value
+                    } else if (!remotePayload.containsKey(key)) {
+                        merged[key] = value
+                    }
                 }
+                return merged
             }
             chosen = try {
-                api.putSettings(auth(), CloudAlarmWriteRequest(merged, remote.version))
+                api.putSettings(auth(), CloudAlarmWriteRequest(mergeOnto(remote.payload), remote.version))
             } catch (error: HttpException) {
                 if (error.code() != 409) throw error
-                api.getSettings(auth()) // concurrent cloud state wins, no stale retry
+                // Concurrent cloud change: re-merge our local edits onto the fresh copy and retry
+                // once. A second conflict aborts this round (local state is left untouched and
+                // the next sync retries) instead of overwriting the local edit.
+                val fresh = api.getSettings(auth())
+                api.putSettings(auth(), CloudAlarmWriteRequest(mergeOnto(fresh.payload), fresh.version))
             }
         }
+        // The network calls above take time. Re-read the live settings and never write cloud
+        // values over a key the user changed while the sync was in flight.
+        val latest = preferencesManager.cloudSettings()
+        val changedMeanwhile = latest.keys.filter { !sameValue(latest[it], local[it]) }.toSet()
+        val toApply = chosen.payload.filterKeys { it !in changedMeanwhile }
         applyingRemote = true
         try {
-            if (chosen.payload.any { (key,value) -> !sameValue(local[key], value) }) {
-                preferencesManager.applyCloudSettings(chosen.payload)
+            if (toApply.any { (key, value) -> !sameValue(latest[key], value) }) {
+                preferencesManager.applyCloudSettings(toApply)
             }
             val applied = preferencesManager.cloudSettings()
             if (CloudSettingsEffects.alarmsChanged(local, applied)) {
@@ -293,8 +311,14 @@ class CloudSyncManager @Inject constructor(
                     BedtimeReceiver.schedule(context, at)
                 } else BedtimeReceiver.cancelScheduled(context)
             }
-            prefs.saveSettingsMetadata(mapAdapter.toJson(applied), chosen.version)
+            // Keys changed mid-sync keep the cloud value as their base so the next sync
+            // sees them as local edits and uploads them.
+            val baseSnapshot = applied.toMutableMap().also { m ->
+                changedMeanwhile.forEach { k -> if (chosen.payload.containsKey(k)) m[k] = chosen.payload[k] }
+            }
+            prefs.saveSettingsMetadata(mapAdapter.toJson(baseSnapshot), chosen.version)
         } finally { applyingRemote = false }
+        if (changedMeanwhile.isNotEmpty()) CloudSyncWorker.enqueueImmediate(context)
     }
 
     private var lastDashboardSuccessElapsed = -1L
