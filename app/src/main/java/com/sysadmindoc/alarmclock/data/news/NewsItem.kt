@@ -21,6 +21,8 @@ data class NewsItem(
     val description: String,
     val source: String,
     val publishedAtMillis: Long?,
+    /** Optional https thumbnail from media:thumbnail, an image enclosure, or the first <img> in the body. */
+    val imageUrl: String? = null,
 ) {
     /** Only open feed links that are plain web URLs — see [isSafeNewsLink]. */
     val hasOpenableLink: Boolean get() = isSafeNewsLink(link)
