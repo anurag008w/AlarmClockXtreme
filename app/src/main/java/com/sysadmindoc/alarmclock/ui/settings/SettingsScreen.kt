@@ -423,6 +423,12 @@ fun SettingsScreen(
                             subtitle = "",
                             actions = {
                                 TextButton(onClick = { selectedPaneId = null }) {
+                                    androidx.compose.material3.Icon(
+                                        imageVector = androidx.compose.material.icons.Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(Modifier.width(6.dp))
                                     Text(stringResource(R.string.settings_title))
                                 }
                             }
