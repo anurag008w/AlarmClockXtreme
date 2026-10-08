@@ -44,6 +44,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Backup
@@ -423,8 +424,8 @@ fun SettingsScreen(
                             subtitle = "",
                             actions = {
                                 TextButton(onClick = { selectedPaneId = null }) {
-                                    androidx.compose.material3.Icon(
-                                        imageVector = androidx.compose.material.icons.Icons.AutoMirrored.Filled.ArrowBack,
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                         contentDescription = null,
                                         modifier = Modifier.size(18.dp)
                                     )
