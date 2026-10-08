@@ -17,6 +17,8 @@ object WhatsNewNotes {
             "Updates: the app now checks for a new version every time it opens and shows the update popup right away.",
             "Updates: the popup lists what changed in plain text, without the raw link and markdown symbols.",
             "Settings > Updates no longer says Not checked yet after a fresh launch.",
+            "Settings switches no longer flip back by themselves after a cloud sync.",
+            "Alarm list: the time stays on one line on narrow phones and the row is tidier.",
             "Alarm scheduling and reliability are unchanged."
         ),
         "1.16.6" to listOf(

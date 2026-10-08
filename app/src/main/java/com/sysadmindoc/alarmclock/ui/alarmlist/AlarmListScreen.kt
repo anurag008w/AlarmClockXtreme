@@ -626,7 +626,7 @@ fun AlarmListScreen(
                                             }
                                         }
                                     )
-                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
                                 }
                                 Box(modifier = Modifier.weight(1f)) {
                                 val isSelected = alarm.id in state.selectedIds
@@ -1184,7 +1184,7 @@ private fun AlarmReorderHandle(
     }
     Box(
         modifier = modifier
-            .size(44.dp)
+            .size(34.dp)
             .clip(RoundedCornerShape(AppRadius.sm))
             .background(
                 if (enabled) {
@@ -1322,7 +1322,7 @@ private fun AlarmCard(
         )
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Row(
@@ -1331,12 +1331,12 @@ private fun AlarmCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 AlarmTimeBadge(hour = alarm.hour, enabled = alarm.isEnabled)
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(10.dp))
                 Column(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Text(
+                    SingleLineFitText(
                         text = formatAlarmTime(alarm, is24Hour),
                         color = if (alarm.isEnabled) TextPrimary else TextMuted,
                         style = ClockTimeSmall
@@ -1380,7 +1380,7 @@ private fun AlarmCard(
                         )
                     }
                     Box {
-                        IconButton(onClick = { showMenu = true }) {
+                        IconButton(onClick = { showMenu = true }, modifier = Modifier.size(40.dp)) {
                             Icon(Icons.Default.MoreVert, stringResource(R.string.alarm_list_options), tint = TextSecondary)
                         }
                         DropdownMenu(
@@ -1474,7 +1474,7 @@ private fun AlarmTimeBadge(hour: Int, enabled: Boolean) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
-            .size(44.dp)
+            .size(40.dp)
             .clip(androidx.compose.foundation.shape.CircleShape)
             .background(tint.copy(alpha = 0.16f * alpha))
     ) {
@@ -1809,4 +1809,33 @@ private fun YouTubeDownloadCard(
             )
         }
     }
+}
+
+/**
+ * Single-line text that shrinks to fit its width instead of wrapping, so an alarm time
+ * like "8:30 AM" never breaks across lines on narrow phones.
+ */
+@Composable
+private fun SingleLineFitText(
+    text: String,
+    color: androidx.compose.ui.graphics.Color,
+    style: androidx.compose.ui.text.TextStyle,
+    modifier: Modifier = Modifier
+) {
+    var scale by remember(text) { mutableStateOf(1f) }
+    Text(
+        text = text,
+        color = color,
+        style = style.copy(
+            fontSize = style.fontSize * scale,
+            lineHeight = style.lineHeight * scale
+        ),
+        maxLines = 1,
+        softWrap = false,
+        overflow = TextOverflow.Clip,
+        modifier = modifier,
+        onTextLayout = { result ->
+            if (result.didOverflowWidth && scale > 0.5f) scale *= 0.92f
+        }
+    )
 }
