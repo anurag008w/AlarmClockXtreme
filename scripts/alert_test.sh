@@ -27,6 +27,7 @@ sleep 3
 adb exec-out screencap -p > $OUT/alert_after_tap.png
 adb shell dumpsys activity services $P | grep -c ExternalAlertService > $OUT/alert_after_stop_services.txt
 adb shell cmd statusbar collapse
+python3 scripts/settings_ext.py $OUT || true
 sleep 15
 adb shell "$B --es alert_id good2 --es token ABCDEFGHJKMN --es level vibrate --ei duration_s 5" > $OUT/alert_good2_out.txt 2>&1
 sleep 3
