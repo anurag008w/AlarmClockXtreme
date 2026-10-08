@@ -43,9 +43,9 @@ RepoType: git
 Repo: https://github.com/anurag008w/AlarmClockXtreme.git
 
 Builds:
-  - versionName: 1.16.4
-    versionCode: 159
-    commit: v1.16.4
+  - versionName: 1.16.5
+    versionCode: 160
+    commit: v1.16.5
     subdir: app
     gradle:
       - fdroid
@@ -60,5 +60,5 @@ AntiFeatures:
       Local crash logs do not use network access and are never uploaded by
       the app.
 
-CurrentVersion: 1.16.4
-CurrentVersionCode: 159
+CurrentVersion: 1.16.5
+CurrentVersionCode: 160

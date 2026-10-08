@@ -2,6 +2,11 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.16.5]
+
+- New look begins: deeper navy theme, alarm time-of-day icons, timer ring. UI verified by code review and CI only (no emulator).
+- Release: v1.16.5 (versionCode 160).
+
 ## [1.16.4]
 
 - Polish pass: consistent corner radii, Settings > Updates shows release notes, screen-reader and localization fixes. UI verified by code review and CI only (no emulator).
