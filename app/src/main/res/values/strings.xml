@@ -1574,6 +1574,7 @@
     <string name="bedtime_sounds_fade_out_after">Fade out after</string>
     <string name="bedtime_sounds_final_taper_length">Final taper length</string>
     <!-- What is new dialog -->
+    <string name="alarm_list_options">Alarm options</string>
     <string name="whats_new_full_release_notes">Full release notes</string>
     <string name="whats_new_continue">Continue</string>
     <string name="whats_new_what_s_next">What’s next</string>

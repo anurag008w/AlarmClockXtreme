@@ -1214,7 +1214,7 @@ private fun QuickAlarmRow(
     onQuickAlarm: (Int) -> Unit,
     napDefaultMinutes: Int = 20
 ) {
-    AppSurfaceCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(14.dp)) {
+    AppSurfaceCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp)) {
         AppSectionTitle(
             title = stringResource(R.string.alarm_list_quick_alarms)
         )
@@ -1318,8 +1318,8 @@ private fun AlarmCard(
         )
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1375,7 +1375,7 @@ private fun AlarmCard(
                     }
                     Box {
                         IconButton(onClick = { showMenu = true }) {
-                            Icon(Icons.Default.MoreVert, "Alarm options", tint = TextSecondary)
+                            Icon(Icons.Default.MoreVert, stringResource(R.string.alarm_list_options), tint = TextSecondary)
                         }
                         DropdownMenu(
                             expanded = showMenu,
