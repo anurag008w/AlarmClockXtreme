@@ -131,12 +131,45 @@ internal fun LazyListScope.alarmEditOverviewSections(
                         style = ClockTimeLarge,
                         color = TextPrimary
                     )
-                    Text(
-                        text = " $amPm",
-                        fontSize = 24.sp,
-                        color = TextSecondary,
-                        modifier = Modifier.padding(bottom = 12.dp)
-                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    val amLabel = java.time.LocalTime.of(6, 0)
+                        .format(java.time.format.DateTimeFormatter.ofPattern("a"))
+                    val pmLabel = java.time.LocalTime.of(18, 0)
+                        .format(java.time.format.DateTimeFormatter.ofPattern("a"))
+                    val isPm = state.hour >= 12
+                    Column(
+                        modifier = Modifier
+                            .padding(bottom = 10.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(SurfaceMedium)
+                    ) {
+                        listOf(false to amLabel, true to pmLabel).forEach { (pm, text) ->
+                            val selected = pm == isPm
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (selected) MaterialTheme.colorScheme.primary else androidx.compose.ui.graphics.Color.Transparent)
+                                    .selectable(
+                                        selected = selected,
+                                        role = Role.RadioButton,
+                                        onClick = {
+                                            if (!selected) {
+                                                viewModel.updateTime((state.hour + 12) % 24, state.minute)
+                                            }
+                                        }
+                                    )
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = text,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (selected) androidx.compose.ui.graphics.Color.White else TextSecondary
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
