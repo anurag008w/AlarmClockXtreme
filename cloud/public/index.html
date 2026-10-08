@@ -1,227 +1,214 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#0e1117">
-  <title>AlarmClockXtreme Cloud</title>
-  <link rel="manifest" href="/manifest.webmanifest">
-  <link rel="stylesheet" href="/styles.css?v=mobile-primary-2">
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="#10151c" name="theme-color"/>
+<title>AlarmClockXtreme Cloud</title>
+<link href="/manifest.webmanifest" rel="manifest"/>
+<link href="/styles.css?v=calm-shell-1" rel="stylesheet"/>
 </head>
 <body>
-  <div id="authView" class="shell center">
-    <section class="card auth-card">
-      <div class="auth-brand"><span class="brand-clock" aria-hidden="true"></span><div><div class="eyebrow">ALARMCLOCKXTREME</div><div class="brand-subtitle">Cloud companion</div></div></div>
-      <h1>Your alarms.<br>Your rhythm.</h1>
-      <p class="muted">A familiar place for your alarms, timers and daily routine. Connected to your Android app.</p>
-      <div class="auth-tabs">
-        <button id="loginTab" class="tab active" type="button">login</button>
-        <button id="registerTab" class="tab" type="button">create account</button>
-      </div>
-      <form id="authForm">
-        <label for="email">Email</label><input id="email" type="email" autocomplete="email" placeholder="you@example.com" required>
-        <label for="password">Password</label><input id="password" type="password" autocomplete="current-password" placeholder="At least 8 characters" required>
-        <button class="primary" type="submit"><span id="authAction">login</span></button>
-      </form>
-      <div id="authError" class="error" role="status"></div><p class="auth-note muted">Ringing and device permissions stay on your phone.</p>
-    </section>
-  </div>
+<div class="shell center" id="authView">
+<section class="card auth-card">
+<div class="auth-brand"><span aria-hidden="true" class="brand-clock"></span><div><div class="eyebrow">ALARMCLOCKXTREME</div><div class="brand-subtitle">Cloud companion</div></div></div>
+<h1>Your alarms.<br/>Your rhythm.</h1>
+<p class="muted">A familiar place for your alarms, timers and daily routine. Connected to your Android app.</p>
+<div class="auth-tabs">
+<button class="tab active" id="loginTab" type="button">login</button>
+<button class="tab" id="registerTab" type="button">create account</button>
+</div>
+<form id="authForm">
+<label for="email">Email</label><input autocomplete="email" id="email" placeholder="you@example.com" required="" type="email"/>
+<label for="password">Password</label><input autocomplete="current-password" id="password" placeholder="At least 8 characters" required="" type="password"/>
+<button class="primary" type="submit"><span id="authAction">login</span></button>
+</form>
+<div class="error" id="authError" role="status"></div><p class="auth-note muted">Ringing and device permissions stay on your phone.</p>
+</section>
+</div>
+<div class="hidden" id="appView">
+<header class="topbar">
+<div>
+<div class="eyebrow">ALARMCLOCKXTREME CLOUD</div>
+<div class="top-title" id="hello">cloud</div>
+</div>
+<div class="top-actions">
+<span aria-live="polite" class="pill" id="syncState" role="status">offline</span>
+<button class="ghost" id="logoutBtn" type="button">logout</button>
+</div>
+</header>
+<nav aria-label="App sections" class="nav"><div class="sidebar-brand">AlarmClockXtreme</div>
+<button aria-current="false" class="nav-btn" data-tab="today" type="button"><svg aria-hidden="true" viewbox="0 0 24 24"><path d="M4 5h16v15H4zM8 3v4m8-4v4M4 10h16"></path></svg><span>Today</span></button>
+<button aria-current="page" class="nav-btn active" data-tab="alarms" type="button"><svg aria-hidden="true" viewbox="0 0 24 24"><circle cx="12" cy="13" r="8"></circle><path d="m12 8 0 5 3 2M3 5l3-3m15 3-3-3M6 20l-2 2m14-2 2 2"></path></svg><span>Alarms</span></button>
+<button aria-current="false" class="nav-btn" data-tab="timer" type="button"><svg aria-hidden="true" viewbox="0 0 24 24"><circle cx="12" cy="14" r="8"></circle><path d="M9 2h6m-3 0v4m0 4v4l3-2m4-7 2 2"></path></svg><span>Timer</span></button>
+<button aria-current="false" class="nav-btn" data-tab="stopwatch" type="button"><svg aria-hidden="true" viewbox="0 0 24 24"><circle cx="12" cy="14" r="8"></circle><path d="M9 2h6m-3 0v4m0 4v5m7-10 2 2"></path></svg><span>Stopwatch</span></button>
+<button aria-current="false" class="nav-btn" data-tab="world" type="button"><svg aria-hidden="true" viewbox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3c5 5 5 13 0 18-5-5-5-13 0-18Z"></path></svg><span>World clocks</span></button>
+<button aria-current="false" class="nav-btn" data-tab="stats" type="button"><svg aria-hidden="true" viewbox="0 0 24 24"><path d="M4 20h16M7 16V9m5 7V4m5 12v-5"></path></svg><span>Stats</span></button>
+<button aria-current="false" class="nav-btn" data-tab="news" type="button"><svg aria-hidden="true" viewbox="0 0 24 24"><path d="M5 3h15v17H5zM2 7v13h3M8 7h9M8 11h9M8 15h5"></path></svg><span>News</span></button>
+<button aria-current="false" class="nav-btn" data-tab="bedtime" type="button"><svg aria-hidden="true" viewbox="0 0 24 24"><path d="M20 15A9 9 0 0 1 9 4a9 9 0 1 0 11 11Z"></path></svg><span>Bedtime</span></button>
+<button aria-current="false" class="nav-btn" data-tab="ai" type="button"><svg aria-hidden="true" viewbox="0 0 24 24"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5Z"></path></svg><span>AI assistant</span></button>
+<button aria-current="false" class="nav-btn" data-tab="settings" type="button"><svg aria-hidden="true" viewbox="0 0 24 24"><path d="M4 7h16M4 17h16"></path><circle cx="8" cy="7" r="3"></circle><circle cx="16" cy="17" r="3"></circle></svg><span>Settings</span></button>
+<button aria-current="false" class="nav-btn" data-tab="activity" type="button"><svg aria-hidden="true" viewbox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"></path></svg><span>Activity</span></button>
+</nav><main class="shell">
+<section class="hero card">
+<div>
+<div class="clock" id="clock">00:00:00</div>
+<div class="muted" id="date"></div>
+</div>
+<div class="hero-actions">
+<button class="secondary" id="syncBtn" type="button">sync now</button>
+<button class="primary" id="newAlarmBtn" type="button">+ alarm</button>
+</div>
+</section>
 
-  <div id="appView" class="hidden">
-    <header class="topbar">
-      <div>
-        <div class="eyebrow">ALARMCLOCKXTREME CLOUD</div>
-        <div id="hello" class="top-title">cloud</div>
-      </div>
-      <div class="top-actions">
-        <span id="syncState" class="pill">offline</span>
-        <button id="logoutBtn" class="ghost" type="button">logout</button>
-      </div>
-    </header>
+<section class="tab-panel" id="tab-today"><div class="section-head page-header"><div><h2>Today</h2><p class="muted">Your day, at a glance.</p></div></div>
+<div class="card"><h2>Today</h2><div id="todayAlarms"></div><div id="phoneToday"></div><details class="advanced-details"><summary>Details and limitations</summary><p class="muted">Cloud alarm configuration, not proof of the phone's next trigger. Your connected phone loads automatically; accounts with multiple phones can choose one in Stats. Saved weather coordinates are not live GPS. Browser city search below is a separate override.</p></details>
+<label>Search weather city<input id="todayCity" maxlength="100" placeholder="City name" type="search"/></label><button class="secondary" id="todaySearch" type="button">Find city</button><div class="list" id="todayCities"></div>
+<button class="secondary" id="todayWeatherRefresh" type="button">Refresh selected city</button><details class="advanced-details"><summary>Details and limitations</summary><p class="muted" id="todayStatus" role="status"></p></details></div><div class="list" id="todayWeather"></div>
+</section>
+<section class="tab-panel active" id="tab-alarms">
+<div class="section-head">
+<div>
+<h2>Alarms</h2>
+<div class="muted">changes here sync to the Android app</div>
+</div>
+<button class="ghost" id="exportBtn" type="button">export</button>
+</div>
+<div class="alarm-tools row">
+<input aria-label="Search alarms" id="alarmSearch" placeholder="Search alarms or groups" type="search"/>
+<select aria-label="Sort alarms" id="alarmSort"><option value="time">By time</option><option value="manual">Manual order</option><option value="label">By label</option></select>
+</div><details class="alarm-tools-disclosure"><summary>Templates, quick alarms and selection tools</summary>
 
-    <main class="shell">
-      <section class="hero card">
-        <div>
-          <div id="clock" class="clock">00:00:00</div>
-          <div id="date" class="muted"></div>
-        </div>
-        <div class="hero-actions">
-          <button id="syncBtn" class="secondary" type="button">sync now</button>
-          <button id="newAlarmBtn" class="primary" type="button">+ alarm</button>
-        </div>
-      </section>
+<div class="row wrap template-tools"><button class="secondary" id="loadAlarmTemplates" type="button">Load Android templates</button><select aria-label="Android template" id="alarmTemplatePicker"></select><button class="secondary" id="draftAlarmTemplate" type="button">Open template draft</button></div>
+<div class="row quick-alarms"><span class="muted">Quick alarm</span><button class="secondary" data-quick="10" type="button">10 min</button><button class="secondary" data-quick="20" type="button">20 min</button><button class="secondary" data-quick="30" type="button">30 min</button></div>
+<div class="card selection-tools"><h3>Selected alarms</h3><div class="row wrap"><button class="secondary" id="batchEnable" type="button">Enable selected</button><button class="secondary" id="batchDisable" type="button">Disable selected</button><button class="danger" id="batchDelete" type="button">Delete selected</button><button class="ghost" id="batchClear" type="button">Clear selection</button></div><p class="muted" id="batchStatus" role="status"></p></div>
+</details>
+<div class="grid" id="alarmList"></div>
+</section>
+<section class="tab-panel" id="tab-timer"><div class="section-head page-header"><div><h2>Timer</h2><p class="muted">Stay focused, one interval at a time.</p></div></div><div class="card utility">
+<h2>Browser timer</h2><p class="scope-label muted">Local to this browser</p>
+<div aria-live="off" class="utility-display" id="timerDisplay">00:05:00</div>
+<div class="row">
+<label class="timer-unit">Minutes<input aria-label="Browser timer minutes" id="timerMinutes" max="999" min="0" placeholder="minutes" type="number" value="5"/></label>
+<label class="timer-unit">Seconds<input aria-label="Browser timer seconds" id="timerSeconds" max="59" min="0" placeholder="seconds" type="number" value="0"/></label>
+</div>
+<div class="row">
+<button class="primary" id="timerStart" type="button">start</button>
+<button class="secondary" id="timerPause" type="button">pause</button>
+<button class="ghost" id="timerReset" type="button">reset</button>
+</div>
+</div>
+<div class="card phone-controls"><h3>Phone timers</h3><details class="advanced-details"><summary>How phone controls work</summary><p class="muted">Your connected phone loads automatically. Keep the updated app open for remote controls (checks every 30 seconds). Background sync can take 15 minutes or longer; commands expire after 2 minutes if the phone is unavailable. Pending means queued, not running. Snapshots can be stale.</p></details>
+<button class="btn secondary" id="loadUtilityDevices" type="button">Load phones</button><select aria-label="Phone" id="utilityDevice"></select>
+<label class="utility-field" for="phoneTimerSeconds">Duration in seconds</label><input aria-label="Phone timer seconds" id="phoneTimerSeconds" max="86400" min="1" type="number" value="60"/>
+<label class="utility-field" for="phoneTimerLabel">Timer label</label><input aria-label="Phone timer label" id="phoneTimerLabel" maxlength="120" placeholder="Label"/>
+<button class="btn secondary" id="startPhoneTimer" type="button">Start on phone</button><button class="btn secondary" id="refreshPhoneTimers" type="button">Refresh phone status</button>
+<details class="advanced-details"><summary>How phone controls work</summary><p class="muted" id="phoneUtilityStatus"></p></details><div id="phoneTimerList"></div></div>
 
-      <nav class="nav" aria-label="App sections">
-        <button class="nav-btn" data-tab="today" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v15H4zM8 3v4m8-4v4M4 10h16"/></svg><span>Today</span></button>
-        <button class="nav-btn active" data-tab="alarms" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="m12 8 0 5 3 2M3 5l3-3m15 3-3-3M6 20l-2 2m14-2 2 2"/></svg><span>Alarms</span></button>
-        <button class="nav-btn" data-tab="timer" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="14" r="8"/><path d="M9 2h6m-3 0v4m0 4v4l3-2m4-7 2 2"/></svg><span>Timer</span></button>
-        <button class="nav-btn" data-tab="stopwatch" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="14" r="8"/><path d="M9 2h6m-3 0v4m0 4v5m7-10 2 2"/></svg><span>Stopwatch</span></button>
-        <button class="nav-btn" data-tab="world" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c5 5 5 13 0 18-5-5-5-13 0-18Z"/></svg><span>World clocks</span></button>
-        <button class="nav-btn" data-tab="stats" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M7 16V9m5 7V4m5 12v-5"/></svg><span>Stats</span></button>
-        <button class="nav-btn" data-tab="news" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h15v17H5zM2 7v13h3M8 7h9M8 11h9M8 15h5"/></svg><span>News</span></button>
-        <button class="nav-btn" data-tab="bedtime" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15A9 9 0 0 1 9 4a9 9 0 1 0 11 11Z"/></svg><span>Bedtime</span></button>
-        <button class="nav-btn" data-tab="ai" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5Z"/></svg><span>AI assistant</span></button>
-        <button class="nav-btn" data-tab="settings" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="8" cy="7" r="3"/><circle cx="16" cy="17" r="3"/></svg><span>Settings</span></button>
-        <button class="nav-btn" data-tab="activity" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg><span>Activity</span></button>
-      </nav>
+</section>
+<section class="tab-panel" id="tab-stopwatch"><div class="section-head page-header"><div><h2>Stopwatch</h2><p class="muted">Track time and keep every lap.</p></div></div><div class="card utility">
+<h2>Browser stopwatch</h2><p class="scope-label muted">Local to this browser</p>
+<p class="muted">Total elapsed</p>
+<div class="utility-display" id="stopwatchDisplay">00:00:00.00</div>
+<p class="muted" id="stopwatchLapLabel">Current lap 1</p>
+<div class="utility-display" id="stopwatchSplit" style="font-size:clamp(24px,5vw,40px)">00:00:00.00</div>
+<div class="row">
+<button class="primary" id="swStart" type="button">start</button>
+<button class="secondary" id="swLap" type="button">lap</button>
+<button class="ghost" id="swReset" type="button">reset</button>
+</div>
+<div class="list" id="laps"></div>
+</div>
+<div class="card phone-controls"><h3>Phone stopwatch</h3><details class="advanced-details"><summary>How phone controls work</summary><p class="muted">Your connected phone loads automatically. Pending means queued. Reset deletes the phone run and laps.</p></details>
+<div id="phoneStopwatchDisplay">No phone snapshot loaded</div>
+<div class="row wrap"><button class="btn secondary" data-phone-stopwatch="start" type="button">start</button><button class="btn secondary" data-phone-stopwatch="pause" type="button">pause</button><button class="btn secondary" data-phone-stopwatch="resume" type="button">resume</button><button class="btn secondary" data-phone-stopwatch="lap" type="button">lap</button><button class="btn secondary" data-phone-stopwatch="reset" type="button">reset</button></div>
+<details class="advanced-details"><summary>How phone controls work</summary><p class="muted" id="phoneStopwatchStatus"></p></details></div>
 
-      <section id="tab-today" class="tab-panel">
-        <div class="card"><h2>Today</h2><div id="todayAlarms"></div><div id="phoneToday"></div><p class="muted">Cloud alarm configuration, not proof of the phone's next trigger. Your connected phone loads automatically; accounts with multiple phones can choose one in Stats. Saved weather coordinates are not live GPS. Browser city search below is a separate override.</p>
-          <label>Search weather city<input id="todayCity" type="search" maxlength="100" placeholder="City name"></label><button id="todaySearch" type="button" class="secondary">Find city</button><div id="todayCities" class="list"></div>
-          <button id="todayWeatherRefresh" type="button" class="secondary">Refresh selected city</button><p id="todayStatus" role="status" class="muted"></p></div><div id="todayWeather" class="list"></div>
-      </section>
-
-      <section id="tab-alarms" class="tab-panel active">
-        <div class="section-head">
-          <div>
-            <h2>alarms</h2>
-            <div class="muted">changes here sync to the Android app</div>
-          </div>
-          <button id="exportBtn" class="ghost" type="button">export</button>
-        </div>
-        <details class="alarm-tools-disclosure"><summary>Tools</summary>
-        <div class="alarm-tools row">
-          <input id="alarmSearch" type="search" placeholder="Search alarms or groups" aria-label="Search alarms">
-          <select id="alarmSort" aria-label="Sort alarms"><option value="time">By time</option><option value="manual">Manual order</option><option value="label">By label</option></select>
-        </div>
-        <div class="row wrap template-tools"><button id="loadAlarmTemplates" class="secondary" type="button">Load Android templates</button><select id="alarmTemplatePicker" aria-label="Alarm template"></select><button id="draftAlarmTemplate" class="secondary" type="button">Open template draft</button></div>
-        <div class="row quick-alarms"><span class="muted">Quick alarm</span><button data-quick="10" class="secondary" type="button">10 min</button><button data-quick="20" class="secondary" type="button">20 min</button><button data-quick="30" class="secondary" type="button">30 min</button></div>
-        <div class="card selection-tools"><h3>Selected alarms</h3><div class="row wrap"><button id="batchEnable" class="secondary" type="button">Enable selected</button><button id="batchDisable" class="secondary" type="button">Disable selected</button><button id="batchDelete" class="danger" type="button">Delete selected</button><button id="batchClear" class="ghost" type="button">Clear selection</button></div><p id="batchStatus" class="muted" role="status"></p></div>
-        </details>
-        <div id="alarmList" class="grid"></div>
-      </section>
-
-      <section id="tab-timer" class="tab-panel">
-        <div class="card phone-controls"><h3>Phone timers</h3><p class="muted">Your connected phone loads automatically. Keep the updated app open for remote controls (checks every 30 seconds). Background sync can take 15 minutes or longer; commands expire after 2 minutes if the phone is unavailable. Pending means queued, not running. Snapshots can be stale.</p>
-        <button type="button" class="btn secondary" id="loadUtilityDevices">Load phones</button><select id="utilityDevice"></select>
-        <label class="utility-field" for="phoneTimerSeconds">Duration in seconds</label><input id="phoneTimerSeconds" type="number" min="1" max="86400" value="60" aria-label="Phone timer seconds">
-        <label class="utility-field" for="phoneTimerLabel">Timer label</label><input id="phoneTimerLabel" maxlength="120" placeholder="Label" aria-label="Phone timer label">
-        <button type="button" class="btn secondary" id="startPhoneTimer">Start on phone</button><button type="button" class="btn secondary" id="refreshPhoneTimers">Refresh phone status</button>
-        <p id="phoneUtilityStatus" class="muted"></p><div id="phoneTimerList"></div></div>
-        <div class="card utility">
-          <h2>Browser timer (local only)</h2>
-          <div id="timerDisplay" class="utility-display" aria-live="off">00:05:00</div>
-          <div class="row">
-            <label class="timer-unit">Minutes<input id="timerMinutes" aria-label="Browser timer minutes" type="number" min="0" max="999" value="5" placeholder="minutes"></label>
-            <label class="timer-unit">Seconds<input id="timerSeconds" aria-label="Browser timer seconds" type="number" min="0" max="59" value="0" placeholder="seconds"></label>
-          </div>
-          <div class="row">
-            <button id="timerStart" class="primary" type="button">start</button>
-            <button id="timerPause" class="secondary" type="button">pause</button>
-            <button id="timerReset" class="ghost" type="button">reset</button>
-          </div>
-        </div>
-      </section>
-
-      <section id="tab-stopwatch" class="tab-panel">
-        <div class="card phone-controls"><h3>Phone stopwatch</h3><p class="muted">Your connected phone loads automatically. Pending means queued. Reset deletes the phone run and laps.</p>
-        <div id="phoneStopwatchDisplay">No phone snapshot loaded</div>
-        <div class="row wrap"><button class="btn secondary" type="button" data-phone-stopwatch="start">start</button><button class="btn secondary" type="button" data-phone-stopwatch="pause">pause</button><button class="btn secondary" type="button" data-phone-stopwatch="resume">resume</button><button class="btn secondary" type="button" data-phone-stopwatch="lap">lap</button><button class="btn secondary" type="button" data-phone-stopwatch="reset">reset</button></div>
-        <p id="phoneStopwatchStatus" class="muted"></p></div>
-        <div class="card utility">
-          <h2>Browser stopwatch (local only)</h2>
-          <p class="muted">Total elapsed</p>
-          <div id="stopwatchDisplay" class="utility-display">00:00:00.00</div>
-          <p id="stopwatchLapLabel" class="muted">Current lap 1</p>
-          <div id="stopwatchSplit" class="utility-display" style="font-size:clamp(24px,5vw,40px)">00:00:00.00</div>
-          <div class="row">
-            <button id="swStart" class="primary" type="button">start</button>
-            <button id="swLap" class="secondary" type="button">lap</button>
-            <button id="swReset" class="ghost" type="button">reset</button>
-          </div>
-          <div id="laps" class="list"></div>
-        </div>
-      </section>
-
-      <section id="tab-world" class="tab-panel">
-        <div class="section-head">
-          <div>
-            <h2>world clocks</h2>
-            <div class="muted">add the cities you care about</div>
-          </div>
-          <select id="timezonePicker">
-            <option value="Asia/Kolkata">India · Mumbai</option>
-            <option value="Europe/London">United Kingdom · London</option>
-            <option value="Europe/Berlin">Germany · Berlin</option>
-            <option value="America/New_York">USA · New York</option>
-            <option value="America/Los_Angeles">USA · Los Angeles</option>
-            <option value="Asia/Tokyo">Japan · Tokyo</option>
-            <option value="Australia/Sydney">Australia · Sydney</option>
-            <option value="Asia/Singapore">Singapore · Singapore</option>
-          </select>
-        </div>
-        <div id="worldList" class="grid"></div>
-      </section>
-
-      <section id="tab-stats" class="tab-panel"><div class="card"><h2>Phone alarm stats</h2><p class="muted">Your connected phone loads automatically. Counts and the 50 most recent alarm events are read-only snapshots, not combined across phones. Existing sleep/health records are mirrored below from your phone. Sync never starts sensors or grants permissions. No raw microphone audio is uploaded.</p><button id="dashboardPhones" class="secondary" type="button">Load phones</button><select id="dashboardDevice" aria-label="Dashboard phone"></select><button id="dashboardRefresh" class="secondary" type="button">Refresh phone snapshot</button><p id="dashboardStatus" class="muted" role="status"></p></div><div id="phoneStats" class="list"></div><div id="phoneAlarmDetails" class="list"></div><button id="refreshAlarmCommands" class="secondary" type="button">Refresh phone alarm command status</button><div id="alarmCommandStatus" class="list"></div><div id="phoneHistory" class="list"></div></section>
-
-      <section id="tab-news" class="tab-panel">
-        <div class="card"><h2>News</h2><p class="muted">The same preset feeds as Android. Refresh reads public news; saving a feed changes your phone setting. Custom URLs remain configurable, but this server reads presets only to avoid unsafe network requests.</p>
-          <label>Feed<select id="newsFeed"></select></label><div class="row wrap"><button id="newsRefresh" class="secondary" type="button">Refresh news</button><button id="newsSave" class="secondary" type="button">Use this feed on phone</button></div><p id="newsStatus" role="status" class="muted"></p></div><div id="newsList" class="list"></div>
-      </section>
-      <section id="tab-bedtime" class="tab-panel">
-        <div class="card"><h2>Bedtime</h2><p class="muted">Phone schedule, goal and checklist use synced settings. This calculator is local and does not guess the phone's next alarm.</p>
-        <label>Wake time for calculation<input id="bedtimeWake" type="time" value="07:00"></label><div id="bedtimeSummary"></div><div id="phoneSleep"></div>
-        <button id="bedtimeSettings" class="secondary" type="button">Edit bedtime settings</button><div id="bedtimeChecklist"></div>
-        <p class="muted">Checklist ticks below last only in this browser session. Phone sleep sounds, DND and sensor control stay on Android. Existing sleep/health records are shown from the selected phone snapshot below.</p></div>
-      </section>
-
-      <section id="tab-ai" class="tab-panel">
-        <div class="card">
-          <h2>ai assistant</h2>
-          <p class="muted">for example: “set my physics alarm tomorrow at 6:00” or “disable the 7am alarm”</p>
-          <textarea id="aiCommand" rows="4" placeholder="tell the assistant what to do..."></textarea>
-          <div class="row">
-            <button id="aiRun" class="primary" type="button">run command</button>
-            <span id="aiStatus" class="muted"></span>
-          </div>
-          <pre id="aiResult" class="result-box"></pre>
-        </div>
-      </section>
-
-      <section id="tab-settings" class="tab-panel">
-        <div class="section-head"><div><h2>Phone settings</h2><p class="muted">Cloud configuration applies on the next Android sync. OS permissions remain on your phone.</p></div></div>
-        <div id="settingsStatus" class="muted" role="status"></div>
-        <div id="settingsEditor"></div>
-        <div class="row settings-save"><button id="saveSettingsBtn" class="primary" type="button">Save phone settings</button><button id="reloadSettingsBtn" class="secondary" type="button">Reload</button></div>
-        <div class="card feature-limits"><h3>What stays on Android</h3><p class="muted">Exact ringing, live dismiss challenges, camera/NFC/sensors, local media downloads, DND permissions, Wear and widgets run on your phone. Ringtone and photo URIs do not upload their files. Phone timer and stopwatch controls require an updated, syncing Android app; browser-only controls are separate. Saved world clock zones sync with an updated phone. Health and sleep records are not uploaded.</p></div>
-      </section>
-      <section id="tab-activity" class="tab-panel">
-        <div class="card">
-          <h2>activity</h2>
-          <div id="activityList" class="list"></div>
-        </div>
-      </section>
-    </main>
-  </div>
-
-  <dialog id="alarmDialog">
-    <form method="dialog" id="alarmForm" class="dialog-card">
-      <div class="editor-header">
-        <div>
-          <div class="eyebrow">ALARM EDITOR</div>
-          <h2 id="dialogTitle">new alarm</h2>
-          <div id="dialogSubtitle" class="muted">Android-style alarm configuration</div>
-        </div>
-        <button id="closeEditorBtn" type="button" class="ghost">close</button>
-      </div>
-      <div id="alarmPreview" class="alarm-preview"></div>
-      <div id="alarmEditor"></div>
-      <div class="row end editor-footer">
-        <button id="deleteAlarmBtn" type="button" class="danger hidden">delete</button>
-        <span class="spacer"></span>
-        <button id="cancelEditorBtn" type="button" class="secondary">cancel</button>
-        <button id="saveAlarmBtn" value="default" class="primary" type="submit">save & sync</button>
-      </div>
-    </form>
-  </dialog>
-
-  <script src="/settings.js"></script>
-  <script src="/app.js?v=live-split-1"></script>
-  <script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(()=>{});</script>
-<script src="/sections.js?v=auto-phone-1"></script>
-  <script src="/utilities.js?v=auto-phone-1"></script>
-  <script src="/practice-data.js"></script>
-  <script src="/practice.js"></script>
+</section>
+<section class="tab-panel" id="tab-world">
+<div class="section-head">
+<div>
+<h2>World clocks</h2>
+<div class="muted">add the cities you care about</div>
+</div>
+<select aria-label="Add a world clock" id="timezonePicker">
+<option value="Asia/Kolkata">India · Mumbai</option>
+<option value="Europe/London">United Kingdom · London</option>
+<option value="Europe/Berlin">Germany · Berlin</option>
+<option value="America/New_York">USA · New York</option>
+<option value="America/Los_Angeles">USA · Los Angeles</option>
+<option value="Asia/Tokyo">Japan · Tokyo</option>
+<option value="Australia/Sydney">Australia · Sydney</option>
+<option value="Asia/Singapore">Singapore · Singapore</option>
+</select>
+</div>
+<div class="grid" id="worldList"></div>
+</section>
+<section class="tab-panel" id="tab-stats"><div class="section-head page-header"><div><h2>Stats</h2><p class="muted">Your phone's alarm history and sleep records.</p></div></div><div class="card"><h2>Phone alarm stats</h2><details class="advanced-details"><summary>Details and limitations</summary><p class="muted">Your connected phone loads automatically. Counts and the 50 most recent alarm events are read-only snapshots, not combined across phones. Existing sleep/health records are mirrored below from your phone. Sync never starts sensors or grants permissions. No raw microphone audio is uploaded.</p></details><button class="secondary" id="dashboardPhones" type="button">Load phones</button><select aria-label="Dashboard phone" id="dashboardDevice"></select><button class="secondary" id="dashboardRefresh" type="button">Refresh phone snapshot</button><details class="advanced-details"><summary>Details and limitations</summary><p class="muted" id="dashboardStatus" role="status"></p></details></div><div class="list" id="phoneStats"></div><div class="list" id="phoneAlarmDetails"></div><button class="secondary" id="refreshAlarmCommands" type="button">Refresh phone alarm command status</button><div class="list" id="alarmCommandStatus"></div><div class="list" id="phoneHistory"></div></section>
+<section class="tab-panel" id="tab-news"><div class="section-head page-header"><div><h2>News</h2><p class="muted">Read your feeds. Keep your phone in sync.</p></div></div>
+<div class="card"><h2>News</h2><details class="advanced-details"><summary>Details and limitations</summary><p class="muted">The same preset feeds as Android. Refresh reads public news; saving a feed changes your phone setting. Custom URLs remain configurable, but this server reads presets only to avoid unsafe network requests.</p></details>
+<label>Feed<select id="newsFeed"></select></label><div class="row wrap"><button class="secondary" id="newsRefresh" type="button">Refresh news</button><button class="secondary" id="newsSave" type="button">Use this feed on phone</button></div><details class="advanced-details"><summary>Details and limitations</summary><p class="muted" id="newsStatus" role="status"></p></details></div><div class="list" id="newsList"></div>
+</section>
+<section class="tab-panel" id="tab-bedtime"><div class="section-head page-header"><div><h2>Bedtime</h2><p class="muted">Make room for a good night.</p></div></div>
+<div class="card"><h2>Bedtime</h2><p class="muted">Phone schedule, goal and checklist use synced settings. This calculator is local and does not guess the phone's next alarm.</p>
+<label>Wake time for calculation<input id="bedtimeWake" type="time" value="07:00"/></label><div id="bedtimeSummary"></div><div id="phoneSleep"></div>
+<button class="secondary" id="bedtimeSettings" type="button">Edit bedtime settings</button><div id="bedtimeChecklist"></div>
+<p class="muted">Checklist ticks below last only in this browser session. Phone sleep sounds, DND and sensor control stay on Android. Existing sleep/health records are shown from the selected phone snapshot below.</p></div>
+</section>
+<section class="tab-panel" id="tab-ai"><div class="section-head page-header"><div><h2>AI assistant</h2><p class="muted">Manage alarms with a simple request.</p></div></div>
+<div class="card">
+<h2>ai assistant</h2>
+<p class="muted">for example: “set my physics alarm tomorrow at 6:00” or “disable the 7am alarm”</p>
+<textarea id="aiCommand" placeholder="tell the assistant what to do..." rows="4"></textarea>
+<div class="row">
+<button class="primary" id="aiRun" type="button">run command</button>
+<span class="muted" id="aiStatus"></span>
+</div>
+<pre class="result-box" id="aiResult"></pre>
+</div>
+</section>
+<section class="tab-panel" id="tab-settings">
+<div class="section-head"><div><h2>Phone settings</h2><p class="muted">Cloud configuration applies on the next Android sync. OS permissions remain on your phone.</p></div></div>
+<div class="muted" id="settingsStatus" role="status"></div>
+<div id="settingsEditor"></div>
+<div class="row settings-save"><button class="primary" id="saveSettingsBtn" type="button">Save phone settings</button><button class="secondary" id="reloadSettingsBtn" type="button">Reload</button></div>
+<div class="card feature-limits"><h3>What stays on Android</h3><p class="muted">Exact ringing, live dismiss challenges, camera/NFC/sensors, local media downloads, DND permissions, Wear and widgets run on your phone. Ringtone and photo URIs do not upload their files. Phone timer and stopwatch controls require an updated, syncing Android app; browser-only controls are separate. Saved world clock zones sync with an updated phone. Health and sleep records are not uploaded.</p></div>
+</section>
+<section class="tab-panel" id="tab-activity"><div class="section-head page-header"><div><h2>Activity</h2><p class="muted">Recent changes to your cloud account.</p></div></div>
+<div class="card">
+<h2>activity</h2>
+<div class="list" id="activityList"></div>
+</div>
+</section>
+</main>
+</div>
+<dialog id="alarmDialog">
+<form class="dialog-card" id="alarmForm" method="dialog">
+<div class="editor-header">
+<div>
+<div class="eyebrow">ALARM EDITOR</div>
+<h2 id="dialogTitle">new alarm</h2>
+<div class="muted" id="dialogSubtitle">Android-style alarm configuration</div>
+</div>
+<button class="ghost" id="closeEditorBtn" type="button">close</button>
+</div>
+<div class="alarm-preview" id="alarmPreview"></div>
+<div id="alarmEditor"></div>
+<div class="row end editor-footer">
+<button class="danger hidden" id="deleteAlarmBtn" type="button">delete</button>
+<span class="spacer"></span>
+<button class="secondary" id="cancelEditorBtn" type="button">cancel</button>
+<button class="primary" id="saveAlarmBtn" type="submit" value="default">save &amp; sync</button>
+</div>
+</form>
+</dialog>
+<script src="/settings.js"></script>
+<script src="/app.js?v=calm-shell-1"></script>
+<script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(()=>{});</script>
+<script src="/sections.js?v=calm-shell-1"></script>
+<script src="/utilities.js?v=auto-phone-1"></script>
+<script src="/practice-data.js"></script>
+<script src="/practice.js"></script>
 </body>
-    </html>
+</html>
