@@ -46,6 +46,15 @@ jobs:
             adb shell monkey -p com.sysadmindoc.alarmclock.debug -c android.intent.category.LAUNCHER 1
             python3 scripts/emulator_smoke.py shots
             adb logcat -d > shots/logcat.txt
+            curl -sL -o release.apk "https://github.com/anurag008w/AlarmClockXtreme/releases/latest/download/app-play-release.apk"
+            ls -la release.apk
+            adb install -r release.apk
+            adb logcat -c || true
+            adb shell monkey -p com.sysadmindoc.alarmclock -c android.intent.category.LAUNCHER 1
+            sleep 12
+            adb exec-out screencap -p > shots/release_launch.png
+            adb shell pidof com.sysadmindoc.alarmclock > shots/release_pid.txt || true
+            adb logcat -d | grep -A12 "FATAL EXCEPTION" | head -40 > shots/release_crash.txt || true
             adb shell pidof com.sysadmindoc.alarmclock.debug > shots/pid.txt || true
       - name: Check for crashes and publish screenshots
         run: |
@@ -64,4 +73,4 @@ jobs:
           mkdir -p out && cp shots/* out/ && git add -f out
           git commit -m "emulator shots api ${{ matrix.api }} for ${{ github.sha }}"
           git push -f origin ci-shots-${{ matrix.api }}
-          if [ -s shots/crash.txt ]; then cat shots/crash.txt; exit 1; fi
+          if [ -s shots/crash.txt ] || [ -s shots/release_crash.txt ]; then cat shots/crash.txt shots/release_crash.txt; exit 1; fi
