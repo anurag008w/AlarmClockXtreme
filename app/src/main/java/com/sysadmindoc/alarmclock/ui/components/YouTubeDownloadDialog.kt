@@ -753,6 +753,7 @@ private fun SearchResultRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            RemoteThumbnail(url = youTubeThumbnailUrl(hit.videoUrl), size = 56.dp)
             Box(
                 modifier = Modifier.size(40.dp),
                 contentAlignment = Alignment.Center
@@ -955,4 +956,12 @@ fun isYouTubeDownloaderAvailable(): Boolean {
 @InstallIn(SingletonComponent::class)
 internal interface YouTubeDialogEntryPoint {
     fun youTubeAudioDownloader(): YouTubeAudioDownloader
+}
+
+/** Public YouTube still for a watch or youtu.be link; null when no video id can be read. */
+internal fun youTubeThumbnailUrl(videoUrl: String): String? {
+    val id = Regex("""[?&]v=([A-Za-z0-9_-]{6,})""").find(videoUrl)?.groupValues?.get(1)
+        ?: Regex("""youtu\.be/([A-Za-z0-9_-]{6,})""").find(videoUrl)?.groupValues?.get(1)
+        ?: Regex("""/shorts/([A-Za-z0-9_-]{6,})""").find(videoUrl)?.groupValues?.get(1)
+    return id?.let { "https://i.ytimg.com/vi/$it/mqdefault.jpg" }
 }
