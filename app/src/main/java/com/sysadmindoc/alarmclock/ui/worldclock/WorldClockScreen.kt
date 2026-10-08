@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.worldclock
 
 import androidx.compose.ui.res.pluralStringResource
+import com.sysadmindoc.alarmclock.ui.theme.AppRadius
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -189,7 +190,7 @@ fun WorldClockScreen(
                         pendingRemoval = null
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = AccentRed),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(AppRadius.sm)
                 ) {
                     Text(stringResource(R.string.world_remove_city))
                 }
@@ -213,7 +214,7 @@ fun WorldClockScreen(
                 )
             },
             containerColor = SurfaceDark,
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(AppRadius.sm)
         )
     }
 }
@@ -323,7 +324,7 @@ private fun AddTimeZoneDialog(
 
                 if (showPrompt || showNoResults) {
                     Surface(
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(AppRadius.sm),
                         color = SurfaceCard.copy(alpha = 0.78f),
                         border = BorderStroke(1.dp, TextMuted.copy(alpha = 0.14f))
                     ) {
@@ -383,7 +384,7 @@ private fun AddTimeZoneDialog(
                                     contentDescription = addCityLabel
                                 }
                                 .clickable(role = Role.Button) { onSelect(entry.zoneId) },
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(AppRadius.sm),
                             color = SurfaceCard.copy(alpha = 0.82f),
                             border = BorderStroke(1.dp, TextMuted.copy(alpha = 0.12f))
                         ) {
@@ -433,7 +434,7 @@ private fun AddTimeZoneDialog(
             }
         },
         containerColor = SurfaceDark,
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(AppRadius.sm)
     )
 }
 
