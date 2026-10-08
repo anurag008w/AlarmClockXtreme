@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.settings
 
 import androidx.activity.compose.rememberLauncherForActivityResult
+import com.sysadmindoc.alarmclock.ui.theme.AppRadius
 import androidx.activity.result.contract.ActivityResultContracts
 import android.Manifest
 import android.content.Intent
@@ -1261,7 +1262,7 @@ private fun SettingsPaneRail(
                             this.selected = selected
                             stateDescription = if (selected) selectedDescription else notSelectedDescription
                         },
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(AppRadius.xs),
                     color = if (selected) {
                         MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
                     } else {
@@ -1346,7 +1347,7 @@ internal fun SettingsToggle(
                 role = Role.Switch,
                 onValueChange = onToggle
             ),
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(AppRadius.xs),
         color = androidx.compose.ui.graphics.Color.Transparent
     ) {
         Row(
@@ -1405,7 +1406,7 @@ internal fun SettingsActionRow(
             .fillMaxWidth()
             .heightIn(min = 58.dp)
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(AppRadius.xs),
         color = androidx.compose.ui.graphics.Color.Transparent
     ) {
         Column(
@@ -1482,7 +1483,7 @@ private fun AppLanguageOptionRow(
 @Composable
 internal fun SettingsInfo(label: String, description: String) {
     Surface(
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(AppRadius.xs),
         color = SurfaceCard.copy(alpha = 0.24f)
     ) {
         Column(
@@ -1509,7 +1510,7 @@ internal fun UtilityShortcutCard(
             .fillMaxWidth()
             .heightIn(min = 64.dp)
             .clickable(role = Role.Button, onClick = onClick),
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(AppRadius.xs),
         color = SurfaceLight.copy(alpha = 0.58f),
         border = BorderStroke(1.dp, BorderSubtle)
     ) {
@@ -1530,7 +1531,7 @@ internal fun UtilityShortcutCard(
                         .size(46.dp)
                         .background(
                             color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
-                            shape = RoundedCornerShape(10.dp)
+                            shape = RoundedCornerShape(AppRadius.xs)
                         ),
                     contentAlignment = Alignment.Center
                 ) {
@@ -1759,9 +1760,9 @@ internal fun DateField(
         modifier = modifier
             .background(
                 color = SurfaceCard.copy(alpha = 0.8f),
-                shape = RoundedCornerShape(10.dp)
+                shape = RoundedCornerShape(AppRadius.xs)
             )
-            .border(1.dp, TextMuted.copy(alpha = 0.16f), RoundedCornerShape(10.dp))
+            .border(1.dp, TextMuted.copy(alpha = 0.16f), RoundedCornerShape(AppRadius.xs))
             .clickable(
                 onClickLabel = onClickDescription,
                 role = Role.Button,

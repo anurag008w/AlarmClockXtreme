@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.share
 
 import androidx.compose.foundation.background
+import com.sysadmindoc.alarmclock.ui.theme.AppRadius
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -254,7 +255,7 @@ private fun PrivateReferenceToggle(
                 role = Role.Checkbox,
                 onValueChange = onCheckedChange
             ),
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(AppRadius.xs),
         color = if (checked) {
             DismissGreen.copy(alpha = 0.10f)
         } else {

@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.stats
 
 import androidx.compose.ui.platform.LocalResources
+import com.sysadmindoc.alarmclock.ui.theme.AppRadius
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -393,7 +394,7 @@ fun StatsScreen(
                     if (state.recentEvents.isNotEmpty()) {
                         OutlinedButton(
                             onClick = { showClearDialog = true },
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(AppRadius.sm),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentRed)
                         ) {
                             Icon(Icons.Default.DeleteSweep, null, modifier = Modifier.size(18.dp))
@@ -491,7 +492,7 @@ fun StatsScreen(
                         showClearDialog = false
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = AccentRed),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(AppRadius.sm)
                 ) {
                     Text(stringResource(R.string.settings_clear_history))
                 }
@@ -514,7 +515,7 @@ fun StatsScreen(
                 )
             },
             containerColor = SurfaceMedium,
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(AppRadius.sm)
         )
     }
 
@@ -659,7 +660,7 @@ private fun WakeStreakBadge(stats: AlarmStats, modifier: Modifier = Modifier) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Surface(
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(AppRadius.sm),
                 color = SnoozeYellow.copy(alpha = if (current > 0) 0.18f else 0.08f)
             ) {
                 Box(
@@ -1234,7 +1235,7 @@ private fun StageDistributionBar(session: ActigraphySession) {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(14.dp)
-                .background(SurfaceCard.copy(alpha = 0.52f), RoundedCornerShape(10.dp))
+                .background(SurfaceCard.copy(alpha = 0.52f), RoundedCornerShape(AppRadius.xs))
         ) {
             StageSegment(session.awakeMinutes, total, AccentRed)
             StageSegment(session.lightMinutes, total, SnoozeYellow)
@@ -1432,7 +1433,7 @@ private fun EventRow(event: AlarmEvent, is24Hour: Boolean) {
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Surface(
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(AppRadius.sm),
             color = actionColor.copy(alpha = 0.14f)
         ) {
             Box(
