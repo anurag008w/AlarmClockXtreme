@@ -62,7 +62,7 @@ internal fun UpdatesSection() {
         if (release != null) {
             if (release.notes.isNotEmpty()) {
                 SettingsInfo(
-                    label = stringResource(R.string.updates_whats_new_in, release.versionName),
+                    label = stringResource(R.string.update_whats_new_in, release.versionName),
                     description = release.notes.joinToString("\n") { "\u2022 $it" }
                 )
             }
