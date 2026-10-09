@@ -13,6 +13,12 @@ object WhatsNewNotes {
     fun releaseNotesUrl(versionName: String): String = "$REPO_URL/releases/tag/v$versionName"
 
     private val notes: Map<String, List<String>> = mapOf(
+        "1.16.11" to listOf(
+            "World clock and Alarms: rounded search fields. Settings: a cloud account card at the top.",
+            "Weather: Hourly and Daily pill tabs in one forecast card. Radar: Open in Windy button under the map.",
+            "Stopwatch: lap table now has # / Lap / Total headings and Best / Slowest labels. Lap and Pause are unchanged.",
+            "Alarm scheduling and reliability are unchanged."
+        ),
         "1.16.10" to listOf(
             "External alerts (off by default): a paired app can vibrate or ring this phone for a short alert. Turn it on in Settings > Integrations. The alert has a Stop button.",
             "Only apps that send the pairing code shown in Settings can trigger an alert. Do Not Disturb, silent volume and strict battery saving can still mute or delay it.",
