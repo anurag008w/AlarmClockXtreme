@@ -38,6 +38,7 @@ def back():
     adb("shell", "input", "keyevent", "4")
     time.sleep(2)
 
+open(f"{OUT}/wm.txt","wb").write(adb("shell","wm","size").stdout+adb("shell","wm","density").stdout)
 adb("shell", "monkey", "-p", PKG, "-c", "android.intent.category.LAUNCHER", "1")
 time.sleep(6)
 for _ in range(8):
@@ -45,16 +46,16 @@ for _ in range(8):
         break
     time.sleep(2)
 
-seeds = [(7, 0, "Wake Up", "2,3,4,5,6"), (8, 30, "Weekend Alarm", "1,7"), (15, 0, "Medicine", ""),
-         (22, 0, "Sleep", ""), (6, 15, "Gym", "2,4,6")]
-for hh, mm, label, days in seeds:
-    cmd = ["shell", "am", "start", "-a", "android.intent.action.SET_ALARM", "-p", PKG,
-           "--ei", "android.intent.extra.alarm.HOUR", str(hh), "--ei", "android.intent.extra.alarm.MINUTES", str(mm),
-           "--es", "android.intent.extra.alarm.MESSAGE", label, "--ez", "android.intent.extra.alarm.SKIP_UI", "true"]
-    if days:
-        cmd += ["--eia", "android.intent.extra.alarm.DAYS", days]
-    adb(*cmd)
-    time.sleep(2)
+m0 = re.search(r"(\d+)x(\d+)", adb("shell", "wm", "size").stdout.decode().split("Override size:")[-1])
+h0 = int(m0.group(2)) if m0 else 2280
+tap_first(["alarms"], min_y=int(h0 * 0.88))
+time.sleep(2)
+for i in range(4):
+    if not tap_first(["new alarm"], min_y=int(h0 * 0.12)):
+        break
+    time.sleep(3)
+    tap_first(["create"], min_y=int(h0 * 0.7))
+    time.sleep(3)
 adb("shell", "monkey", "-p", PKG, "-c", "android.intent.category.LAUNCHER", "1")
 time.sleep(4)
 
