@@ -2,6 +2,11 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.16.12]
+
+- Alarms: slim single-line search field and All/Active/Inactive chips. Checked by compile, unit tests and Android 8/9 emulator smoke in CI.
+- Release: v1.16.12 (versionCode 167).
+
 ## [1.16.11]
 
 - UI polish: rounded search fields, Settings account card, Hourly/Daily weather tabs, Open in Windy button, stopwatch lap table headings with Best/Slowest. Lap/Pause unchanged. Checked by compile, unit tests and Android 8/9 emulator smoke in CI.
