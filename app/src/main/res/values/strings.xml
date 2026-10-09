@@ -2438,4 +2438,5 @@
     <string name="ext_alert_none">No alerts received yet</string>
     <string name="ext_alert_limits">Do Not Disturb, silent volume and strict battery saving can still delay or mute alerts.</string>
     <string name="ext_alert_copied">Pairing code copied</string>
+    <string name="settings_account_card_subtitle">Sign in and sync alarms with the web dashboard</string>
 </resources>
