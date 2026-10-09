@@ -75,10 +75,13 @@ time.sleep(4)
 m = re.search(r"(\d+)x(\d+)", adb("shell", "wm", "size").stdout.decode().split("Override size:")[-1])
 h = int(m.group(2)) if m else 2280
 
-time.sleep(3)
-tap_first(["later"])
-time.sleep(2)
+time.sleep(8)
+for _ in range(3):
+    if not tap_first(["later"]):
+        break
+    time.sleep(2)
 for tab in ["Today", "Alarms", "Timer", "World", "News", "Settings"]:
+    tap_first(["later"])
     tap_first([tab.lower()], min_y=int(h * 0.88))
     time.sleep(3)
     shot(f"tab_{tab}")
