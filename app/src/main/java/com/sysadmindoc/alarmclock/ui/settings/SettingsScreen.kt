@@ -255,6 +255,8 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val accountContext = androidx.compose.ui.platform.LocalContext.current
+    val accountEmail = androidx.compose.runtime.remember { com.sysadmindoc.alarmclock.data.cloud.CloudPreferences(accountContext).getEmail() }
     val supportExportResult by viewModel.supportExportResult.collectAsStateWithLifecycle()
     val supportExportBusy by viewModel.supportExportBusy.collectAsStateWithLifecycle()
 
@@ -438,7 +440,7 @@ fun SettingsScreen(
                                         style = MaterialTheme.typography.titleMedium
                                     )
                                     Text(
-                                        text = stringResource(R.string.settings_account_card_subtitle),
+                                        text = accountEmail.ifBlank { stringResource(R.string.settings_account_card_subtitle) },
                                         color = TextSecondary,
                                         style = MaterialTheme.typography.bodySmall
                                     )

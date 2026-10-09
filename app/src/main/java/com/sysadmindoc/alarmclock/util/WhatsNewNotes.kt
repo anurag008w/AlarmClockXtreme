@@ -13,6 +13,12 @@ object WhatsNewNotes {
     fun releaseNotesUrl(versionName: String): String = "$REPO_URL/releases/tag/v$versionName"
 
     private val notes: Map<String, List<String>> = mapOf(
+        "1.16.13" to listOf(
+            "Timer: a small bell icon next to the preset chips switches the finished-timer alert to vibration only (no ringtone). Tap again for sound and vibration. Your choice is remembered, and sound stays the default.",
+            "Alarms: the time no longer touches the on/off switch, and the time-of-day badge is a rounded square.",
+            "News: category tabs are pill chips. Settings: the account card shows your signed-in email.",
+            "Alarm scheduling and reliability are unchanged."
+        ),
         "1.16.12" to listOf(
             "Alarms: the search box is now a slim single-line field, and All / Active / Inactive chips sit above it.",
             "Alarm scheduling and reliability are unchanged."

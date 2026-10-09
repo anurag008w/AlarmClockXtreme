@@ -1367,13 +1367,13 @@ private fun AlarmCard(
                 AlarmTimeBadge(hour = alarm.hour, enabled = alarm.isEnabled)
                 Spacer(modifier = Modifier.width(10.dp))
                 Column(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).padding(end = 10.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     SingleLineFitText(
                         text = formatAlarmTime(alarm, is24Hour),
                         color = if (alarm.isEnabled) TextPrimary else TextMuted,
-                        style = ClockTimeSmall
+                        style = ClockTimeSmall.copy(fontSize = 30.sp, lineHeight = 34.sp)
                     )
                     Text(
                         text = alarm.label.ifBlank { alarm.repeatLabel(LocalContext.current) },
@@ -1509,7 +1509,7 @@ private fun AlarmTimeBadge(hour: Int, enabled: Boolean) {
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .size(40.dp)
-            .clip(androidx.compose.foundation.shape.CircleShape)
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
             .background(tint.copy(alpha = 0.16f * alpha))
     ) {
         Icon(icon, contentDescription = null, tint = tint.copy(alpha = alpha), modifier = Modifier.size(24.dp))

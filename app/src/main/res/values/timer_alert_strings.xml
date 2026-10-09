@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="timer_alert_sound_on">Timer alert: sound and vibration. Tap for vibrate only</string>
+    <string name="timer_alert_vibrate_only_on">Timer alert: vibrate only. Tap for sound and vibration</string>
+</resources>

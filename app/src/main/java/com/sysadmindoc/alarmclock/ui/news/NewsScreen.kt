@@ -121,35 +121,12 @@ fun NewsScreen(
                     ) {
                         state.feeds.forEach { feed ->
                             val selected = feed.key == state.activeFeedKey
-                            Column(
-                                modifier = Modifier
-                                    // The active feed was signalled only by
-                                    // colour and an underline, so a screen
-                                    // reader could not tell which tab was on.
-                                    .selectable(
-                                        selected = selected,
-                                        role = Role.Tab,
-                                        onClick = { viewModel.selectFeed(feed.key) }
-                                    )
-                                    .padding(horizontal = 10.dp, vertical = 6.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(7.dp)
-                            ) {
-                                Text(
-                                    text = stringResource(feed.shortLabelRes),
-                                    color = if (selected) MaterialTheme.colorScheme.primary else TextSecondary,
-                                    style = MaterialTheme.typography.labelLarge
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .width(30.dp)
-                                        .height(3.dp)
-                                        .background(
-                                            if (selected) MaterialTheme.colorScheme.primary
-                                            else androidx.compose.ui.graphics.Color.Transparent
-                                        )
-                                )
-                            }
+                            AppFilterChip(
+                                label = stringResource(feed.shortLabelRes),
+                                selected = selected,
+                                onClick = { viewModel.selectFeed(feed.key) },
+                                selectionSemantics = true,
+                            )
                         }
                     }
                 }

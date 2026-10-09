@@ -33,6 +33,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.Vibration
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Backspace
 import androidx.compose.material.icons.filled.Pause
@@ -57,6 +59,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -433,16 +436,39 @@ private fun TimerInputView(state: TimerUiState, viewModel: TimerViewModel, modif
         }
 
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            defaultPresets.forEach { preset ->
-                AppFilterChip(
-                    label = preset.label,
-                    selected = false,
-                    onClick = { viewModel.selectPreset(preset) },
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                defaultPresets.forEach { preset ->
+                    AppFilterChip(
+                        label = preset.label,
+                        selected = false,
+                        onClick = { viewModel.selectPreset(preset) },
+                    )
+                }
+            }
+            val timerContext = androidx.compose.ui.platform.LocalContext.current
+            var vibrateOnly by remember { androidx.compose.runtime.mutableStateOf(TimerAlertMode.isVibrateOnly(timerContext)) }
+            androidx.compose.material3.IconButton(
+                onClick = {
+                    vibrateOnly = !vibrateOnly
+                    TimerAlertMode.setVibrateOnly(timerContext, vibrateOnly)
+                },
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = if (vibrateOnly) Icons.Default.Vibration else Icons.Default.NotificationsActive,
+                    contentDescription = stringResource(
+                        if (vibrateOnly) R.string.timer_alert_vibrate_only_on else R.string.timer_alert_sound_on
+                    ),
+                    tint = if (vibrateOnly) MaterialTheme.colorScheme.primary else TextMuted,
+                    modifier = Modifier.size(20.dp)
                 )
             }
         }
