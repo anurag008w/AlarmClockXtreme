@@ -56,6 +56,16 @@ for i in range(4):
     time.sleep(3)
     tap_first(["create"], min_y=int(h0 * 0.7))
     time.sleep(3)
+for _ in range(4):
+    adb("shell", "cmd", "statusbar", "expand-notifications")
+    time.sleep(2)
+    hit = tap_first(["dismiss"])
+    time.sleep(2)
+    adb("shell", "cmd", "statusbar", "collapse")
+    if not hit:
+        break
+adb("shell", "input", "keyevent", "3")
+time.sleep(1)
 adb("shell", "monkey", "-p", PKG, "-c", "android.intent.category.LAUNCHER", "1")
 time.sleep(4)
 
