@@ -33,6 +33,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.Vibration
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Backspace
 import androidx.compose.material.icons.filled.Pause
@@ -447,14 +449,22 @@ private fun TimerInputView(state: TimerUiState, viewModel: TimerViewModel, modif
             }
             val timerContext = androidx.compose.ui.platform.LocalContext.current
             var vibrateOnly by remember { androidx.compose.runtime.mutableStateOf(TimerAlertMode.isVibrateOnly(timerContext)) }
-            AppFilterChip(
-                label = stringResource(R.string.timer_vibrate_only),
-                selected = vibrateOnly,
+            androidx.compose.material3.IconButton(
                 onClick = {
                     vibrateOnly = !vibrateOnly
                     TimerAlertMode.setVibrateOnly(timerContext, vibrateOnly)
                 },
-            )
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = if (vibrateOnly) Icons.Default.Vibration else Icons.Default.NotificationsActive,
+                    contentDescription = stringResource(
+                        if (vibrateOnly) R.string.timer_alert_vibrate_only_on else R.string.timer_alert_sound_on
+                    ),
+                    tint = if (vibrateOnly) MaterialTheme.colorScheme.primary else TextMuted,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
 
         NumPad(
