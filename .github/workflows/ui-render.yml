@@ -35,9 +35,12 @@ jobs:
           target: default
           profile: pixel_2
           disable-animations: true
+          force-avd-creation: true
           script: |
             mkdir -p shots
-            adb install -r app/build/outputs/apk/play/debug/app-play-debug.apk
+            adb uninstall com.sysadmindoc.alarmclock.debug || true
+            adb install -r app/build/outputs/apk/play/debug/app-play-debug.apk > shots/install.txt 2>&1 || true
+            adb shell dumpsys package com.sysadmindoc.alarmclock.debug | grep -E 'versionName|lastUpdateTime' >> shots/install.txt
             adb shell wm size 1080x2280
             adb shell wm density 440
             python3 scripts/ui_render.py shots
