@@ -1,0 +1,57 @@
+name: UI render
+
+# Renders the main screens on an API 28 emulator at 1080x2280 (phone-like) with 5 seeded alarms,
+# so layouts can be inspected. Runs only when a commit message contains [ui].
+on:
+  push:
+    branches:
+      - "redesign/**"
+
+permissions:
+  contents: write
+
+jobs:
+  render:
+    if: contains(github.event.head_commit.message, '[ui]')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - run: chmod +x gradlew
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - run: ./gradlew :app:assemblePlayDebug --no-daemon
+      - name: Render
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 28
+          arch: x86_64
+          target: default
+          profile: pixel_2
+          disable-animations: true
+          script: |
+            mkdir -p shots
+            adb install -r app/build/outputs/apk/play/debug/app-play-debug.apk
+            adb shell wm size 1080x2280
+            adb shell wm density 440
+            python3 scripts/ui_render.py shots
+      - name: Publish
+        run: |
+          sudo apt-get install -y imagemagick >/dev/null
+          cd shots
+          for f in *.png; do convert "$f" -resize 540x -quality 72 "${f%.png}.jpg"; done
+          rm -f *.png
+          cd ..
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan ci-render
+          git rm -rf . >/dev/null 2>&1 || true
+          mkdir -p out && cp shots/* out/ && git add -f out
+          git commit -m "ui render for ${{ github.sha }}"
+          git push -f origin ci-render
