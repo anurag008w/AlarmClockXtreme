@@ -348,26 +348,14 @@ internal fun AlarmEditorCategoryOverview(
             title = stringResource(R.string.alarm_edit_settings_title),
             description = stringResource(R.string.alarm_edit_settings_description)
         )
-        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-            val columns = alarmEditorCategoryColumns(maxWidth.value.toInt())
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                categories.chunked(columns).forEach { rowCategories ->
-                    Row(
-                        // Cards wrap their content now, so a multi-column row
-                        // has to equalise heights itself or a two-line summary
-                        // next to a one-line one leaves the shorter card short.
-                        modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        rowCategories.forEach { category ->
-                            Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                                AlarmEditorCategoryCard(category, onSelect)
-                            }
-                        }
-                        repeat(columns - rowCategories.size) {
-                            Spacer(modifier = Modifier.weight(1f))
-                        }
-                    }
+        AppSurfaceCard(contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)) {
+            categories.forEachIndexed { index, category ->
+                AlarmEditorCategoryRow(category, onSelect)
+                if (index < categories.lastIndex) {
+                    androidx.compose.material3.HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 10.dp),
+                        color = TextMuted.copy(alpha = 0.16f)
+                    )
                 }
             }
         }
@@ -380,6 +368,59 @@ private data class AlarmEditorCategory(
     val summary: String,
     val icon: ImageVector
 )
+
+@Composable
+private fun AlarmEditorCategoryRow(
+    category: AlarmEditorCategory,
+    onSelect: (AlarmEditorPage) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics(mergeDescendants = true) {
+                contentDescription = "${category.title}. ${category.summary}"
+            }
+            .clickable(role = Role.Button) { onSelect(category.page) }
+            .padding(horizontal = 10.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(36.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f))
+        ) {
+            Icon(
+                imageVector = category.icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        Text(
+            text = category.title,
+            color = TextPrimary,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = category.summary,
+            color = TextMuted,
+            style = MaterialTheme.typography.bodySmall,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false).widthIn(max = 150.dp)
+        )
+        Icon(
+            imageVector = Icons.Default.ChevronRight,
+            contentDescription = null,
+            tint = TextMuted
+        )
+    }
+}
 
 @Composable
 private fun AlarmEditorCategoryCard(
