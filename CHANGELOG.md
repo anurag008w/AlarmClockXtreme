@@ -2,6 +2,11 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.16.13]
+
+- Timer: small bell icon switches the finished-timer alert to vibration only (default stays sound). Alarm card spacing and rounded badge, News pills, account email in Settings. Checked by compile and unit tests in CI; not tested on a physical phone.
+- Release: v1.16.13 (versionCode 168).
+
 ## [1.16.12]
 
 - Alarms: slim single-line search field and All/Active/Inactive chips. Checked by compile, unit tests and Android 8/9 emulator smoke in CI.
