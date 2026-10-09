@@ -466,7 +466,7 @@ fun AlarmListScreen(
                                             }
                                         },
                                         colors = appOutlinedTextFieldColors(),
-                                        shape = AppInputShape,
+                                        shape = androidx.compose.foundation.shape.RoundedCornerShape(50),
                                         singleLine = true,
                                         modifier = Modifier.fillMaxWidth()
                                     )
