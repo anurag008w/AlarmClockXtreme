@@ -1367,13 +1367,13 @@ private fun AlarmCard(
                 AlarmTimeBadge(hour = alarm.hour, enabled = alarm.isEnabled)
                 Spacer(modifier = Modifier.width(10.dp))
                 Column(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).padding(end = 10.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     SingleLineFitText(
                         text = formatAlarmTime(alarm, is24Hour),
                         color = if (alarm.isEnabled) TextPrimary else TextMuted,
-                        style = ClockTimeSmall
+                        style = ClockTimeSmall.copy(fontSize = 30.sp, lineHeight = 34.sp)
                     )
                     Text(
                         text = alarm.label.ifBlank { alarm.repeatLabel(LocalContext.current) },
