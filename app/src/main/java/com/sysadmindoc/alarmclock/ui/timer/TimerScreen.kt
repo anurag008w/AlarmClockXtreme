@@ -445,6 +445,16 @@ private fun TimerInputView(state: TimerUiState, viewModel: TimerViewModel, modif
                     onClick = { viewModel.selectPreset(preset) },
                 )
             }
+            val timerContext = androidx.compose.ui.platform.LocalContext.current
+            var vibrateOnly by remember { androidx.compose.runtime.mutableStateOf(TimerAlertMode.isVibrateOnly(timerContext)) }
+            AppFilterChip(
+                label = stringResource(R.string.timer_vibrate_only),
+                selected = vibrateOnly,
+                onClick = {
+                    vibrateOnly = !vibrateOnly
+                    TimerAlertMode.setVibrateOnly(timerContext, vibrateOnly)
+                },
+            )
         }
 
         NumPad(

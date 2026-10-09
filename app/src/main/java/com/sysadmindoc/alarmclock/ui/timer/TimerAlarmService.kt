@@ -221,6 +221,11 @@ class TimerAlarmService : Service() {
 
     private fun ensureSoundPlaying() {
         if (mediaPlayer != null) return
+        if (!TimerAlertMode.isVibrateOnly(this)) startRingtone()
+        startVibration()
+    }
+
+    private fun startRingtone() {
         // Build into a local so a setDataSource/prepare failure can release
         // the half-configured player; assigning the field inside apply {}
         // would leak it (the assignment never happens when apply throws).
@@ -243,6 +248,9 @@ class TimerAlarmService : Service() {
             mediaPlayer = null
             Log.w(TAG, "Failed to play timer alert sound", it)
         }
+    }
+
+    private fun startVibration() {
         if (vibrator == null) {
             vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 getSystemService(VibratorManager::class.java)?.defaultVibrator
