@@ -39,6 +39,9 @@ def back():
     time.sleep(2)
 
 open(f"{OUT}/wm.txt","wb").write(adb("shell","wm","size").stdout+adb("shell","wm","density").stdout)
+for perm in ("ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION", "POST_NOTIFICATIONS"):
+    adb("shell", "pm", "grant", PKG, f"android.permission.{perm}")
+adb("emu", "geo", "fix", "72.8777", "19.0760")
 adb("shell", "monkey", "-p", PKG, "-c", "android.intent.category.LAUNCHER", "1")
 time.sleep(6)
 for _ in range(8):
