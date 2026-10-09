@@ -545,40 +545,44 @@ private fun WeatherSection(
                 // and horizontal-scrolling here (it's a short strip, not the
                 // 24-hour ZeusWatch one). The 3-day below is the bigger
                 // change: vertical now.
-                if (state.hourly.isNotEmpty()) {
+                if (state.hourly.isNotEmpty() || state.forecast.isNotEmpty()) {
+                    var showDaily by remember { mutableStateOf(state.hourly.isEmpty()) }
                     AppSurfaceCard(contentPadding = PaddingValues(14.dp)) {
-                        Text(stringResource(R.string.dashboard_next_few_hours),
-                            color = TextPrimary,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        LazyRow(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            contentPadding = PaddingValues(horizontal = 2.dp)
-                        ) {
-                            items(state.hourly) { hour -> HourlyCell(hour) }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (state.hourly.isNotEmpty()) {
+                                com.sysadmindoc.alarmclock.ui.components.AppFilterChip(
+                                    label = stringResource(R.string.weather_tab_hourly),
+                                    selected = !showDaily,
+                                    onClick = { showDaily = false },
+                                    selectionSemantics = true,
+                                )
+                            }
+                            if (state.forecast.isNotEmpty()) {
+                                com.sysadmindoc.alarmclock.ui.components.AppFilterChip(
+                                    label = stringResource(R.string.weather_tab_daily),
+                                    selected = showDaily,
+                                    onClick = { showDaily = true },
+                                    selectionSemantics = true,
+                                )
+                            }
                         }
-                    }
-                }
-
-                if (state.forecast.isNotEmpty()) {
-                    // v1.7.4: vertical 3-day list, replacing the horizontal
-                    // LazyRow. One day per line is easier to scan and stops
-                    // truncating long descriptions on narrow phones.
-                    AppSurfaceCard(contentPadding = PaddingValues(14.dp)) {
-                        Text(stringResource(R.string.dashboard_next_3_days),
-                            color = TextPrimary,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            state.forecast.take(3).forEachIndexed { index, day ->
-                                ForecastRow(day)
-                                if (index < state.forecast.take(3).lastIndex) {
-                                    HorizontalDivider(color = TextMuted.copy(alpha = 0.16f))
+                        if (!showDaily && state.hourly.isNotEmpty()) {
+                            LazyRow(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                contentPadding = PaddingValues(horizontal = 2.dp)
+                            ) {
+                                items(state.hourly) { hour -> HourlyCell(hour) }
+                            }
+                        } else {
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                state.forecast.take(3).forEachIndexed { index, day ->
+                                    ForecastRow(day)
+                                    if (index < state.forecast.take(3).lastIndex) {
+                                        HorizontalDivider(color = TextMuted.copy(alpha = 0.16f))
+                                    }
                                 }
                             }
                         }

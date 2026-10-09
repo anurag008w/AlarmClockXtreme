@@ -228,6 +228,14 @@ fun StopwatchScreen(
                         title = stringResource(R.string.stopwatch_lap_history),
                         description = stringResource(R.string.stopwatch_best_slowest_splits_are_highlighted)
                     )
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(stringResource(R.string.stopwatch_table_number), color = TextMuted, style = MaterialTheme.typography.labelMedium, modifier = Modifier.width(32.dp))
+                        Text(stringResource(R.string.stopwatch_table_lap), color = TextMuted, style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f))
+                        Text(stringResource(R.string.stopwatch_table_total), color = TextMuted, style = MaterialTheme.typography.labelMedium)
+                    }
                     LazyColumn(
                         modifier = Modifier.fillMaxWidth().heightIn(min = 180.dp, max = 360.dp)
                     ) {
@@ -481,7 +489,13 @@ private fun LapRow(lap: Lap) {
                     maxLines = 1, softWrap = false,
                     fontWeight = FontWeight.Medium
                 )
-
+                if (lap.isBest || lap.isWorst) {
+                    Text(
+                        text = stringResource(if (lap.isBest) R.string.stopwatch_best_label else R.string.stopwatch_slowest_label),
+                        color = textColor,
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
             }
         }
     }

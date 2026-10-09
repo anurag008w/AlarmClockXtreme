@@ -109,6 +109,26 @@ fun WorldClockScreen(
                 )
             }
 
+            item {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .clickable(onClick = viewModel::showAddDialog),
+                    shape = RoundedCornerShape(50),
+                    color = SurfaceCard
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Search, contentDescription = null, tint = TextMuted, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.size(12.dp))
+                        Text(stringResource(R.string.world_search_city_country_region), color = TextMuted, style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+            }
+
             if (state.clocks.isEmpty()) {
                 item {
                     Box(
