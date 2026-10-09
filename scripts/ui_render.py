@@ -66,6 +66,9 @@ for _ in range(4):
         break
 adb("shell", "input", "keyevent", "3")
 time.sleep(1)
+adb("shell", "am", "force-stop", PKG)
+time.sleep(2)
+adb("shell", "cmd", "statusbar", "collapse")
 adb("shell", "monkey", "-p", PKG, "-c", "android.intent.category.LAUNCHER", "1")
 time.sleep(4)
 
