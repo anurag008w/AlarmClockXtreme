@@ -129,14 +129,6 @@ fun WindyRadarCard(
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
-                AppStatusChip(
-                    label = stringResource(R.string.radar_open_windy),
-                    icon = Icons.AutoMirrored.Filled.OpenInNew,
-                    modifier = Modifier.clickable(
-                        role = Role.Button,
-                        onClick = { uriHandler.openUri(externalUrl) },
-                    ),
-                )
             }
 
             Box(
@@ -230,6 +222,18 @@ fun WindyRadarCard(
                         RadarSkeleton()
                     }
                 }
+            }
+            androidx.compose.material3.OutlinedButton(
+                onClick = { uriHandler.openUri(externalUrl) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(AppRadius.sm)
+            ) {
+                Text(stringResource(R.string.radar_open_windy))
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                    contentDescription = null,
+                    modifier = Modifier.padding(start = 8.dp).size(18.dp)
+                )
             }
         }
     }
