@@ -86,22 +86,34 @@ for tab in ["Today", "Alarms", "Timer", "World", "News", "Settings"]:
     time.sleep(3)
     shot(f"tab_{tab}")
 
+def launch():
+    adb("shell", "monkey", "-p", PKG, "-c", "android.intent.category.LAUNCHER", "1")
+    time.sleep(4)
+    tap_first(["later"])
+
 def visit(tab, words, name, min_y=0):
+    launch()
     tap_first([tab.lower()], min_y=int(h * 0.88))
     time.sleep(2)
     hit = tap_first(words, min_y=min_y)
     time.sleep(3)
     shot(name if hit else name + "_MISSING")
-    if hit:
-        back()
 
 visit("Alarms", ["wake up"], "page_alarm_edit", min_y=int(h * 0.12))
 visit("Alarms", ["new alarm", "add"], "page_new_alarm", min_y=int(h * 0.12))
 visit("Timer", ["stopwatch"], "page_stopwatch")
 visit("Settings", ["updates"], "page_settings_updates", min_y=int(h * 0.1))
 visit("Settings", ["defaults"], "page_settings_defaults", min_y=int(h * 0.1))
+launch()
 tap_first(["alarms"], min_y=int(h * 0.88))
 time.sleep(2)
 adb("shell", "input", "swipe", "540", str(int(h * 0.75)), "540", str(int(h * 0.3)), "400")
 time.sleep(2)
 shot("tab_Alarms_scrolled")
+
+launch()
+tap_first(["timer"], min_y=int(h * 0.88))
+time.sleep(2)
+if tap_first(["timer alert"]):
+    time.sleep(1)
+    shot("tab_Timer_vibrate")
