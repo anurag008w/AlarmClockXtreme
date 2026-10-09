@@ -2446,4 +2446,7 @@
     <string name="stopwatch_slowest_label">Slowest</string>
     <string name="weather_tab_hourly">Hourly</string>
     <string name="weather_tab_daily">Daily</string>
+    <string name="alarm_list_search_short">Search alarms or groups</string>
+    <string name="alarm_list_filter_active">Active</string>
+    <string name="alarm_list_filter_inactive">Inactive</string>
 </resources>

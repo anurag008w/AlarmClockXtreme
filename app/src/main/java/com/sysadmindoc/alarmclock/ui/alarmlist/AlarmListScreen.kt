@@ -163,6 +163,7 @@ fun AlarmListScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var showTemplates by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
+    var statusFilter by remember { mutableStateOf(0) }
     var showBulkDeleteConfirmation by remember { mutableStateOf(false) }
 
     // v1.7.1: Prominent (non-tucked) YouTube download entry. The user can
@@ -291,8 +292,9 @@ fun AlarmListScreen(
     }
 
     val searchContext = LocalContext.current
-    val filteredAlarms = remember(state.alarms, searchQuery, state.selectedGroup, searchContext) {
+    val filteredAlarms = remember(state.alarms, searchQuery, state.selectedGroup, searchContext, statusFilter) {
         state.alarms
+            .filter { alarm -> statusFilter == 0 || (statusFilter == 1) == alarm.isEnabled }
             .filter { alarm ->
                 state.selectedGroup == null || alarm.group == state.selectedGroup
             }
@@ -452,25 +454,56 @@ fun AlarmListScreen(
                             }
 
                             if (state.alarms.size > 3) {
-                                AppSurfaceCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(14.dp)) {
-                                    OutlinedTextField(
-                                        value = searchQuery,
-                                        onValueChange = { searchQuery = it },
-                                        placeholder = { Text(stringResource(R.string.alarm_list_search_placeholder)) },
-                                        leadingIcon = { Icon(Icons.Default.Search, null, tint = TextMuted) },
-                                        trailingIcon = {
-                                            if (searchQuery.isNotBlank()) {
-                                                IconButton(onClick = { searchQuery = "" }) {
-                                                    Icon(Icons.Default.Clear, stringResource(R.string.alarm_list_clear_search), tint = TextMuted)
-                                                }
-                                            }
-                                        },
-                                        colors = appOutlinedTextFieldColors(),
-                                        shape = androidx.compose.foundation.shape.RoundedCornerShape(50),
-                                        singleLine = true,
-                                        modifier = Modifier.fillMaxWidth()
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    AppFilterChip(
+                                        label = stringResource(R.string.alarm_list_group_all),
+                                        selected = statusFilter == 0,
+                                        onClick = { statusFilter = 0 },
+                                        selectionSemantics = true,
+                                    )
+                                    AppFilterChip(
+                                        label = stringResource(R.string.alarm_list_filter_active),
+                                        selected = statusFilter == 1,
+                                        onClick = { statusFilter = if (statusFilter == 1) 0 else 1 },
+                                        selectionSemantics = true,
+                                    )
+                                    AppFilterChip(
+                                        label = stringResource(R.string.alarm_list_filter_inactive),
+                                        selected = statusFilter == 2,
+                                        onClick = { statusFilter = if (statusFilter == 2) 0 else 2 },
+                                        selectionSemantics = true,
                                     )
                                 }
+                            }
+                            if (state.alarms.size > 3) {
+                                OutlinedTextField(
+                                    value = searchQuery,
+                                    onValueChange = { searchQuery = it },
+                                    placeholder = {
+                                        Text(
+                                            stringResource(R.string.alarm_list_search_short),
+                                            maxLines = 1,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                    },
+                                    leadingIcon = { Icon(Icons.Default.Search, null, tint = TextMuted) },
+                                    trailingIcon = {
+                                        if (searchQuery.isNotBlank()) {
+                                            IconButton(onClick = { searchQuery = "" }) {
+                                                Icon(Icons.Default.Clear, stringResource(R.string.alarm_list_clear_search), tint = TextMuted)
+                                            }
+                                        }
+                                    },
+                                    textStyle = MaterialTheme.typography.bodyMedium,
+                                    colors = appOutlinedTextFieldColors(),
+                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(50),
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
                             }
                         }
                     }
@@ -521,6 +554,7 @@ fun AlarmListScreen(
                                             TextButton(
                                                 onClick = {
                                                     searchQuery = ""
+                                                    statusFilter = 0
                                                     viewModel.selectGroup(null)
                                                     viewModel.selectProfile(null)
                                                 }

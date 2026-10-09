@@ -13,6 +13,10 @@ object WhatsNewNotes {
     fun releaseNotesUrl(versionName: String): String = "$REPO_URL/releases/tag/v$versionName"
 
     private val notes: Map<String, List<String>> = mapOf(
+        "1.16.12" to listOf(
+            "Alarms: the search box is now a slim single-line field, and All / Active / Inactive chips sit above it.",
+            "Alarm scheduling and reliability are unchanged."
+        ),
         "1.16.11" to listOf(
             "World clock and Alarms: rounded search fields. Settings: a cloud account card at the top.",
             "Weather: Hourly and Daily pill tabs in one forecast card. Radar: Open in Windy button under the map.",
