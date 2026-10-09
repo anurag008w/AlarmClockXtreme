@@ -1,0 +1,2 @@
+Broadcasting: Intent { act=com.alarmclockxtreme.action.EXTERNAL_ALERT flg=0x400000 cmp=com.sysadmindoc.alarmclock.debug/com.sysadmindoc.alarmclock.receiver.ExternalAlertReceiver (has extras) }
+Broadcast completed: result=0
