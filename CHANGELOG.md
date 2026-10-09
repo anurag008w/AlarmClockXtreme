@@ -2,6 +2,11 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.16.11]
+
+- UI polish: rounded search fields, Settings account card, Hourly/Daily weather tabs, Open in Windy button, stopwatch lap table headings with Best/Slowest. Lap/Pause unchanged. Checked by compile, unit tests and Android 8/9 emulator smoke in CI.
+- Release: v1.16.11 (versionCode 166).
+
 ## [1.16.10]
 
 - Opt-in external alerts: paired app can vibrate or ring the phone, off by default, pairing code in Settings > Integrations, Stop button. Verified on Android 8 and 9 emulators in CI.
