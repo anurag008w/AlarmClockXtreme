@@ -1509,7 +1509,7 @@ private fun AlarmTimeBadge(hour: Int, enabled: Boolean) {
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .size(40.dp)
-            .clip(androidx.compose.foundation.shape.CircleShape)
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
             .background(tint.copy(alpha = 0.16f * alpha))
     ) {
         Icon(icon, contentDescription = null, tint = tint.copy(alpha = alpha), modifier = Modifier.size(24.dp))
