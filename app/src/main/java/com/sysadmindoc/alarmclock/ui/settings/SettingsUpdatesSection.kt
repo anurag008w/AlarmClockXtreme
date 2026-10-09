@@ -3,6 +3,14 @@ package com.sysadmindoc.alarmclock.ui.settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.Alignment
+import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
+import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,16 +44,35 @@ internal fun UpdatesSection() {
         title = stringResource(R.string.settings_pane_updates),
         description = stringResource(R.string.settings_pane_updates_description)
     ) {
-        SettingsInfo(
-            label = stringResource(R.string.updates_current_version),
-            description = "v${BuildConfig.VERSION_NAME}"
-        )
         val status = when {
             state.checking -> stringResource(R.string.updates_checking)
             state.error != null -> stringResource(R.string.updates_check_failed)
             release != null -> stringResource(R.string.updates_available, release.versionName)
             state.checkedOnce -> stringResource(R.string.updates_up_to_date)
             else -> stringResource(R.string.updates_not_checked)
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = stringResource(R.string.updates_current_version),
+                    color = TextSecondary,
+                    style = MaterialTheme.typography.labelMedium
+                )
+                Text(
+                    text = "v${BuildConfig.VERSION_NAME}",
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.titleLarge
+                )
+            }
+            AppStatusChip(
+                label = status,
+                icon = if (release == null && state.checkedOnce && state.error == null) Icons.Default.Check else null,
+                color = if (release != null) MaterialTheme.colorScheme.primary else TextSecondary
+            )
         }
         SettingsActionRow(
             label = stringResource(R.string.updates_check_now),
