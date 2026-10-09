@@ -436,17 +436,22 @@ private fun TimerInputView(state: TimerUiState, viewModel: TimerViewModel, modif
         }
 
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            defaultPresets.forEach { preset ->
-                AppFilterChip(
-                    label = preset.label,
-                    selected = false,
-                    onClick = { viewModel.selectPreset(preset) },
-                )
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                defaultPresets.forEach { preset ->
+                    AppFilterChip(
+                        label = preset.label,
+                        selected = false,
+                        onClick = { viewModel.selectPreset(preset) },
+                    )
+                }
             }
             val timerContext = androidx.compose.ui.platform.LocalContext.current
             var vibrateOnly by remember { androidx.compose.runtime.mutableStateOf(TimerAlertMode.isVibrateOnly(timerContext)) }
