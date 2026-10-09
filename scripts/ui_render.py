@@ -90,33 +90,49 @@ for tab in ["Today", "Alarms", "Timer", "World", "News", "Settings"]:
     shot(f"tab_{tab}")
 
 def launch():
+    adb("shell", "am", "force-stop", PKG)
+    time.sleep(1)
     adb("shell", "monkey", "-p", PKG, "-c", "android.intent.category.LAUNCHER", "1")
-    time.sleep(4)
+    time.sleep(5)
     tap_first(["later"])
+    time.sleep(1)
 
-def visit(tab, words, name, min_y=0):
-    launch()
-    tap_first([tab.lower()], min_y=int(h * 0.88))
-    time.sleep(2)
-    hit = tap_first(words, min_y=min_y)
+NAV = int(h * 0.7)
+
+def tap_re(pattern, min_y=0):
+    for label, x, y, y1 in nodes():
+        if y1 >= min_y and re.search(pattern, label):
+            adb("shell", "input", "tap", str(x), str(y))
+            return label
+    return None
+
+def finish(name, hit):
     time.sleep(3)
     shot(name if hit else name + "_MISSING")
 
-visit("Alarms", ["wake up"], "page_alarm_edit", min_y=int(h * 0.12))
-visit("Alarms", ["new alarm", "add"], "page_new_alarm", min_y=int(h * 0.12))
-visit("Timer", ["stopwatch"], "page_stopwatch")
-visit("Settings", ["updates"], "page_settings_updates", min_y=int(h * 0.1))
-visit("Settings", ["defaults"], "page_settings_defaults", min_y=int(h * 0.1))
-launch()
-tap_first(["alarms"], min_y=int(h * 0.88))
-time.sleep(2)
-adb("shell", "input", "swipe", "540", str(int(h * 0.75)), "540", str(int(h * 0.3)), "400")
-time.sleep(2)
-shot("tab_Alarms_scrolled")
+def swipe_up():
+    adb("shell", "input", "swipe", "540", str(int(h * 0.7)), "540", str(int(h * 0.25)), "400")
+    time.sleep(2)
 
-launch()
-tap_first(["timer"], min_y=int(h * 0.88))
-time.sleep(2)
-if tap_first(["timer alert"]):
-    time.sleep(1)
-    shot("tab_Timer_vibrate")
+launch(); tap_first(["alarms"], min_y=NAV); time.sleep(2)
+finish("page_alarm_edit", tap_re(r"\d{1,2}:\d{2}\s?[AP]M", min_y=int(h * 0.12)))
+launch(); tap_first(["alarms"], min_y=NAV); time.sleep(2)
+finish("page_new_alarm", tap_first(["new alarm", "add"], min_y=int(h * 0.12)))
+launch(); tap_first(["timer"], min_y=NAV); time.sleep(2)
+finish("page_stopwatch", tap_first(["stopwatch"]))
+for words, name in ((["updates"], "page_settings_updates"), (["defaults"], "page_settings_defaults")):
+    launch(); tap_first(["settings"], min_y=NAV); time.sleep(2)
+    hit = tap_first(words, min_y=int(h * 0.1))
+    for _ in range(3):
+        if hit:
+            break
+        swipe_up()
+        hit = tap_first(words, min_y=int(h * 0.1))
+    finish(name, hit)
+launch(); tap_first(["alarms"], min_y=NAV); time.sleep(2)
+swipe_up()
+shot("tab_Alarms_scrolled")
+launch(); tap_first(["timer"], min_y=NAV); time.sleep(2)
+hit = tap_first(["timer alert"])
+time.sleep(1)
+shot("tab_Timer_vibrate" if hit else "tab_Timer_vibrate_MISSING")
